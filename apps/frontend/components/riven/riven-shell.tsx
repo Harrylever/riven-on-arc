@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState, type ReactNode } from "react"
+import { PERPS_ENABLED } from "@/lib/flags"
 import { RugWatcher } from "./rug-watcher"
 
 interface Status {
@@ -19,7 +20,7 @@ const NAV = [
   { href: "/portfolio", label: "Portfolio" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/methodology", label: "Score" },
-]
+].filter((n) => PERPS_ENABLED || n.href !== "/perps")
 
 const MOBILE = [
   { href: "/", label: "Screener", icon: "M3 5h18M3 12h18M3 19h18" },
@@ -34,7 +35,7 @@ function useStatus() {
   useEffect(() => {
     let alive = true
     const load = () =>
-      fetch("/api/arc/status")
+      fetch("/api/arc/status?light=1")
         .then((r) => (r.ok ? r.json() : null))
         .then((s) => alive && s && setStatus(s))
         .catch(() => {})

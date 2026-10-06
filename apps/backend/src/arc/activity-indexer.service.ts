@@ -137,6 +137,27 @@ export class ArcActivityIndexerService {
     let toBlock =
       fromBlock + MAX_BLOCKS_PER_RUN - 1n > bound ? bound : fromBlock + MAX_BLOCKS_PER_RUN - 1n;
 
+    // Tokens leaving the followed set stop receiving transfers while the cursor
+    // moves on, so their balances go stale. Mark them partial: the scorer stops
+    // trusting their holders, and the backfill rebuilds them if they come back.
+    const activeFrom = toBlock > ACTIVE_BLOCKS ? toBlock - ACTIVE_BLOCKS : 0n;
+    await db.token.updateMany({
+      where: {
+        launchBlock: { not: null, lt: activeFrom },
+        OR: [{ holderHistory: null }, { holderHistory: "complete" }],
+        AND: [
+          {
+            OR: [
+              { arcMarket: null },
+              { arcMarket: { liquidityUsd: null } },
+              { arcMarket: { liquidityUsd: { lt: 1000 } } },
+            ],
+          },
+        ],
+      },
+      data: { holderHistory: "partial" },
+    });
+
     // Followed: tokens whose full holder history we have ("complete", or legacy
     // launchpad rows with no flag) that launched in the active window, plus older
     // complete tokens that still have real liquidity.
@@ -272,6 +293,10 @@ export class ArcActivityIndexerService {
       txHash: string;
     }> = [];
     const alerts: Array<{ tokenId: string; type: "WHALE_DUMP"; message: string; details: object }> = [];
+    // A transfer into the PoolManager is only a sale when its tx also swapped and
+    // didn't add liquidity — launch seeding and LP adds look identical otherwise.
+    const swapTxs = new Set(swapLogs.map((l) => l.transactionHash));
+    const liquidityTxs = new Set(modifyLogs.map((l) => l.transactionHash));
     for (const log of transfers) {
       const token = tokens.get(log.address.toLowerCase());
       const { from, to, value } = log.args;
@@ -280,7 +305,8 @@ export class ArcActivityIndexerService {
       const t = to.toLowerCase();
       // Anti-rug: one wallet selling 5%+ of supply into the pool in a single transfer.
       const supply = supplyRaw.get(token.id) ?? 0;
-      if (t === POOL_MANAGER.toLowerCase() && supply > 0 && !ignoreSellers.has(f)) {
+      const isSale = swapTxs.has(log.transactionHash) && !liquidityTxs.has(log.transactionHash);
+      if (t === POOL_MANAGER.toLowerCase() && isSale && f !== ZERO && supply > 0 && !ignoreSellers.has(f)) {
         const share = (Number(value) / supply) * 100;
         if (share >= 5) {
           alerts.push({

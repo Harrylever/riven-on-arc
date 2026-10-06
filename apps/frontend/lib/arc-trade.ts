@@ -8,17 +8,16 @@ import {
   encodeFunctionData,
   erc20Abi,
   http,
-  maxUint160,
-  maxUint256,
   parseAbi,
   parseAbiItem,
+  parseUnits,
   type Address,
   type Hex,
 } from "viem"
 
 /**
  * Arc mainnet Uniswap v4 addresses, from developers.uniswap.org/contracts/v4/deployments
- * (2026-10-07) and matched against on-chain activity: 0x4fcA…9Fb1 routes most
+ * (2026-10-06) and matched against on-chain activity: 0x4fcA…9Fb1 routes most
  * swaps Riven indexes.
  */
 export const ARC = {
@@ -67,7 +66,7 @@ const keyCache = new Map<string, PoolKey>()
 export async function poolKeyFor(token: string): Promise<{ key: PoolKey; decimals: number } | null> {
   const t = await getDb().token.findUnique({
     where: { mint: token.toLowerCase() },
-    include: { pools: { where: { venue: "UNISWAP_V4" } } },
+    include: { pools: { where: { venue: "UNISWAP_V4" }, orderBy: { createdAt: "asc" } } },
   })
   const pool = t?.pools[0]
   if (!t || !pool || t.launchBlock === null) return null
@@ -82,6 +81,9 @@ export async function poolKeyFor(token: string): Promise<{ key: PoolKey; decimal
   })
   const a = logs[0]?.args
   if (!a?.currency0 || !a.currency1 || a.fee === undefined || a.tickSpacing === undefined || !a.hooks) return null
+  // Only route USDC pairs: approvals, labels and amounts all assume USDC is one side.
+  const usdc = ARC.usdc.toLowerCase()
+  if (a.currency0.toLowerCase() !== usdc && a.currency1.toLowerCase() !== usdc) return null
   const key: PoolKey = {
     currency0: a.currency0,
     currency1: a.currency1,
@@ -95,7 +97,7 @@ export async function poolKeyFor(token: string): Promise<{ key: PoolKey; decimal
 
 /**
  * Universal Router V4_SWAP: SWAP_EXACT_IN_SINGLE → SETTLE → TAKE. Layout copied
- * from real swaps through this router on Arc (2026-10-07): the swap params carry
+ * from real swaps through this router on Arc (2026-10-06): the swap params carry
  * one extra uint256 (0) before hookData, SETTLE pays the open delta from the user
  * via Permit2, TAKE sends the open delta to the recipient.
  */
@@ -163,8 +165,17 @@ export async function quote(key: PoolKey, zeroForOne: boolean, amountIn: bigint)
   }
 }
 
-/** Approvals the wallet still needs: token → Permit2, then Permit2 → Universal Router. */
-async function approvalsNeeded(wallet: Address, tokenIn: Address, amountIn: bigint): Promise<TxRequest[]> {
+/**
+ * Approvals the wallet still needs: token → Permit2, then Permit2 → Universal
+ * Router. Always for this trade's exact amount and briefly — never unlimited,
+ * so a later phishing signature can't drain the wallet through Permit2.
+ */
+export async function approvalsNeeded(
+  wallet: Address,
+  tokenIn: Address,
+  amountIn: bigint,
+  display: string,
+): Promise<TxRequest[]> {
   const [erc20Allowance, p2] = await Promise.all([
     client.readContract({ address: tokenIn, abi: erc20Abi, functionName: "allowance", args: [wallet, ARC.permit2] }),
     client.readContract({ address: ARC.permit2, abi: PERMIT2_ABI, functionName: "allowance", args: [wallet, tokenIn, ARC.universalRouter] }),
@@ -173,9 +184,9 @@ async function approvalsNeeded(wallet: Address, tokenIn: Address, amountIn: bigi
   if (erc20Allowance < amountIn) {
     out.push({
       to: tokenIn,
-      data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [ARC.permit2, maxUint256] }),
+      data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [ARC.permit2, amountIn] }),
       value: "0",
-      label: "Allow Permit2 to move this token (one time)",
+      label: `Allow Permit2 to spend ${display} (this trade only)`,
     })
   }
   const [p2Amount, p2Expiry] = p2
@@ -186,14 +197,17 @@ async function approvalsNeeded(wallet: Address, tokenIn: Address, amountIn: bigi
       data: encodeFunctionData({
         abi: PERMIT2_ABI,
         functionName: "approve",
-        args: [tokenIn, ARC.universalRouter, maxUint160, now + 30 * 24 * 3600],
+        args: [tokenIn, ARC.universalRouter, amountIn, now + 30 * 60],
       }),
       value: "0",
-      label: "Allow the Uniswap router via Permit2 (30 days)",
+      label: `Let the Uniswap router use ${display} (expires in 30 min)`,
     })
   }
   return out
 }
+
+/** 0.05 USDC (6 decimals) left for gas when buying with USDC. */
+const GAS_RESERVE_USDC = BigInt(50_000)
 
 export async function buildTrade(p: {
   token: string
@@ -213,9 +227,17 @@ export async function buildTrade(p: {
   const zeroForOne = p.side === "buy" ? usdcIs0 : !usdcIs0
   const inDecimals = p.side === "buy" ? 6 : decimals
   const outDecimals = p.side === "buy" ? decimals : 6
-  const human = Number(p.amount)
-  if (!Number.isFinite(human) || human <= 0) return { error: "Enter an amount greater than zero." }
-  const amountIn = BigInt(Math.floor(human * 10 ** Math.min(inDecimals, 12))) * BigInt(10) ** BigInt(Math.max(0, inDecimals - 12))
+  // Parse the decimal string exactly ("0.29" must be 290000, not 289999).
+  const text = String(p.amount).trim()
+  if (!/^\d+(\.\d+)?$/.test(text)) return { error: "Enter an amount greater than zero." }
+  let amountIn: bigint
+  try {
+    amountIn = parseUnits(text, inDecimals)
+  } catch {
+    return { error: "Enter an amount greater than zero." }
+  }
+  if (amountIn <= BigInt(0)) return { error: "Enter an amount greater than zero." }
+  if (!Number.isFinite(p.slippageBps)) return { error: "Slippage must be a number." }
   const tokenIn = p.side === "buy" ? ARC.usdc : tokenAddr
 
   const [amountOut, balance] = await Promise.all([
@@ -225,14 +247,20 @@ export async function buildTrade(p: {
   if (amountOut === null || amountOut === BigInt(0)) return { error: "No quote — the pool may be empty or the trade too large." }
   const slippage = BigInt(Math.min(Math.max(Math.round(p.slippageBps), 10), 5000))
   const minOut = (amountOut * (BigInt(10000) - slippage)) / BigInt(10000)
-  const approvals = await approvalsNeeded(wallet, tokenIn, amountIn)
+  const approvals = await approvalsNeeded(
+    wallet,
+    tokenIn,
+    amountIn,
+    `${text} ${p.side === "buy" ? "USDC" : "tokens"}`,
+  )
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 20 * 60)
 
   return {
     amountIn: (Number(amountIn) / 10 ** inDecimals).toString(),
     amountOut: (Number(amountOut) / 10 ** outDecimals).toString(),
     minOut: (Number(minOut) / 10 ** outDecimals).toString(),
-    insufficient: balance < amountIn,
+    // USDC is also Arc's gas: keep ~0.05 back on buys so the swap can pay for itself.
+    insufficient: balance < amountIn + (p.side === "buy" ? GAS_RESERVE_USDC : BigInt(0)),
     approvals,
     swap: {
       to: ARC.universalRouter,

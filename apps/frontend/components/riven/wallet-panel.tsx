@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { encodeFunctionData, erc20Abi, isAddress, parseUnits, type Address } from "viem"
 import { useArcWallet } from "@/hooks/use-arc-wallet"
+import { TRADING_ENABLED } from "@/lib/flags"
 import type { TokenSummary } from "@/lib/arc-data"
 import { compact, shortAddr, usd } from "@/lib/riven-format"
 import { ScoreBadge } from "./score-badge"
@@ -86,7 +87,7 @@ export function WalletPanel() {
         </div>
         <p className="rv-body mt-2 text-[11px] text-[var(--rv-ink-3)]">EURC counted at 1:1 for the total; token values use live prices.</p>
         <div className="mt-4 grid grid-cols-3 gap-2">
-          {(["deposit", "withdraw", "convert"] as const).map((p) => (
+          {(TRADING_ENABLED ? (["deposit", "withdraw", "convert"] as const) : (["deposit", "withdraw"] as const)).map((p) => (
             <button
               key={p}
               type="button"
@@ -137,12 +138,16 @@ export function WalletPanel() {
                   </div>
                 </Link>
                 <ScoreBadge score={h.token.score} band={h.token.band} size="sm" />
+                {TRADING_ENABLED && (
+                  <>
                 <button type="button" onClick={() => setTrade({ token: h.token, side: "buy" })} className="rv-body rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-up)] ring-1 ring-[rgba(34,197,94,0.4)]">
                   Buy
                 </button>
                 <button type="button" onClick={() => setTrade({ token: h.token, side: "sell" })} className="rv-body rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-down)] ring-1 ring-[rgba(239,68,68,0.4)]">
                   Sell
                 </button>
+                  </>
+                )}
               </li>
             ))}
           </ol>

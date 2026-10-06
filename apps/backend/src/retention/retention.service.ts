@@ -65,7 +65,14 @@ export class RetentionService {
       {
         label: 'ScoreRun',
         run: () =>
-          db.scoreRun.deleteMany({ where: { calculatedAt: { lt: cutoff } } }),
+          // Keep Arc score history: Riven reads each token's latest run, and a
+          // token not rescored in 30 days must not lose its score.
+          db.scoreRun.deleteMany({
+            where: {
+              calculatedAt: { lt: cutoff },
+              OR: [{ methodology: null }, { NOT: { methodology: { startsWith: 'arc-' } } }],
+            },
+          }),
       },
     ];
 

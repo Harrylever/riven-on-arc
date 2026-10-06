@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { toPoolInit } from "./pool-indexer.service";
 import { pickPairs } from "./market-sync.service";
-import { riskAlerts } from "./scoring.service";
+import { launchLiquidityPulled, riskAlerts, usdcInRange } from "./scoring.service";
 
 const USDC = "0x3600000000000000000000000000000000000000";
 const TOKEN = "0xf2c09536cf44b31a8267cf1cb25a5d8ac5695726";
@@ -51,5 +51,38 @@ describe("riskAlerts", () => {
   });
   test("no previous score means no alert", () => {
     expect(riskAlerts(null, next(["LP_REMOVED"], "risk", 1.9), null)).toEqual([]);
+  });
+});
+
+// Audit fixes (Oct 2026): pool USDC from on-chain liquidity, rugs judged on the launch position.
+describe("usdcInRange", () => {
+  test("full-range position at price 1 holds ~L/1 of currency0 (USDC here)", () => {
+    // USDC (0x36…) sorts before TOKEN (0xf2…), so USDC is currency0.
+    const usdc = usdcInRange(2n ** 96n, 1_000_000_000n, null, null, TOKEN);
+    expect(usdc).toBeGreaterThan(999.99);
+    expect(usdc).toBeLessThan(1000.01);
+  });
+  test("price above the range means the pool holds no currency0", () => {
+    expect(usdcInRange(2n ** 96n, 1_000_000_000n, -600, 0, TOKEN)).toBe(0);
+  });
+  test("empty pool is zero, not negative", () => {
+    expect(usdcInRange(0n, 5n, null, null, TOKEN)).toBe(0);
+    expect(usdcInRange(2n ** 96n, 0n, null, null, TOKEN)).toBe(0);
+  });
+});
+
+describe("launchLiquidityPulled", () => {
+  const ev = (positionId: string | null, sender: string, d: number) => ({ positionId, sender, liquidityDelta: d });
+  test("a third-party LP adding and removing a narrow range is not a rug", () => {
+    expect(
+      launchLiquidityPulled([ev("1", "0xpm", 1e18), ev("2", "0xpm", 5e19), ev("2", "0xpm", -5e19)], "1"),
+    ).toBe(false);
+  });
+  test("the launch position being pulled is a rug", () => {
+    expect(launchLiquidityPulled([ev("1", "0xpm", 1e18), ev("1", "0xpm", -9e17)], "1")).toBe(true);
+  });
+  test("without a known position id, judge whoever added the most", () => {
+    expect(launchLiquidityPulled([ev(null, "0xdev", 1e18), ev(null, "0xlp", 1e16), ev(null, "0xdev", -1e18)], null)).toBe(true);
+    expect(launchLiquidityPulled([ev(null, "0xdev", 1e18), ev(null, "0xlp", 1e16), ev(null, "0xlp", -1e16)], null)).toBe(false);
   });
 });

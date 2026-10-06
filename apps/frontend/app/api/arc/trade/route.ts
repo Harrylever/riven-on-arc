@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { buildTrade } from "@/lib/arc-trade"
+import { TRADING_ENABLED } from "@/lib/flags"
 
 export const dynamic = "force-dynamic"
 
@@ -17,11 +18,21 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
+  if (!TRADING_ENABLED) {
+    return NextResponse.json({ error: "Trading is turned off on this deployment." }, { status: 404 })
+  }
   const token = String(body.token ?? "")
   const wallet = String(body.wallet ?? "")
-  const side = body.side === "sell" ? "sell" : "buy"
+  if (body.side !== "buy" && body.side !== "sell") {
+    return NextResponse.json({ error: "side must be \"buy\" or \"sell\"" }, { status: 400 })
+  }
+  const side = body.side
   if (!ADDRESS.test(token) || !ADDRESS.test(wallet)) {
     return NextResponse.json({ error: "Token and wallet must be 0x addresses" }, { status: 400 })
+  }
+  const slippageBps = Number(body.slippageBps ?? 300)
+  if (!Number.isInteger(slippageBps) || slippageBps < 10 || slippageBps > 5000) {
+    return NextResponse.json({ error: "slippageBps must be a whole number from 10 to 5000" }, { status: 400 })
   }
   try {
     const result = await buildTrade({
@@ -29,7 +40,7 @@ export async function POST(req: Request) {
       side,
       amount: String(body.amount ?? ""),
       wallet,
-      slippageBps: Number(body.slippageBps ?? 300),
+      slippageBps,
     })
     return NextResponse.json(result, { status: "error" in result ? 422 : 200 })
   } catch (err) {

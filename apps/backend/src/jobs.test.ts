@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { createServices } from "./container";
 import { startJobs } from "./jobs";
 
-test("registers cron jobs on the expected cadences", () => {
-  delete process.env.CHAIN_MODE;
+test("solana mode registers legacy cron jobs on the expected cadences", () => {
+  process.env.CHAIN_MODE = "solana";
   const jobs = startJobs(createServices());
   try {
     expect(jobs).toHaveLength(11);
@@ -16,6 +16,17 @@ test("registers cron jobs on the expected cadences", () => {
     expect(byName["retention.pruneOldRows"]).toBe("0 0 3 * * *");
     expect(byName["kol.pollRecentTrades"]).toBe("0 */30 * * * *");
     for (const j of jobs) expect(j.nextRun()).toBeInstanceOf(Date);
+  } finally {
+    jobs.forEach((j) => j.stop());
+    delete process.env.CHAIN_MODE;
+  }
+});
+
+test("with CHAIN_MODE unset, only Arc indexing runs (no stray Solana jobs)", () => {
+  delete process.env.CHAIN_MODE;
+  const jobs = startJobs(createServices());
+  try {
+    expect(jobs.map((j) => j.name)).toEqual(["arcPipeline.runOnce"]);
   } finally {
     jobs.forEach((j) => j.stop());
   }

@@ -95,6 +95,59 @@ export function authorityFromBytecode(code: string, upgradeableProxy: boolean): 
   };
 }
 
+/** sqrt(1.0001^tick), the v4 price-at-tick in sqrt form. */
+const sqrtAtTick = (tick: number) => Math.pow(1.0001, tick / 2);
+const MIN_TICK = -887272;
+const MAX_TICK = 887272;
+
+/**
+ * USDC actually sitting in a v4 pool's launch range, from on-chain liquidity
+ * and price — not from summing swaps, which ignores liquidity adds/removes.
+ * Uses the pool's active liquidity over the launch range: exact for a single
+ * launch position, a close estimate once others add in-range liquidity.
+ */
+export function usdcInRange(
+  sqrtPriceX96: bigint,
+  liquidity: bigint,
+  tickLower: number | null,
+  tickUpper: number | null,
+  token: string,
+): number {
+  if (sqrtPriceX96 <= 0n || liquidity <= 0n) return 0;
+  const L = Number(liquidity);
+  const sa = sqrtAtTick(tickLower ?? MIN_TICK);
+  const sb = sqrtAtTick(tickUpper ?? MAX_TICK);
+  const s = Math.min(Math.max(Number(sqrtPriceX96) / 2 ** 96, sa), sb);
+  const amount0 = (L * (sb - s)) / (s * sb);
+  const amount1 = L * (s - sa);
+  const usdcIsCurrency0 = USDC.toLowerCase() < token.toLowerCase();
+  return (usdcIsCurrency0 ? amount0 : amount1) / 1e6;
+}
+
+/**
+ * A rug is the launch liquidity being pulled. Liquidity units from different
+ * positions and tick ranges aren't comparable, so judge the launch position
+ * alone (its NFT id, else whoever added the most) — third-party LPs coming and
+ * going is normal and must not read as a rug.
+ */
+export function launchLiquidityPulled(
+  events: Array<{ positionId: string | null; sender: string; liquidityDelta: unknown }>,
+  launchPositionId: string | null,
+): boolean {
+  const per = new Map<string, { added: number; removed: number }>();
+  for (const e of events) {
+    const key = e.positionId ? `nft:${e.positionId}` : `addr:${e.sender}`;
+    const d = Number(e.liquidityDelta);
+    const v = per.get(key) ?? { added: 0, removed: 0 };
+    if (d > 0) v.added += d;
+    else v.removed += -d;
+    per.set(key, v);
+  }
+  let launch = launchPositionId ? per.get(`nft:${launchPositionId}`) : undefined;
+  if (!launch) launch = [...per.values()].sort((a, b) => b.added - a.added)[0];
+  return !!launch && launch.added > 0 && launch.removed / launch.added >= 0.5;
+}
+
 /** USD per whole token from a v4 sqrtPriceX96 on a USDC/token pool. */
 export function priceFromSqrt(sqrtPriceX96: bigint, token: string, decimals: number): number {
   const ratio = (Number(sqrtPriceX96) / 2 ** 96) ** 2; // currency1 per currency0, raw units
@@ -137,6 +190,7 @@ export function riskAlerts(
 
 const STATE_VIEW_ABI = parseAbi([
   "function getSlot0(bytes32 poolId) view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee)",
+  "function getLiquidity(bytes32 poolId) view returns (uint128 liquidity)",
 ]);
 const OWNER_OF_ABI = parseAbi(["function ownerOf(uint256 tokenId) view returns (address)"]);
 
@@ -170,7 +224,7 @@ export class ArcScoringService {
     const db = getDb();
     const now = Date.now();
     const include = {
-      pools: true,
+      pools: { orderBy: { createdAt: "asc" as const } }, // first pool = the launch pool
       arcMarket: true,
       scoreRuns: { orderBy: { calculatedAt: "desc" as const }, take: 1 },
     };
@@ -217,7 +271,7 @@ export class ArcScoringService {
     }
 
     const v4 = due.filter((t) => t.pools[0]?.venue === "UNISWAP_V4");
-    const [slot0s, owners] = await Promise.all([
+    const [slot0s, owners, liquidities] = await Promise.all([
       this.client.multicall({
         allowFailure: true,
         contracts: v4.map((t) => ({
@@ -236,17 +290,32 @@ export class ArcScoringService {
           args: [BigInt(t.pools[0]!.positionId ?? "0")],
         }) as const),
       }),
+      this.client.multicall({
+        allowFailure: true,
+        contracts: v4.map((t) => ({
+          address: STATE_VIEW,
+          abi: STATE_VIEW_ABI,
+          functionName: "getLiquidity",
+          args: [t.pools[0]!.address as Hex],
+        }) as const),
+      }),
     ]);
     const market = new Map<
       string,
-      { priceUsd: number | null; feePct: number | null; lpOwner: string | null }
+      { priceUsd: number | null; feePct: number | null; lpOwner: string | null; poolUsdc: number | null }
     >();
     v4.forEach((t, i) => {
       const pool = t.pools[0]!;
       const s = slot0s[i];
       const o = owners[i];
       const sqrt = s?.status === "success" ? s.result[0] : 0n;
+      const liq = liquidities[i];
+      const range = (pool.launchInfo ?? null) as LaunchInfo | null;
       market.set(t.id, {
+        poolUsdc:
+          sqrt > 0n && liq?.status === "success"
+            ? usdcInRange(sqrt, liq.result, range?.tickLower ?? null, range?.tickUpper ?? null, t.mint)
+            : null,
         priceUsd: sqrt > 0n ? priceFromSqrt(sqrt, t.mint, t.decimals ?? 18) : null,
         // lpFee is in hundredths of a bip: 10000 = 1%.
         feePct: s?.status === "success" ? s.result[3] / 10_000 : null,
@@ -261,7 +330,7 @@ export class ArcScoringService {
         const published = await this.scoreToken(t, {
           activityBlock: activity?.lastBlock ?? null,
           head,
-          market: market.get(t.id) ?? { priceUsd: null, feePct: null, lpOwner: null },
+          market: market.get(t.id) ?? { priceUsd: null, feePct: null, lpOwner: null, poolUsdc: null },
         });
         published ? scored++ : unscored++;
       } catch (err) {
@@ -331,9 +400,7 @@ export class ArcScoringService {
     if (!pool) return null;
     if (pool.venue === "BONDING_CURVE") return "launchpad_curve";
     const events = await getDb().arcLpEvent.findMany({ where: { poolId: pool.id } });
-    const added = events.reduce((sum, e) => sum + Math.max(0, Number(e.liquidityDelta)), 0);
-    const removed = events.reduce((sum, e) => sum + Math.max(0, -Number(e.liquidityDelta)), 0);
-    if (added > 0 && removed / added >= 0.5) return "removed";
+    if (launchLiquidityPulled(events, pool.positionId)) return "removed";
     if (events.length === 0 && pool.lpRemovedAt) return "removed";
 
     // Net liquidity per controller: a position NFT id, or the contract that added directly.
@@ -398,9 +465,18 @@ export class ArcScoringService {
       where: { deployerWallet: creator, id: { not: tokenId }, launchTime: { lt: cutoff } },
       orderBy: { launchTime: "desc" },
       take: 20,
-      select: { scoreRuns: { orderBy: { calculatedAt: "desc" }, take: 1, select: { signals: true } } },
+      select: {
+        scoreRuns: {
+          where: { methodology: ARC_METHODOLOGY },
+          orderBy: { calculatedAt: "desc" },
+          take: 1,
+          select: { signals: true },
+        },
+      },
     });
-    const FAILED = /^(Holders own only|Creator dumped|Volume looks fake|Liquidity has already been removed)/;
+    const FAILED = /^(Dead:|Creator dumped|Liquidity has already been removed)/;
+    // Only count verdicts from the current methodology's codes: older runs'
+    // DEAD/WASH flags had known false positives (fixed in arc-v5).
     const FAILED_CODES = new Set(["DEAD", "CREATOR_DUMP", "WASH", "LP_REMOVED"]);
     let judged = 0;
     let failed = 0;
@@ -471,7 +547,7 @@ export class ArcScoringService {
     ctx: {
       activityBlock: bigint | null;
       head: bigint;
-      market: { priceUsd: number | null; feePct: number | null; lpOwner: string | null };
+      market: { priceUsd: number | null; feePct: number | null; lpOwner: string | null; poolUsdc: number | null };
     },
   ): Promise<boolean> {
     const db = getDb();
@@ -553,10 +629,11 @@ export class ArcScoringService {
         circulatingPct: pctOf(circulating._sum.balance),
       };
       if (creatorRow && Number(creatorRow.received) > 0) {
-        soldPct = Math.max(
-          0,
-          ((Number(creatorRow.received) - Number(creatorRow.balance)) / Number(creatorRow.received)) * 100,
-        );
+        // Burning is the opposite of dumping: don't count the creator's own burns as sold.
+        const burns = await db.burn.aggregate({ where: { tokenId: t.id, wallet: creator }, _sum: { amount: true } });
+        const burnedRaw = Number(burns._sum.amount ?? 0) * unit;
+        const out = Number(creatorRow.received) - Number(creatorRow.balance) - burnedRaw;
+        soldPct = Math.max(0, Math.min(100, (out / Number(creatorRow.received)) * 100));
       }
     }
 
@@ -586,16 +663,11 @@ export class ArcScoringService {
         ? db.arcSwap.groupBy({ by: ["side"], where: { poolId: pool.id }, _sum: { usdcAmount: true } })
         : Promise.resolve([]),
     ]);
-    // USDC left in the pool = what buyers put in minus what sellers took out since
-    // launch (from indexed swaps). Only valid once activity covers the launch block.
-    const sideSum = (side: string) =>
-      Number(swapsAll.find((g) => g.side === side)?._sum.usdcAmount ?? 0);
+    // USDC in the pool: read from on-chain liquidity and price; DexScreener's
+    // figure only as a fallback. Never buys-minus-sells (misses LP adds/removes).
     const m = t.arcMarket;
     const marketUsdc = (m?.socials as { usdcInPool?: number | null } | null)?.usdcInPool ?? null;
-    const poolUsdc =
-      pool?.venue === "UNISWAP_V4" && balancesReady
-        ? Math.max(0, sideSum("buy") - sideSum("sell"))
-        : marketUsdc;
+    const poolUsdc = ctx.market.poolUsdc ?? marketUsdc;
     const useIndexed = balancesReady && swapsAll.length > 0;
     const volume24h = useIndexed
       ? swaps24h.reduce((s, g) => s + Number(g._sum.usdcAmount ?? 0), 0)
@@ -615,6 +687,7 @@ export class ArcScoringService {
         ? { launches, soldPct, copycats, priorJudged: track?.judged ?? 0, priorFailed: track?.failed ?? 0 }
         : null,
       ageHours: (Date.now() - t.launchTime.getTime()) / 3_600_000,
+      identity: { name: t.name, symbol: t.symbol },
       activity:
         pool && pool.venue === "UNISWAP_V4"
           ? {

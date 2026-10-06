@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { PERPS_ENABLED } from "@/lib/flags"
 
 export const metadata: Metadata = { title: "More" }
 
@@ -9,7 +10,7 @@ const LINKS = [
   { href: "/portfolio", label: "Portfolio check", hint: "Paste any wallet to see its holdings scored" },
   { href: "/ecosystem", label: "Ecosystem", hint: "Arc launchpads compared, and the serial launchers" },
   { href: "/methodology", label: "How the score works", hint: "The 1–10 score, every check and every red flag" },
-]
+].filter((l) => PERPS_ENABLED || l.href !== "/perps")
 
 export default function MorePage() {
   return (

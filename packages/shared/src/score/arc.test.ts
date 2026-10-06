@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { arcBand, computeArcScore, fakeReasons, toScore10, type ArcScoreInput } from "./arc.js";
+import { arcBand, computeArcScore, fakeReasons, impersonates, isWash, toScore10, type ArcScoreInput } from "./arc.js";
 
 const CLEAN: ArcScoreInput = {
   authority: {
@@ -90,12 +90,68 @@ test("creator dump + dead token + wash volume (real TOIIY pattern) is risky", ()
     activity: { buys24h: 515, sells24h: 499, volume24h: 11100, hasSocials: true },
   });
   expect(r.band).toBe("risk");
-  expect(r.score).toBe(3.9); // strongest cap: dead token (39 pts) beats creator dump (49)
-  expect(fakeReasons(r.flags).length).toBe(3); // dead + creator dump + wash
+  // 1,014 trades a day isn't dead — it's churn (warning). Creator dump caps at 49.
+  expect(r.score).toBe(4.9);
+  expect(fakeReasons(r.flags).length).toBe(2); // creator dump + wash (11.1k vs $56 = 198x)
   const dangers = r.flags.filter((f) => f.level === "danger").map((f) => f.text);
   expect(dangers.some((t) => t.startsWith("Creator dumped"))).toBe(true);
-  expect(dangers.some((t) => t.startsWith("Holders own only"))).toBe(true);
   expect(dangers.some((t) => t.startsWith("Volume looks fake"))).toBe(true);
+  expect(r.flags.some((f) => f.code === "CHURN")).toBe(true);
+  expect(r.flags.some((f) => f.code === "DEAD")).toBe(false);
+});
+
+// ── arc-v5 regressions from the October audit: false "fake" verdicts ──────
+
+test("a busy token whose buyers flip quickly is churn, not dead", () => {
+  const r = computeArcScore({
+    ...CLEAN,
+    ageHours: 30,
+    holders: { ...CLEAN.holders!, circulatingPct: 0.4 },
+    activity: { buys24h: 1918, sells24h: 1360, volume24h: 26_000, hasSocials: true },
+    poolUsdc: 1250,
+  });
+  expect(r.flags.some((f) => f.code === "DEAD")).toBe(false);
+  expect(r.flags.some((f) => f.code === "CHURN")).toBe(true);
+  expect(r.flags.some((f) => f.code === "WASH")).toBe(false); // 21x turnover is normal for a hot meme
+  expect(fakeReasons(r.flags)).toEqual([]);
+});
+
+test("a token minutes old with supply still in the pool is not dead", () => {
+  const r = computeArcScore({
+    ...CLEAN,
+    ageHours: 0.2,
+    holders: { ...CLEAN.holders!, count: 2, circulatingPct: 0.01 },
+    activity: { buys24h: 0, sells24h: 0, volume24h: 0, hasSocials: false },
+  });
+  expect(r.flags.some((f) => f.code === "DEAD")).toBe(false);
+});
+
+test("an old token nobody holds or trades is dead", () => {
+  const r = computeArcScore({
+    ...CLEAN,
+    ageHours: 72,
+    holders: { ...CLEAN.holders!, circulatingPct: 0.3 },
+    activity: { buys24h: 0, sells24h: 0, volume24h: 0, hasSocials: true },
+  });
+  expect(r.flags.some((f) => f.code === "DEAD")).toBe(true);
+  expect(r.score).toBeLessThanOrEqual(3.9);
+});
+
+test("wash trading needs 50x pool turnover on $1k+", () => {
+  expect(isWash(26_000, 1250)).toBe(false); // ~21x
+  expect(isWash(70_000, 1250)).toBe(true); // 56x
+  expect(isWash(900, 1)).toBe(false); // too small to matter
+  expect(isWash(null, 100)).toBe(false);
+});
+
+test("impersonating an official brand is fake and capped", () => {
+  expect(impersonates({ name: "USD Coin", symbol: "usdc" })).toBe("usdc");
+  expect(impersonates({ name: "Circle", symbol: "CRCL" })).toBe("Circle");
+  expect(impersonates({ name: "Arcia", symbol: "ARCIA" })).toBeNull();
+  const r = computeArcScore({ ...CLEAN, identity: { name: "USDC", symbol: "USDC" } });
+  expect(r.flags.some((f) => f.code === "IMPERSONATION")).toBe(true);
+  expect(fakeReasons(r.flags).length).toBe(1);
+  expect(r.score).toBeLessThanOrEqual(1.9);
 });
 
 test("missing holder data stays unscored instead of looking healthy", () => {

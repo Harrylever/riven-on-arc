@@ -1,5 +1,10 @@
 /**
- * Riven's Arc token score — methodology "arc-v4": a 1–10 score.
+ * Riven's Arc token score — methodology "arc-v5": a 1–10 score.
+ *
+ * v5 fixes false positives found in the October audit: a small holder share on
+ * a busy launchpad token is churn, not death; wash trading needs 50x pool
+ * turnover (busy memes routinely do 20x); impersonating an official brand
+ * (USDC, Circle…) is now judged here, in one place, not in the UI.
  *
  * v4 is about not trusting a token too early. A pump-and-dump looks clean in
  * its first minutes, so "healthy" now needs proof (age, real holders, USDC in
@@ -17,7 +22,31 @@
  * point — not yet validated against real outcomes.
  */
 
-export const ARC_METHODOLOGY = "arc-v4";
+export const ARC_METHODOLOGY = "arc-v5";
+
+/** Daily volume this many times the pool's USDC, on $1k+, reads as wash trading. */
+export const WASH_TURNOVER = 50;
+
+export function isWash(volume24h: number | null, poolUsdc: number | null): boolean {
+  return (
+    volume24h !== null &&
+    poolUsdc !== null &&
+    volume24h > 1000 &&
+    volume24h > WASH_TURNOVER * Math.max(poolUsdc, 1)
+  );
+}
+
+/**
+ * Names only the real issuer would use. On Arc (Circle's chain) a random token
+ * called "Circle" or "USDC" is impersonation, whatever its contract says.
+ */
+const BRANDS =
+  /^(circle|usdc|usdt|eurc|tether|arc|arc network|coinbase|binance|uniswap|ethereum|eth|bitcoin|btc|solana|blackrock)$/i;
+
+/** The brand a token's name or ticker impersonates, if any. */
+export function impersonates(t: { name: string; symbol: string }): string | null {
+  return [t.name, t.symbol].map((x) => x.trim()).find((x) => BRANDS.test(x)) ?? null;
+}
 
 export type ArcBand = "healthy" | "caution" | "risk" | "unscored";
 export type ArcConfidence = "high" | "medium" | "low";
@@ -35,7 +64,7 @@ export interface ArcFlag {
  * Flags that mark a token as fake or already dead: hidden from feeds and the
  * screener by default, still findable by search.
  */
-export const FAKE_FLAG_CODES = ["WASH", "DEAD", "SERIAL", "CREATOR_DUMP", "LP_REMOVED"] as const;
+export const FAKE_FLAG_CODES = ["WASH", "DEAD", "SERIAL", "CREATOR_DUMP", "LP_REMOVED", "IMPERSONATION"] as const;
 
 export function fakeReasons(flags: ArcFlag[] | undefined | null): string[] {
   return (flags ?? [])
@@ -110,6 +139,8 @@ export interface ArcScoreInput {
   attributedBurnPct: number | null;
   /** Hours since launch. Under PROBATION_HOURS a token can't be rated healthy. */
   ageHours?: number | null;
+  /** Name and ticker, for brand-impersonation checks. */
+  identity?: { name: string; symbol: string } | null;
 }
 
 /** New tokens are on probation: the classic dump happens in the first hours. */
@@ -281,8 +312,18 @@ export function computeArcScore(input: ArcScoreInput): ArcScoreResult {
       flag("warning", "holders", `Snipers hold ${pct(h.sniperPct)} of supply`);
     }
     if (h.circulatingPct < 1) {
-      caps.push([39, "almost everyone has sold — the tokens are back in the pool"]);
-      flag("danger", "holders", `Holders own only ${pct(h.circulatingPct)} of supply — nearly everyone has sold`, "DEAD");
+      // On a launchpad most supply legitimately sits in the curve/pool, so a
+      // small holder share alone isn't death. It's dead when nobody holds AND
+      // nobody trades; if people are still trading, it's just flippers.
+      const trades = input.activity ? input.activity.buys24h + input.activity.sells24h : 0;
+      const young = input.ageHours !== null && input.ageHours !== undefined && input.ageHours < PROBATION_HOURS;
+      if (trades === 0 && !young) {
+        caps.push([39, "almost everyone has sold and trading has stopped"]);
+        flag("danger", "holders", `Dead: holders own only ${pct(h.circulatingPct)} of supply and no one traded in 24h`, "DEAD");
+      } else if (trades > 0) {
+        caps.push([49, "almost nobody holds — traders are flipping in and out"]);
+        flag("warning", "holders", `Holders keep only ${pct(h.circulatingPct)} of supply — most buyers sell quickly`, "CHURN");
+      }
     }
     if (h.insiderPct > 20) {
       caps.push([59, "wallets funded by the creator hold a big share"]);
@@ -341,8 +382,7 @@ export function computeArcScore(input: ArcScoreInput): ArcScoreResult {
     const holders = input.holders?.count ?? 0;
     sub.activity += holders >= 100 ? 5 : holders >= 25 ? 3 : holders >= 5 ? 1 : 0;
     // Wash trading: lots of volume but almost no USDC actually stays in the pool.
-    const wash =
-      input.poolUsdc !== null && act.volume24h > 1000 && act.volume24h > 20 * Math.max(input.poolUsdc, 1);
+    const wash = isWash(act.volume24h, input.poolUsdc);
     sub.activity += act.sells24h > 0 ? 4 : 0;
     sub.activity += !wash && act.buys24h > 0 && act.buys24h >= act.sells24h ? 3 : 0;
     if (wash) {
@@ -358,6 +398,12 @@ export function computeArcScore(input: ArcScoreInput): ArcScoreResult {
 
   if (input.attributedBurnPct !== null && input.attributedBurnPct >= 1) {
     flag("good", "holders", `Creator burned ${pct(input.attributedBurnPct)} of supply`);
+  }
+
+  const brand = input.identity ? impersonates(input.identity) : null;
+  if (brand) {
+    caps.push([19, `it impersonates ${brand}`]);
+    flag("danger", "creator", `Impersonates ${brand} — not an official token`, "IMPERSONATION");
   }
 
   // ── Probation & proof: "healthy" has to be earned, not assumed ─────────

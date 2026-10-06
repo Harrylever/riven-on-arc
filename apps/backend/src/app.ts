@@ -55,11 +55,9 @@ export function createApp(s: Services) {
         },
       });
     } catch (err) {
-      return c.json({
-        status: "degraded",
-        db: "unreachable",
-        error: (err as Error).message,
-      });
+      // Never echo driver errors: they can carry the DB host and user.
+      console.error(`[health] ${(err as Error).message}`);
+      return c.json({ status: "degraded", db: "unreachable" });
     }
   });
 
@@ -72,10 +70,8 @@ export function createApp(s: Services) {
       return c.json({ status: "ok", ...result });
     } catch (err) {
       console.error(`[arc] health check failed: ${(err as Error).message}`);
-      return c.json(
-        { status: "unavailable", error: (err as Error).message },
-        503,
-      );
+      // viem errors embed the RPC URL (and any API key in it): log, don't return.
+      return c.json({ status: "unavailable" }, 503);
     }
   });
 
@@ -88,13 +84,7 @@ export function createApp(s: Services) {
       return c.json(await s.arcPipeline.runOnce());
     } catch (err) {
       console.error(`[arc] pipeline failed: ${(err as Error).message}`);
-      return c.json(
-        {
-          error: "Arc pipeline failed",
-          details: (err as Error).message,
-        },
-        503,
-      );
+      return c.json({ error: "Arc pipeline failed" }, 503);
     }
   });
 
@@ -114,10 +104,7 @@ export function createApp(s: Services) {
       console.error(
         `[arc] inspect ${address} failed: ${(err as Error).message}`,
       );
-      return c.json(
-        { error: "Arc RPC inspection failed", details: (err as Error).message },
-        503,
-      );
+      return c.json({ error: "Arc RPC inspection failed" }, 503);
     }
   });
 

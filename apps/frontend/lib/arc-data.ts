@@ -297,6 +297,15 @@ export async function getScreener(
   return { tokens, total: list.length, page, pages }
 }
 
+/** Just the indexer cursor — what the header's "ARC LIVE" badge needs. */
+export async function getSyncStatus() {
+  const cursor = await getDb().arcIndexerCursor.findUnique({ where: { source: "arc:activity" } })
+  return {
+    lastBlock: cursor ? cursor.lastBlock.toString() : null,
+    syncedAt: cursor ? cursor.updatedAt.toISOString() : null,
+  }
+}
+
 export async function getStats() {
   const db = getDb()
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
@@ -495,7 +504,7 @@ export async function getTokenDetail(address: string): Promise<TokenDetail | nul
   const db = getDb()
   const t = await db.token.findUnique({
     where: { mint },
-    include: { pools: true, ...INCLUDE },
+    include: { pools: { orderBy: { createdAt: "asc" } }, ...INCLUDE },
   })
   if (!t) return null
   const [summary] = await withCopies([summarize(t)])

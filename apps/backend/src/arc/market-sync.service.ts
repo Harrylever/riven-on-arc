@@ -120,8 +120,20 @@ export class MarketSyncService {
               },
               pairCreatedAt: p.pairCreatedAt ? new Date(p.pairCreatedAt) : null,
             }
-          : { liquidityUsd: null, volume24h: null };
-        if (p) listed++;
+          : null;
+        if (!data) {
+          // No pair this time (DexScreener gaps happen): keep the last snapshot
+          // rather than wiping liquidity, which would drop the token from indexing.
+          await db.arcMarket.upsert({
+            where: { tokenId: t.id },
+            create: { tokenId: t.id, liquidityUsd: null, volume24h: null },
+            // Touch it so the sync queue (oldest first) moves on to other tokens.
+            update: { updatedAt: new Date() },
+          });
+          updated++;
+          continue;
+        }
+        listed++;
         await db.arcMarket.upsert({
           where: { tokenId: t.id },
           create: { tokenId: t.id, ...data },

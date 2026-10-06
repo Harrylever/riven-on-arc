@@ -39,11 +39,10 @@ export function createRateLimiter(): MiddlewareHandler {
   }
 
   return async (c, next) => {
-    // Behind Railway's proxy the client is the first x-forwarded-for hop.
-    const ip =
-      c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
-      c.req.header('x-real-ip') ||
-      'unknown';
+    // The first X-Forwarded-For hop is whatever the client claims; the last hop
+    // is the one Railway's proxy appended, so key on that.
+    const hops = c.req.header('x-forwarded-for')?.split(',').map((h) => h.trim()).filter(Boolean) ?? [];
+    const ip = hops[hops.length - 1] || c.req.header('x-real-ip') || 'unknown';
     try {
       if ((await hit(ip)) > LIMIT) {
         c.header('Retry-After', String(WINDOW_SECONDS));

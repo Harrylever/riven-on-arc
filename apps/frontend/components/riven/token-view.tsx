@@ -11,6 +11,7 @@ import { WatchButton } from "./watch-button"
 import { CopyBadge, CopycatWarning } from "./copycat"
 import { TradeSheet } from "./trade-sheet"
 import { useArcWallet } from "@/hooks/use-arc-wallet"
+import { TRADING_ENABLED } from "@/lib/flags"
 
 const EXPLORER = "https://explorer.arc.io"
 const ORDER: SubScoreKey[] = ["contract", "liquidity", "holders", "creator", "activity"]
@@ -34,7 +35,7 @@ export function TokenView({ t, serverNow }: { t: TokenDetail; serverNow: number 
   const now = serverNow
   const wallet = useArcWallet()
   const [trade, setTrade] = useState<"buy" | "sell" | null>(null)
-  const tradable = !!t.pairAddress || t.launchpad !== "Tolly"
+  const tradable = TRADING_ENABLED && (!!t.pairAddress || t.launchpad !== "Tolly")
   const dangers = t.flags.filter((f) => f.level === "danger")
   const warnings = t.flags.filter((f) => f.level === "warning")
   const goods = t.flags.filter((f) => f.level === "good")

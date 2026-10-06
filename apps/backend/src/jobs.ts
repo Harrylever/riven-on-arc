@@ -63,10 +63,12 @@ export function startJobs(s: Services): Cron[] {
       () => s.retention.pruneOldRows(),
     ],
   ];
+  // Arc is the product now: legacy Solana jobs (Helius, KOLs, the frozen trade
+  // loop) only run when explicitly asked for — matching the frontend default.
   const schedule =
-    process.env.CHAIN_MODE === "arc"
-      ? arcIndexing
-      : [...arcIndexing, ...legacySolanaJobs];
+    process.env.CHAIN_MODE === "solana"
+      ? [...arcIndexing, ...legacySolanaJobs]
+      : arcIndexing;
 
   return schedule.map(
     ([name, pattern, run]) =>
