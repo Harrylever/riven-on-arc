@@ -57,3 +57,46 @@ None. No reviewer-manipulation content found.
 
 ## Strengths
 Non-custodial trade flow (server never signs; recipient is the user; live-quote minOut, clamped slippage, 20-min deadline); RPC range-halving and atomic cursor commits in indexers; correct v4 sign convention and decimal handling; score withheld when core inputs are missing; alerts suppressed on methodology change; parameterised/validated DB inputs; React-escaped agent output; backend tests check behaviour, not implementation.
+
+---
+
+## Fix log (same session, commits a1982eb → 4747882)
+
+| Finding | Status |
+|---|---|
+| H1 pool USDC = buys − sells | **Fixed**: read from on-chain `StateView` liquidity × price (`usdcInRange`); it matches DexScreener's USDC figure exactly. Tested. |
+| H2 LP_REMOVED summed across positions | **Fixed**: judged on the launch position only (`launchLiquidityPulled`). Tested. |
+| H3 burns counted as creator dumping | **Fixed**: the creator's own burns are subtracted. Locker and LP-seed transfers are still counted (documented limitation). |
+| H4 stale balances after leaving follow-set | **Fixed**: tokens are marked `partial` (scorer stops trusting them, backfill rebuilds). Market sync keeps the last snapshot on DexScreener gaps. |
+| H5 WHALE_DUMP on launch seeding | **Fixed**: only transfers in a swap transaction without a liquidity change count. |
+| H6 paper perps never marked to market | **Fixed**: `lib/paper-perps.ts` (PnL, TP1–3 scale-out, SL, liquidation, close fee). Tested. |
+| H7 fabricated deployer profiles | **Fixed**: `lib/deployer.ts` and all legacy routes removed. |
+| H8 trading vs "monitoring only" | **Resolved by owner decision**: non-custodial trading behind `NEXT_PUBLIC_TRADING_ENABLED`, documented in AGENTS.md. |
+| DEAD on busy and young tokens (audit DB check) | **Fixed**: DEAD requires no trading in 24h and age over 6h; busy tokens are flagged CHURN instead. Tested. |
+| Unlimited approvals | **Fixed**: exact amount, 30-minute Permit2 expiry. |
+| Error text leaking RPC/DB details | **Fixed**. |
+| XFF rate-limit bypass | **Fixed**: keyed on the last hop. |
+| Fake detection split between scorer and UI | **Fixed**: `isWash` and `impersonates` live in shared. IMPERSONATION is a scorer flag. Pre-v5 flags are untrusted until rescored. |
+| Perps flag / nav inconsistency | **Fixed**: nav, /more, page and API all honour the flags. |
+| Error states that look like "all clear" | **Fixed** on alerts, search, watchlist and wallet. |
+| Legacy Solana routes and pages | **Removed**: about 22k lines. Sitemap and robots updated. |
+| Backend defaults to Solana jobs; retention prunes Arc scores | **Fixed**. Tested. |
+| Two design-token systems | **Fixed**: one `:root` with primitives → `--rv-*` → aliases. See `docs/design-system.md`. |
+| `pools[0]` unordered | **Fixed**: ordered by `createdAt`, so the launch pool is canonical. Non-USDC pools are refused for trading. |
+| No frontend tests / no CI | **Partly fixed**: 15 frontend tests (encoder, paper perps, params) and a `test` script. CI is still to do. |
+| Creator links, images, tx allowlist | **Fixed**: https only, shown as "creator link", `no-referrer` images, `assertSafeTx`. |
+| RugWatcher re-toasts; PerpWatch drops the first signal; EURC counted at $1; 100% size button; hit rates | **Fixed**. |
+| Docs describe Solana/pnpm/NestJS | **Fixed**: README rewritten; AGENTS/GEMINI have a current-state section. |
+| NUL / non-Latin token names stall the indexer (found during fixes) | **Fixed**: `cleanText` sanitizer. The local DB was recreated as UTF-8 (`riven_u8`). |
+| Remaining | 12 React-compiler lint rules (impure `Date.now()` in server pages, `setState` in effects); CI workflow; deploy. |
+
+**Deterministic checks after fixes:**
+
+| Check | Status |
+|---|---|
+| shared tests (30) | PASS |
+| backend tests (39) | PASS |
+| frontend tests (15) | PASS |
+| backend tsc | PASS |
+| frontend tsc | PASS |
+| frontend eslint | FAIL (12 react-compiler rules; formatting fixed) |
