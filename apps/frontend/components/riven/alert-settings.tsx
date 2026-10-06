@@ -6,14 +6,22 @@ import { useWatchlist } from "@/hooks/use-watchlist"
 /** Turns on browser notifications for anti-rug alerts on watchlisted tokens. */
 export function AlertSettings() {
   const { mints } = useWatchlist()
-  const [perm, setPerm] = useState<NotificationPermission | "unsupported">("default")
+  const [perm, setPerm] = useState<NotificationPermission | "unsupported">(
+    "default",
+  )
   useEffect(() => {
-    setPerm(typeof Notification === "undefined" ? "unsupported" : Notification.permission)
+    setPerm(
+      typeof Notification === "undefined"
+        ? "unsupported"
+        : Notification.permission,
+    )
   }, [])
   return (
     <div className="rv-card flex flex-wrap items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
-        <p className="rv-body text-[14px] font-semibold text-[var(--rv-ink)]">Watchlist alerts</p>
+        <p className="rv-body text-[14px] font-semibold text-[var(--rv-ink)]">
+          Watchlist alerts
+        </p>
         <p className="rv-body text-[12px] text-[var(--rv-ink-2)]">
           {mints.length === 0
             ? "Star tokens in the screener and Riven will warn you the moment one of them gets rugged."
@@ -21,9 +29,13 @@ export function AlertSettings() {
         </p>
       </div>
       {perm === "unsupported" ? (
-        <span className="rv-body text-[12px] text-[var(--rv-ink-3)]">Notifications not supported in this browser</span>
+        <span className="rv-body text-[12px] text-[var(--rv-ink-3)]">
+          Notifications not supported in this browser
+        </span>
       ) : perm === "granted" ? (
-        <span className="rv-body text-[12px] font-semibold text-[var(--rv-healthy)]">Notifications on</span>
+        <span className="rv-body text-[12px] font-semibold text-[var(--rv-healthy)]">
+          Notifications on
+        </span>
       ) : (
         <button
           type="button"

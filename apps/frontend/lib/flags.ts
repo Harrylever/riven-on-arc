@@ -13,4 +13,5 @@ export const PERPS_ENABLED = process.env.NEXT_PUBLIC_PERPS_ENABLED !== "false"
  * wallet). On by default; set NEXT_PUBLIC_TRADING_ENABLED="false" to ship a
  * read-only Riven — buttons hidden and /api/arc/trade returns 404.
  */
-export const TRADING_ENABLED = process.env.NEXT_PUBLIC_TRADING_ENABLED !== "false"
+export const TRADING_ENABLED =
+  process.env.NEXT_PUBLIC_TRADING_ENABLED !== "false"

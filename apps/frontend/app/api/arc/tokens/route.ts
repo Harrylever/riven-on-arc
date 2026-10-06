@@ -16,6 +16,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ tokens: await getTokensByAddress(addresses) })
   } catch (err) {
     console.error(`[arc/tokens] ${(err as Error).message}`)
-    return NextResponse.json({ tokens: [], error: "unavailable" }, { status: 503 })
+    return NextResponse.json(
+      { tokens: [], error: "unavailable" },
+      { status: 503 },
+    )
   }
 }

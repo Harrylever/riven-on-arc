@@ -2,7 +2,8 @@ import type { ArcBand } from "@clawdex/shared"
 
 /** Screener filters ↔ URL query. Shared by the server page and the client UI. */
 
-export type SortKey = "trending" | "new" | "gainers" | "losers" | "mcap" | "liquidity" | "safest"
+export type SortKey =
+  "trending" | "new" | "gainers" | "losers" | "mcap" | "liquidity" | "safest"
 export type BandFilter = "all" | ArcBand
 export type AgeFilter = "all" | "1h" | "6h" | "24h" | "7d"
 export type PadFilter = "all" | "ARGUS" | "TOLLY" | "OTHER"
@@ -49,17 +50,30 @@ export const SORTS: Array<{ id: SortKey; label: string }> = [
   { id: "safest", label: "Safest" },
 ]
 
-const pick = <T extends string>(v: string | undefined, allowed: readonly T[], d: T): T =>
-  allowed.includes(v as T) ? (v as T) : d
+const pick = <T extends string>(
+  v: string | undefined,
+  allowed: readonly T[],
+  d: T,
+): T => (allowed.includes(v as T) ? (v as T) : d)
 const n = (v: string | undefined) => {
   const x = Number(v)
   return Number.isFinite(x) && x > 0 ? x : 0
 }
 
-export function parseFilters(sp: Record<string, string | undefined>): ScreenerFilters {
+export function parseFilters(
+  sp: Record<string, string | undefined>,
+): ScreenerFilters {
   return {
-    sort: pick(sp.sort, SORTS.map((s) => s.id), "trending"),
-    band: pick(sp.band, ["all", "healthy", "caution", "risk", "unscored"] as const, "all"),
+    sort: pick(
+      sp.sort,
+      SORTS.map((s) => s.id),
+      "trending",
+    ),
+    band: pick(
+      sp.band,
+      ["all", "healthy", "caution", "risk", "unscored"] as const,
+      "all",
+    ),
     pad: pick(sp.pad, ["all", "ARGUS", "TOLLY", "OTHER"] as const, "all"),
     age: pick(sp.age, ["all", "1h", "6h", "24h", "7d"] as const, "all"),
     minLiq: n(sp.minLiq),
@@ -68,14 +82,19 @@ export function parseFilters(sp: Record<string, string | undefined>): ScreenerFi
     minVol: n(sp.minVol),
     minScore: Math.min(10, n(sp.minScore)),
     // `fake=1` is the old "show fake tokens" link: keep it working.
-    view: sp.fake === "1" ? "all" : pick(sp.view, ["listed", "caught", "all"] as const, "listed"),
+    view:
+      sp.fake === "1"
+        ? "all"
+        : pick(sp.view, ["listed", "caught", "all"] as const, "listed"),
     page: Math.max(1, Math.floor(n(sp.page)) || 1),
   }
 }
 
 export function filtersToQuery(f: ScreenerFilters): string {
   const q = new URLSearchParams()
-  for (const [k, v] of Object.entries(f) as Array<[keyof ScreenerFilters, unknown]>) {
+  for (const [k, v] of Object.entries(f) as Array<
+    [keyof ScreenerFilters, unknown]
+  >) {
     if (v === DEFAULT_FILTERS[k]) continue
     q.set(k, String(v))
   }

@@ -31,7 +31,13 @@ export const ARC = {
   permit2: "0x000000000022D473030F116dDEE9F6B43aC78BA3" as Address,
 }
 
-const client = createPublicClient({ transport: http(ARC.rpc, { timeout: 20_000, retryCount: 4, retryDelay: 1_500 }) })
+const client = createPublicClient({
+  transport: http(ARC.rpc, {
+    timeout: 20_000,
+    retryCount: 4,
+    retryDelay: 1_500,
+  }),
+})
 
 const INITIALIZE = parseAbiItem(
   "event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)",
@@ -43,7 +49,9 @@ const PERMIT2_ABI = parseAbi([
   "function allowance(address user, address token, address spender) view returns (uint160 amount, uint48 expiration, uint48 nonce)",
   "function approve(address token, address spender, uint160 amount, uint48 expiration)",
 ])
-const ROUTER_ABI = parseAbi(["function execute(bytes commands, bytes[] inputs, uint256 deadline) payable"])
+const ROUTER_ABI = parseAbi([
+  "function execute(bytes commands, bytes[] inputs, uint256 deadline) payable",
+])
 
 export interface PoolKey {
   currency0: Address
@@ -63,10 +71,14 @@ export interface TxRequest {
 const keyCache = new Map<string, PoolKey>()
 
 /** The v4 PoolKey for a token's USDC pool, read from its Initialize event. */
-export async function poolKeyFor(token: string): Promise<{ key: PoolKey; decimals: number } | null> {
+export async function poolKeyFor(
+  token: string,
+): Promise<{ key: PoolKey; decimals: number } | null> {
   const t = await getDb().token.findUnique({
     where: { mint: token.toLowerCase() },
-    include: { pools: { where: { venue: "UNISWAP_V4" }, orderBy: { createdAt: "asc" } } },
+    include: {
+      pools: { where: { venue: "UNISWAP_V4" }, orderBy: { createdAt: "asc" } },
+    },
   })
   const pool = t?.pools[0]
   if (!t || !pool || t.launchBlock === null) return null
@@ -80,10 +92,18 @@ export async function poolKeyFor(token: string): Promise<{ key: PoolKey; decimal
     toBlock: t.launchBlock + BigInt(5),
   })
   const a = logs[0]?.args
-  if (!a?.currency0 || !a.currency1 || a.fee === undefined || a.tickSpacing === undefined || !a.hooks) return null
+  if (
+    !a?.currency0 ||
+    !a.currency1 ||
+    a.fee === undefined ||
+    a.tickSpacing === undefined ||
+    !a.hooks
+  )
+    return null
   // Only route USDC pairs: approvals, labels and amounts all assume USDC is one side.
   const usdc = ARC.usdc.toLowerCase()
-  if (a.currency0.toLowerCase() !== usdc && a.currency1.toLowerCase() !== usdc) return null
+  if (a.currency0.toLowerCase() !== usdc && a.currency1.toLowerCase() !== usdc)
+    return null
   const key: PoolKey = {
     currency0: a.currency0,
     currency1: a.currency1,
@@ -135,7 +155,16 @@ export function encodeSwap(p: {
         ],
       },
     ],
-    [{ poolKey: p.key, zeroForOne: p.zeroForOne, amountIn: p.amountIn, amountOutMinimum: p.minOut, reserved: BigInt(0), hookData: "0x" }],
+    [
+      {
+        poolKey: p.key,
+        zeroForOne: p.zeroForOne,
+        amountIn: p.amountIn,
+        amountOutMinimum: p.minOut,
+        reserved: BigInt(0),
+        hookData: "0x",
+      },
+    ],
   )
   const settle = encodeAbiParameters(
     [{ type: "address" }, { type: "uint256" }, { type: "bool" }],
@@ -145,11 +174,22 @@ export function encodeSwap(p: {
     [{ type: "address" }, { type: "address" }, { type: "uint256" }],
     [currencyOut, p.recipient, BigInt(0)],
   )
-  const v4Input = encodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], ["0x060b0e", [swapParams, settle, take]])
-  return encodeFunctionData({ abi: ROUTER_ABI, functionName: "execute", args: ["0x10", [v4Input], p.deadline] })
+  const v4Input = encodeAbiParameters(
+    [{ type: "bytes" }, { type: "bytes[]" }],
+    ["0x060b0e", [swapParams, settle, take]],
+  )
+  return encodeFunctionData({
+    abi: ROUTER_ABI,
+    functionName: "execute",
+    args: ["0x10", [v4Input], p.deadline],
+  })
 }
 
-export async function quote(key: PoolKey, zeroForOne: boolean, amountIn: bigint): Promise<bigint | null> {
+export async function quote(
+  key: PoolKey,
+  zeroForOne: boolean,
+  amountIn: bigint,
+): Promise<bigint | null> {
   const data = encodeFunctionData({
     abi: QUOTER_ABI,
     functionName: "quoteExactInputSingle",
@@ -158,7 +198,11 @@ export async function quote(key: PoolKey, zeroForOne: boolean, amountIn: bigint)
   try {
     const res = await client.call({ to: ARC.quoter, data })
     if (!res.data) return null
-    const [amountOut] = decodeFunctionResult({ abi: QUOTER_ABI, functionName: "quoteExactInputSingle", data: res.data })
+    const [amountOut] = decodeFunctionResult({
+      abi: QUOTER_ABI,
+      functionName: "quoteExactInputSingle",
+      data: res.data,
+    })
     return amountOut
   } catch {
     return null
@@ -177,14 +221,28 @@ export async function approvalsNeeded(
   display: string,
 ): Promise<TxRequest[]> {
   const [erc20Allowance, p2] = await Promise.all([
-    client.readContract({ address: tokenIn, abi: erc20Abi, functionName: "allowance", args: [wallet, ARC.permit2] }),
-    client.readContract({ address: ARC.permit2, abi: PERMIT2_ABI, functionName: "allowance", args: [wallet, tokenIn, ARC.universalRouter] }),
+    client.readContract({
+      address: tokenIn,
+      abi: erc20Abi,
+      functionName: "allowance",
+      args: [wallet, ARC.permit2],
+    }),
+    client.readContract({
+      address: ARC.permit2,
+      abi: PERMIT2_ABI,
+      functionName: "allowance",
+      args: [wallet, tokenIn, ARC.universalRouter],
+    }),
   ])
   const out: TxRequest[] = []
   if (erc20Allowance < amountIn) {
     out.push({
       to: tokenIn,
-      data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [ARC.permit2, amountIn] }),
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [ARC.permit2, amountIn],
+      }),
       value: "0",
       label: `Allow Permit2 to spend ${display} (this trade only)`,
     })
@@ -218,7 +276,10 @@ export async function buildTrade(p: {
 }) {
   const wallet = p.wallet.toLowerCase() as Address
   const pk = await poolKeyFor(p.token)
-  if (!pk) return { error: "This token has no Uniswap v4 USDC pool Riven can route through." }
+  if (!pk)
+    return {
+      error: "This token has no Uniswap v4 USDC pool Riven can route through.",
+    }
   const { key, decimals } = pk
   const usdc = ARC.usdc.toLowerCase()
   const usdcIs0 = key.currency0.toLowerCase() === usdc
@@ -229,23 +290,34 @@ export async function buildTrade(p: {
   const outDecimals = p.side === "buy" ? decimals : 6
   // Parse the decimal string exactly ("0.29" must be 290000, not 289999).
   const text = String(p.amount).trim()
-  if (!/^\d+(\.\d+)?$/.test(text)) return { error: "Enter an amount greater than zero." }
+  if (!/^\d+(\.\d+)?$/.test(text))
+    return { error: "Enter an amount greater than zero." }
   let amountIn: bigint
   try {
     amountIn = parseUnits(text, inDecimals)
   } catch {
     return { error: "Enter an amount greater than zero." }
   }
-  if (amountIn <= BigInt(0)) return { error: "Enter an amount greater than zero." }
-  if (!Number.isFinite(p.slippageBps)) return { error: "Slippage must be a number." }
+  if (amountIn <= BigInt(0))
+    return { error: "Enter an amount greater than zero." }
+  if (!Number.isFinite(p.slippageBps))
+    return { error: "Slippage must be a number." }
   const tokenIn = p.side === "buy" ? ARC.usdc : tokenAddr
 
   const [amountOut, balance] = await Promise.all([
     quote(key, zeroForOne, amountIn),
-    client.readContract({ address: tokenIn, abi: erc20Abi, functionName: "balanceOf", args: [wallet] }),
+    client.readContract({
+      address: tokenIn,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [wallet],
+    }),
   ])
-  if (amountOut === null || amountOut === BigInt(0)) return { error: "No quote — the pool may be empty or the trade too large." }
-  const slippage = BigInt(Math.min(Math.max(Math.round(p.slippageBps), 10), 5000))
+  if (amountOut === null || amountOut === BigInt(0))
+    return { error: "No quote — the pool may be empty or the trade too large." }
+  const slippage = BigInt(
+    Math.min(Math.max(Math.round(p.slippageBps), 10), 5000),
+  )
   const minOut = (amountOut * (BigInt(10000) - slippage)) / BigInt(10000)
   const approvals = await approvalsNeeded(
     wallet,
@@ -260,11 +332,19 @@ export async function buildTrade(p: {
     amountOut: (Number(amountOut) / 10 ** outDecimals).toString(),
     minOut: (Number(minOut) / 10 ** outDecimals).toString(),
     // USDC is also Arc's gas: keep ~0.05 back on buys so the swap can pay for itself.
-    insufficient: balance < amountIn + (p.side === "buy" ? GAS_RESERVE_USDC : BigInt(0)),
+    insufficient:
+      balance < amountIn + (p.side === "buy" ? GAS_RESERVE_USDC : BigInt(0)),
     approvals,
     swap: {
       to: ARC.universalRouter,
-      data: encodeSwap({ key, zeroForOne, amountIn, minOut, recipient: wallet, deadline }),
+      data: encodeSwap({
+        key,
+        zeroForOne,
+        amountIn,
+        minOut,
+        recipient: wallet,
+        deadline,
+      }),
       value: "0",
       label: p.side === "buy" ? "Buy" : "Sell",
     } satisfies TxRequest,
@@ -276,7 +356,14 @@ export async function walletBalances(wallet: string) {
   const w = wallet as Address
   const [native, eurc] = await Promise.all([
     client.getBalance({ address: w }),
-    client.readContract({ address: ARC.eurc, abi: erc20Abi, functionName: "balanceOf", args: [w] }).catch(() => BigInt(0)),
+    client
+      .readContract({
+        address: ARC.eurc,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [w],
+      })
+      .catch(() => BigInt(0)),
   ])
   return { usdc: Number(native) / 1e18, eurc: Number(eurc) / 1e6 }
 }

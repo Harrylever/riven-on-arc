@@ -9,12 +9,18 @@ export function PerpsClient() {
     <div className="flex flex-col gap-3">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="rv-num text-[12px] text-[var(--rv-cyan)]">riven@perps:~$ scan --sakz-engine</p>
-          <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">Perps terminal</h1>
+          <p className="rv-num text-[12px] text-[var(--rv-cyan)]">
+            riven@perps:~$ scan --sakz-engine
+          </p>
+          <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">
+            Perps terminal
+          </h1>
           <p className="rv-body max-w-2xl text-[13px] text-[var(--rv-ink-2)]">
-            Live Hyperliquid markets with a TradingView chart, order book and funding — plus sakz-bot&apos;s scanner calls
-            with entry, stop, three targets and a verified track record. Practice orders use a paper account at
-            Hyperliquid&apos;s 0.045% taker fee; real orders open on Hyperliquid.
+            Live Hyperliquid markets with a TradingView chart, order book and
+            funding — plus sakz-bot&apos;s scanner calls with entry, stop, three
+            targets and a verified track record. Practice orders use a paper
+            account at Hyperliquid&apos;s 0.045% taker fee; real orders open on
+            Hyperliquid.
           </p>
         </div>
         <a

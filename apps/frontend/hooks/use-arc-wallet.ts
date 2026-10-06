@@ -18,10 +18,15 @@ export const arcChain = defineChain({
   name: "Arc",
   nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
   rpcUrls: { default: { http: ["https://rpc.mainnet.arc.io"] } },
-  blockExplorers: { default: { name: "Arc Explorer", url: "https://explorer.arc.io" } },
+  blockExplorers: {
+    default: { name: "Arc Explorer", url: "https://explorer.arc.io" },
+  },
 })
 
-export const arcPublic = createPublicClient({ chain: arcChain, transport: http() })
+export const arcPublic = createPublicClient({
+  chain: arcChain,
+  transport: http(),
+})
 
 declare global {
   interface Window {
@@ -68,7 +73,8 @@ export function useArcWallet() {
       remembered = localStorage.getItem(KEY) === "1"
     } catch {}
     if (remembered) void refresh()
-    const onAccounts = (a: unknown) => setAddress(((a as string[])[0] as Address | undefined) ?? null)
+    const onAccounts = (a: unknown) =>
+      setAddress(((a as string[])[0] as Address | undefined) ?? null)
     const onChain = (c: unknown) => setChainId(parseInt(String(c), 16))
     eth.on?.("accountsChanged", onAccounts)
     eth.on?.("chainChanged", onChain)
@@ -82,7 +88,10 @@ export function useArcWallet() {
     const eth = window.ethereum
     if (!eth) throw new Error("No wallet found. Install MetaMask or Rabby.")
     try {
-      await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x13b2" }] })
+      await eth.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x13b2" }],
+      })
     } catch (e) {
       // 4902 = chain not added yet.
       if ((e as { code?: number }).code !== 4902) throw e
@@ -106,11 +115,15 @@ export function useArcWallet() {
     setError(null)
     const eth = window.ethereum
     if (!eth) {
-      setError("No browser wallet found. Install MetaMask or Rabby, then reload.")
+      setError(
+        "No browser wallet found. Install MetaMask or Rabby, then reload.",
+      )
       return
     }
     try {
-      const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[]
+      const accounts = (await eth.request({
+        method: "eth_requestAccounts",
+      })) as string[]
       setAddress((accounts[0] as Address | undefined) ?? null)
       await ensureArc()
       try {
@@ -135,16 +148,35 @@ export function useArcWallet() {
       if (!eth || !address) throw new Error("Connect a wallet first")
       assertSafeTx(tx)
       if (chainId !== 5042) await ensureArc()
-      const wallet = createWalletClient({ account: address, chain: arcChain, transport: custom(eth) })
-      const hash = await wallet.sendTransaction({ to: tx.to, data: tx.data, value: BigInt(tx.value) })
+      const wallet = createWalletClient({
+        account: address,
+        chain: arcChain,
+        transport: custom(eth),
+      })
+      const hash = await wallet.sendTransaction({
+        to: tx.to,
+        data: tx.data,
+        value: BigInt(tx.value),
+      })
       const receipt = await arcPublic.waitForTransactionReceipt({ hash })
-      if (receipt.status !== "success") throw new Error(`${tx.label} failed on-chain`)
+      if (receipt.status !== "success")
+        throw new Error(`${tx.label} failed on-chain`)
       return hash
     },
     [address, chainId, ensureArc],
   )
 
-  return { hasWallet, address, chainId, onArc: chainId === 5042, error, connect, disconnect, ensureArc, send }
+  return {
+    hasWallet,
+    address,
+    chainId,
+    onArc: chainId === 5042,
+    error,
+    connect,
+    disconnect,
+    ensureArc,
+    send,
+  }
 }
 
 // Contract calls Riven ever asks a wallet to sign: the Uniswap router, Permit2,
@@ -161,7 +193,8 @@ const ERC20_SELECTORS = new Set(["0x095ea7b3", "0xa9059cbb"]) // approve, transf
 export function assertSafeTx(tx: { to: string; data?: string; value: string }) {
   const data = (tx.data ?? "0x").toLowerCase()
   if (data === "0x") return // plain USDC send (withdraw) — the user typed the recipient
-  if (tx.value !== "0") throw new Error("Refusing a contract call that also sends USDC")
+  if (tx.value !== "0")
+    throw new Error("Refusing a contract call that also sends USDC")
   if (KNOWN_TARGETS.has(tx.to.toLowerCase())) return
   if (ERC20_SELECTORS.has(data.slice(0, 10))) return
   throw new Error("Refusing to sign a call to an unknown contract")

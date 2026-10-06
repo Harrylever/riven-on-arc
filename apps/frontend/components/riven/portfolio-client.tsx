@@ -14,7 +14,11 @@ interface Portfolio {
   wallet: string
   totalUsd: number
   atRisk: number
-  holdings: Array<{ token: TokenSummary; amount: number; valueUsd: number | null }>
+  holdings: Array<{
+    token: TokenSummary
+    amount: number
+    valueUsd: number | null
+  }>
 }
 
 /** Portfolio: your own connected wallet, or a read-only check of any address. */
@@ -24,21 +28,30 @@ export function PortfolioClient() {
     <div className="flex flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">Portfolio</h1>
-          <p className="rv-body text-[13px] text-[var(--rv-ink-2)]">Your balance, deposits, withdrawals, conversions and trades on Arc.</p>
+          <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">
+            Portfolio
+          </h1>
+          <p className="rv-body text-[13px] text-[var(--rv-ink-2)]">
+            Your balance, deposits, withdrawals, conversions and trades on Arc.
+          </p>
         </div>
         <div className="grid grid-cols-2 gap-1 rounded-lg bg-white/[0.04] p-1">
-          {([
-            ["mine", "My wallet"],
-            ["any", "Check any wallet"],
-          ] as const).map(([id, label]) => (
+          {(
+            [
+              ["mine", "My wallet"],
+              ["any", "Check any wallet"],
+            ] as const
+          ).map(([id, label]) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
               aria-pressed={tab === id}
               className="rv-body rounded-md px-3 py-1.5 text-[13px] font-semibold"
-              style={{ background: tab === id ? "var(--rv-blue)" : "transparent", color: tab === id ? "#fff" : "var(--rv-ink-2)" }}
+              style={{
+                background: tab === id ? "var(--rv-blue)" : "transparent",
+                color: tab === id ? "#fff" : "var(--rv-ink-2)",
+              }}
             >
               {label}
             </button>
@@ -61,7 +74,9 @@ function WalletLookup() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/arc/portfolio?wallet=${encodeURIComponent(w.trim())}`)
+      const res = await fetch(
+        `/api/arc/portfolio?wallet=${encodeURIComponent(w.trim())}`,
+      )
       const d = await res.json()
       if (!res.ok) throw new Error(d.error ?? "Couldn't load this wallet")
       setData(d)
@@ -89,8 +104,9 @@ function WalletLookup() {
   return (
     <div className="flex flex-col gap-4">
       <p className="rv-body text-[13px] text-[var(--rv-ink-2)]">
-        Paste any Arc wallet address. Riven shows what it holds and flags anything that looks like a rug. Read-only —
-        never share a private key or seed phrase with anyone.
+        Paste any Arc wallet address. Riven shows what it holds and flags
+        anything that looks like a rug. Read-only — never share a private key or
+        seed phrase with anyone.
       </p>
       <form
         className="flex gap-2"
@@ -107,11 +123,16 @@ function WalletLookup() {
           spellCheck={false}
           className="rv-input h-12 min-w-0 flex-1 px-4 text-[14px]"
         />
-        <button type="submit" className="rv-body rounded-lg bg-[var(--rv-blue)] px-5 text-[14px] font-semibold text-white">
+        <button
+          type="submit"
+          className="rv-body rounded-lg bg-[var(--rv-blue)] px-5 text-[14px] font-semibold text-white"
+        >
           {loading ? "Checking…" : "Check"}
         </button>
       </form>
-      {error && <p className="rv-body text-[13px] text-[var(--rv-risk)]">{error}</p>}
+      {error && (
+        <p className="rv-body text-[13px] text-[var(--rv-risk)]">{error}</p>
+      )}
       {data && (
         <>
           <section className="grid grid-cols-3 gap-2">
@@ -125,8 +146,11 @@ function WalletLookup() {
           </section>
           {data.atRisk > 0 && (
             <div className="rv-card rv-body px-4 py-3 text-[13px] text-[var(--rv-ink)]">
-              <span className="font-semibold text-[var(--rv-risk)]">Warning:</span> {data.atRisk} of these tokens are risky
-              or caught faking. Check them before buying more.
+              <span className="font-semibold text-[var(--rv-risk)]">
+                Warning:
+              </span>{" "}
+              {data.atRisk} of these tokens are risky or caught faking. Check
+              them before buying more.
             </div>
           )}
           {data.holdings.length === 0 ? (
@@ -141,20 +165,35 @@ function WalletLookup() {
                     href={`/token/${h.token.address}`}
                     className="flex items-center gap-3 px-3 py-3 hover:bg-[var(--rv-row-hover)]"
                   >
-                    <TokenAvatar image={h.token.image} symbol={h.token.symbol} address={h.token.address} size={36} />
+                    <TokenAvatar
+                      image={h.token.image}
+                      symbol={h.token.symbol}
+                      address={h.token.address}
+                      size={36}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="rv-body font-semibold text-[var(--rv-ink)]">{h.token.symbol}</span>
+                        <span className="rv-body font-semibold text-[var(--rv-ink)]">
+                          {h.token.symbol}
+                        </span>
                         {h.token.fake && (
                           <span className="rounded bg-[rgba(239,68,68,0.12)] px-1 text-[9px] font-bold text-[var(--rv-risk)] uppercase">
                             fake
                           </span>
                         )}
                       </div>
-                      <p className="rv-num text-[12px] text-[var(--rv-ink-3)]">{compact(h.amount)} tokens</p>
+                      <p className="rv-num text-[12px] text-[var(--rv-ink-3)]">
+                        {compact(h.amount)} tokens
+                      </p>
                     </div>
-                    <span className="rv-num text-[14px] text-[var(--rv-ink)]">{usd(h.valueUsd)}</span>
-                    <ScoreBadge score={h.token.score} band={h.token.band} size="sm" />
+                    <span className="rv-num text-[14px] text-[var(--rv-ink)]">
+                      {usd(h.valueUsd)}
+                    </span>
+                    <ScoreBadge
+                      score={h.token.score}
+                      band={h.token.band}
+                      size="sm"
+                    />
                   </Link>
                 </li>
               ))}
@@ -166,11 +205,24 @@ function WalletLookup() {
   )
 }
 
-function Stat({ label, value, color = "var(--rv-ink)" }: { label: string; value: string; color?: string }) {
+function Stat({
+  label,
+  value,
+  color = "var(--rv-ink)",
+}: {
+  label: string
+  value: string
+  color?: string
+}) {
   return (
     <div className="rv-card px-3 py-2.5">
-      <div className="rv-body text-[10px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">{label}</div>
-      <div className="rv-num mt-0.5 text-[17px] font-semibold" style={{ color }}>
+      <div className="rv-body text-[10px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
+        {label}
+      </div>
+      <div
+        className="rv-num mt-0.5 text-[17px] font-semibold"
+        style={{ color }}
+      >
         {value}
       </div>
     </div>

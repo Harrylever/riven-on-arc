@@ -13,7 +13,12 @@ interface Msg {
   mode?: "claude" | "rules"
 }
 
-const STARTERS = ["What rugged today?", "Safest tokens on Arc", "What's trending?", "Newest launches"]
+const STARTERS = [
+  "What rugged today?",
+  "Safest tokens on Arc",
+  "What's trending?",
+  "Newest launches",
+]
 
 export function AgentChat() {
   const [msgs, setMsgs] = useState<Msg[]>([
@@ -26,7 +31,10 @@ export function AgentChat() {
   const [busy, setBusy] = useState(false)
   const end = useRef<HTMLDivElement>(null)
 
-  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [msgs])
+  useEffect(
+    () => end.current?.scrollIntoView({ behavior: "smooth", block: "end" }),
+    [msgs],
+  )
 
   const ask = async (question: string) => {
     const text = question.trim()
@@ -41,9 +49,23 @@ export function AgentChat() {
         body: JSON.stringify({ question: text }),
       })
       const d = await res.json()
-      setMsgs((m) => [...m, { role: "riven", text: d.text ?? d.error ?? "No answer.", tokens: d.tokens, mode: d.mode }])
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "riven",
+          text: d.text ?? d.error ?? "No answer.",
+          tokens: d.tokens,
+          mode: d.mode,
+        },
+      ])
     } catch {
-      setMsgs((m) => [...m, { role: "riven", text: "I couldn't reach Riven's data just now. Try again." }])
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "riven",
+          text: "I couldn't reach Riven's data just now. Try again.",
+        },
+      ])
     } finally {
       setBusy(false)
     }
@@ -52,26 +74,43 @@ export function AgentChat() {
   return (
     <div className="flex min-h-[70dvh] flex-col gap-3">
       <header>
-        <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">Ask Riven</h1>
+        <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">
+          Ask Riven
+        </h1>
         <p className="rv-body text-[13px] text-[var(--rv-ink-2)]">
-          Answers come only from Riven&apos;s on-chain data — each one says whether Riven&apos;s rule engine wrote it or
-          Claude rephrased those same facts. It explains; it never tells you to buy or sell.
+          Answers come only from Riven&apos;s on-chain data — each one says
+          whether Riven&apos;s rule engine wrote it or Claude rephrased those
+          same facts. It explains; it never tells you to buy or sell.
         </p>
       </header>
-      <div className="rv-card flex flex-1 flex-col gap-3 p-4" aria-live="polite">
+      <div
+        className="rv-card flex flex-1 flex-col gap-3 p-4"
+        aria-live="polite"
+      >
         {msgs.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "self-end" : "self-start"}>
+          <div
+            key={i}
+            className={m.role === "user" ? "self-end" : "self-start"}
+          >
             <div
               className={`rv-body max-w-[640px] rounded-xl px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-line ${
-                m.role === "user" ? "bg-[var(--rv-blue)] text-white" : "bg-white/[0.04] text-[var(--rv-ink)]"
+                m.role === "user"
+                  ? "bg-[var(--rv-blue)] text-white"
+                  : "bg-white/[0.04] text-[var(--rv-ink)]"
               }`}
             >
-              {m.role === "riven" && <span className="rv-num mr-1 text-[12px] text-[var(--rv-cyan)]">riven&gt;</span>}
+              {m.role === "riven" && (
+                <span className="rv-num mr-1 text-[12px] text-[var(--rv-cyan)]">
+                  riven&gt;
+                </span>
+              )}
               {m.text}
             </div>
             {m.mode && (
               <p className="rv-num mt-1 text-[10.5px] text-[var(--rv-ink-3)]">
-                {m.mode === "claude" ? "Written by Claude from Riven's data" : "Riven rule engine · no AI model"}
+                {m.mode === "claude"
+                  ? "Written by Claude from Riven's data"
+                  : "Riven rule engine · no AI model"}
               </p>
             )}
             {m.tokens && m.tokens.length > 0 && (
@@ -82,8 +121,15 @@ export function AgentChat() {
                     href={`/token/${t.address}`}
                     className="flex items-center gap-2 rounded-lg bg-white/[0.03] px-2.5 py-1.5 ring-1 ring-[var(--rv-stroke)] hover:ring-[var(--rv-stroke-strong)]"
                   >
-                    <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={22} />
-                    <span className="rv-body text-[13px] font-semibold text-[var(--rv-ink)]">{t.symbol}</span>
+                    <TokenAvatar
+                      image={t.image}
+                      symbol={t.symbol}
+                      address={t.address}
+                      size={22}
+                    />
+                    <span className="rv-body text-[13px] font-semibold text-[var(--rv-ink)]">
+                      {t.symbol}
+                    </span>
                     <ScoreBadge score={t.score} band={t.band} size="sm" />
                   </Link>
                 ))}
@@ -91,7 +137,11 @@ export function AgentChat() {
             )}
           </div>
         ))}
-        {busy && <p className="rv-num text-[12px] text-[var(--rv-ink-3)]">riven&gt; reading Arc…</p>}
+        {busy && (
+          <p className="rv-num text-[12px] text-[var(--rv-ink-3)]">
+            riven&gt; reading Arc…
+          </p>
+        )}
         <div ref={end} />
       </div>
       <div className="flex flex-wrap gap-2">

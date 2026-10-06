@@ -3,7 +3,8 @@ import Link from "next/link"
 
 export const metadata: Metadata = {
   title: "How the score works",
-  description: "Riven's arc-v5 methodology: five sub-scores, automatic red flags, and where every number comes from.",
+  description:
+    "Riven's arc-v5 methodology: five sub-scores, automatic red flags, and where every number comes from.",
 }
 
 const PARTS = [
@@ -89,27 +90,40 @@ const CAPS = [
   ["Creator-funded wallets hold over 20%", 59],
   ["Top 10 hold over 40%, or snipers over 30%", 69],
   ["Under 6 hours old (probation)", 69],
-  ["Not proven yet: under 25 holders, under $1k USDC in the pool, or no sells", 69],
+  [
+    "Not proven yet: under 25 holders, under $1k USDC in the pool, or no sells",
+    69,
+  ],
 ] as const
 
 export default function MethodologyPage() {
   return (
     <article className="rv-body flex flex-col gap-4 text-[15px] leading-relaxed text-[var(--rv-ink-2)]">
       <header className="rv-card p-5 sm:p-7">
-        <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--rv-cyan)] uppercase">Methodology · arc-v5</p>
+        <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--rv-cyan)] uppercase">
+          Methodology · arc-v5
+        </p>
         <h1 className="rv-display mt-2 text-[32px] leading-tight font-extrabold text-[var(--rv-ink)] sm:text-[40px]">
           How Riven scores a launch
         </h1>
         <p className="mt-3 max-w-2xl">
-          Every token gets a score from 1 to 10, built from five parts worth 100 points between them. It&apos;s modelled on what established scanners
-          check (Token Sniffer, RugCheck, GoPlus, DEXTools, GMGN and Bubblemaps), rebuilt from scratch on Arc mainnet
-          data. A score only appears once the contract, liquidity and holders have all been measured, because an
-          unscored token is better than a wrong score.
+          Every token gets a score from 1 to 10, built from five parts worth 100
+          points between them. It&apos;s modelled on what established scanners
+          check (Token Sniffer, RugCheck, GoPlus, DEXTools, GMGN and
+          Bubblemaps), rebuilt from scratch on Arc mainnet data. A score only
+          appears once the contract, liquidity and holders have all been
+          measured, because an unscored token is better than a wrong score.
         </p>
         <div className="mt-5 flex flex-wrap gap-2 text-[13px] font-semibold">
-          <span className="rounded-full bg-[rgba(52,211,153,0.12)] px-3 py-1.5 text-[var(--rv-healthy)]">7–10 Looks healthy</span>
-          <span className="rounded-full bg-[rgba(251,191,36,0.12)] px-3 py-1.5 text-[var(--rv-caution)]">5–6.9 Be careful</span>
-          <span className="rounded-full bg-[rgba(244,63,94,0.12)] px-3 py-1.5 text-[var(--rv-risk)]">1–4.9 Risky</span>
+          <span className="rounded-full bg-[rgba(52,211,153,0.12)] px-3 py-1.5 text-[var(--rv-healthy)]">
+            7–10 Looks healthy
+          </span>
+          <span className="rounded-full bg-[rgba(251,191,36,0.12)] px-3 py-1.5 text-[var(--rv-caution)]">
+            5–6.9 Be careful
+          </span>
+          <span className="rounded-full bg-[rgba(244,63,94,0.12)] px-3 py-1.5 text-[var(--rv-risk)]">
+            1–4.9 Risky
+          </span>
         </div>
       </header>
 
@@ -117,8 +131,13 @@ export default function MethodologyPage() {
         {PARTS.map((p) => (
           <section key={p.name} className="rv-card p-5">
             <div className="flex items-baseline justify-between">
-              <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">{p.name}</h2>
-              <span className="rv-num text-[14px] font-semibold" style={{ color: p.color }}>
+              <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+                {p.name}
+              </h2>
+              <span
+                className="rv-num text-[14px] font-semibold"
+                style={{ color: p.color }}
+              >
                 {p.max} pts · {(p.max / 10).toFixed(1)} of 10
               </span>
             </div>
@@ -133,21 +152,32 @@ export default function MethodologyPage() {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-[12px] text-[var(--rv-ink-3)]">Source: {p.from}</p>
+            <p className="mt-3 text-[12px] text-[var(--rv-ink-3)]">
+              Source: {p.from}
+            </p>
           </section>
         ))}
         <section className="rv-card p-5 sm:col-span-2">
-          <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">Automatic red flags</h2>
+          <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+            Automatic red flags
+          </h2>
           <p className="mt-1 text-[14px]">
-            Some things are bad enough that no amount of good elsewhere can hide them, so they cap the score. The worst
-            ones (fake volume, serial launcher, creator sold out, liquidity pulled, dead, impersonation) also flag the
-            token: it&apos;s hidden from the default list and shown in the <b>Caught</b> view with the evidence.
+            Some things are bad enough that no amount of good elsewhere can hide
+            them, so they cap the score. The worst ones (fake volume, serial
+            launcher, creator sold out, liquidity pulled, dead, impersonation)
+            also flag the token: it&apos;s hidden from the default list and
+            shown in the <b>Caught</b> view with the evidence.
           </p>
           <ul className="mt-3 grid gap-1.5 text-[14px] sm:grid-cols-2">
             {CAPS.map(([what, cap]) => (
-              <li key={what} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-2">
+              <li
+                key={what}
+                className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-2"
+              >
                 <span>{what}</span>
-                <span className="rv-num shrink-0 font-semibold text-[var(--rv-risk)]">max {(cap / 10).toFixed(1)}</span>
+                <span className="rv-num shrink-0 font-semibold text-[var(--rv-risk)]">
+                  max {(cap / 10).toFixed(1)}
+                </span>
               </li>
             ))}
           </ul>
@@ -155,57 +185,118 @@ export default function MethodologyPage() {
       </div>
 
       <section className="rv-card p-5 sm:p-6">
-        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">Why a token isn&apos;t called safe early</h2>
+        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+          Why a token isn&apos;t called safe early
+        </h2>
         <p className="mt-2 text-[14px]">
-          A pump-and-dump looks clean in its first minutes: no mint function, locked liquidity, a spread-out holder list.
-          The dump comes later. So Riven never rates a token healthy until it has earned it — at least 6 hours old, 25+
-          real holders, $1,000+ USDC actually in the pool, and sells going through. Until then the best it can score is
-          6.9 (&ldquo;be careful&rdquo;). And a creator whose earlier tokens died or dumped is marked risky the moment
-          they launch again, before this token has a chance to dump.
+          A pump-and-dump looks clean in its first minutes: no mint function,
+          locked liquidity, a spread-out holder list. The dump comes later. So
+          Riven never rates a token healthy until it has earned it — at least 6
+          hours old, 25+ real holders, $1,000+ USDC actually in the pool, and
+          sells going through. Until then the best it can score is 6.9
+          (&ldquo;be careful&rdquo;). And a creator whose earlier tokens died or
+          dumped is marked risky the moment they launch again, before this token
+          has a chance to dump.
         </p>
       </section>
 
       <section className="rv-card p-5 sm:p-6">
-        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">What changed in arc-v5</h2>
+        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+          What changed in arc-v5
+        </h2>
         <p className="mt-2 text-[14px]">
-          An October 2026 audit found that earlier versions flagged too much. Arc is only weeks old, so &ldquo;almost
-          everything is fake&rdquo; needed checking rather than trusting. Fixed:
+          An October 2026 audit found that earlier versions flagged too much.
+          Arc is only weeks old, so &ldquo;almost everything is fake&rdquo;
+          needed checking rather than trusting. Fixed:
         </p>
         <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-[14px]">
-          <li>USDC in the pool is read from on-chain liquidity, not estimated from swaps (which missed liquidity adds and caused false &ldquo;fake volume&rdquo;).</li>
-          <li>&ldquo;Liquidity pulled&rdquo; now means the launch position was emptied, not that some other LP came and went.</li>
-          <li>A creator burning their tokens no longer counts as selling them.</li>
-          <li>A busy token whose buyers sell quickly is &ldquo;churn&rdquo;, not dead; brand-new tokens are never dead.</li>
-          <li>Fake volume needs 50× pool turnover (busy launches routinely do 20×).</li>
-          <li>Whale-dump alerts only fire on real sells, not on the launch seeding its own pool.</li>
+          <li>
+            USDC in the pool is read from on-chain liquidity, not estimated from
+            swaps (which missed liquidity adds and caused false &ldquo;fake
+            volume&rdquo;).
+          </li>
+          <li>
+            &ldquo;Liquidity pulled&rdquo; now means the launch position was
+            emptied, not that some other LP came and went.
+          </li>
+          <li>
+            A creator burning their tokens no longer counts as selling them.
+          </li>
+          <li>
+            A busy token whose buyers sell quickly is &ldquo;churn&rdquo;, not
+            dead; brand-new tokens are never dead.
+          </li>
+          <li>
+            Fake volume needs 50× pool turnover (busy launches routinely do
+            20×).
+          </li>
+          <li>
+            Whale-dump alerts only fire on real sells, not on the launch seeding
+            its own pool.
+          </li>
         </ul>
       </section>
 
       <section id="disputes" className="rv-card scroll-mt-20 p-5 sm:p-6">
-        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">Think a flag is wrong?</h2>
+        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+          Think a flag is wrong?
+        </h2>
         <p className="mt-2 text-[14px]">
-          Every flag names the on-chain fact behind it, so it can be checked on the Arc explorer. Scores are recomputed
-          every few minutes from chain data: if the facts change (liquidity added back, real holders arrive), the score
-          follows on its own. If you believe a rule is misreading a token, contact the Riven team with the token address
-          and which flag looks wrong — rules get fixed for everyone, never overridden for one token.
+          Every flag names the on-chain fact behind it, so it can be checked on
+          the Arc explorer. Scores are recomputed every few minutes from chain
+          data: if the facts change (liquidity added back, real holders arrive),
+          the score follows on its own. If you believe a rule is misreading a
+          token, contact the Riven team with the token address and which flag
+          looks wrong — rules get fixed for everyone, never overridden for one
+          token.
         </p>
       </section>
 
       <section className="rv-card p-5 sm:p-6">
-        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">What Riven can&apos;t see</h2>
+        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+          What Riven can&apos;t see
+        </h2>
         <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-[14px]">
-          <li>Contract checks read bytecode, not verified source code. A clean scan is strong evidence, not proof.</li>
-          <li>Launchpad liquidity locks are judged from the locker&apos;s code having no withdraw path.</li>
-          <li>Insider detection only follows direct USDC funding from the creator around launch, not multi-hop funding.</li>
-          <li>Thresholds are a starting point and haven&apos;t been back-tested against outcomes yet.</li>
-          <li>Riven indexes every token with a USDC pool on Uniswap v4. Holder checks need a token&apos;s full transfer history; older tokens show &ldquo;Scoring&rdquo; until it&apos;s replayed.</li>
-          <li>Prices, liquidity and volume in the screener come from DexScreener for display. The score uses on-chain data; DexScreener&apos;s pool figure is only a fallback if the on-chain read fails.</li>
-          <li>USDC in the pool uses the pool&apos;s active liquidity over the launch range: exact for a single launch position, an estimate once others add liquidity.</li>
+          <li>
+            Contract checks read bytecode, not verified source code. A clean
+            scan is strong evidence, not proof.
+          </li>
+          <li>
+            Launchpad liquidity locks are judged from the locker&apos;s code
+            having no withdraw path.
+          </li>
+          <li>
+            Insider detection only follows direct USDC funding from the creator
+            around launch, not multi-hop funding.
+          </li>
+          <li>
+            Thresholds are a starting point and haven&apos;t been back-tested
+            against outcomes yet.
+          </li>
+          <li>
+            Riven indexes every token with a USDC pool on Uniswap v4. Holder
+            checks need a token&apos;s full transfer history; older tokens show
+            &ldquo;Scoring&rdquo; until it&apos;s replayed.
+          </li>
+          <li>
+            Prices, liquidity and volume in the screener come from DexScreener
+            for display. The score uses on-chain data; DexScreener&apos;s pool
+            figure is only a fallback if the on-chain read fails.
+          </li>
+          <li>
+            USDC in the pool uses the pool&apos;s active liquidity over the
+            launch range: exact for a single launch position, an estimate once
+            others add liquidity.
+          </li>
         </ul>
         <p className="mt-4 text-[13px] text-[var(--rv-ink-3)]">
-          The score is never sold: no paid boosts, no paid badges. Not financial advice. DYOR.
+          The score is never sold: no paid boosts, no paid badges. Not financial
+          advice. DYOR.
         </p>
-        <Link href="/" className="mt-3 inline-block text-[14px] font-semibold text-[var(--rv-ice)] hover:underline">
+        <Link
+          href="/"
+          className="mt-3 inline-block text-[14px] font-semibold text-[var(--rv-ice)] hover:underline"
+        >
           ← Back to launches
         </Link>
       </section>

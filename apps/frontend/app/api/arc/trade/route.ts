@@ -19,20 +19,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
   if (!TRADING_ENABLED) {
-    return NextResponse.json({ error: "Trading is turned off on this deployment." }, { status: 404 })
+    return NextResponse.json(
+      { error: "Trading is turned off on this deployment." },
+      { status: 404 },
+    )
   }
   const token = String(body.token ?? "")
   const wallet = String(body.wallet ?? "")
   if (body.side !== "buy" && body.side !== "sell") {
-    return NextResponse.json({ error: "side must be \"buy\" or \"sell\"" }, { status: 400 })
+    return NextResponse.json(
+      { error: 'side must be "buy" or "sell"' },
+      { status: 400 },
+    )
   }
   const side = body.side
   if (!ADDRESS.test(token) || !ADDRESS.test(wallet)) {
-    return NextResponse.json({ error: "Token and wallet must be 0x addresses" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Token and wallet must be 0x addresses" },
+      { status: 400 },
+    )
   }
   const slippageBps = Number(body.slippageBps ?? 300)
-  if (!Number.isInteger(slippageBps) || slippageBps < 10 || slippageBps > 5000) {
-    return NextResponse.json({ error: "slippageBps must be a whole number from 10 to 5000" }, { status: 400 })
+  if (
+    !Number.isInteger(slippageBps) ||
+    slippageBps < 10 ||
+    slippageBps > 5000
+  ) {
+    return NextResponse.json(
+      { error: "slippageBps must be a whole number from 10 to 5000" },
+      { status: 400 },
+    )
   }
   try {
     const result = await buildTrade({
@@ -45,6 +61,9 @@ export async function POST(req: Request) {
     return NextResponse.json(result, { status: "error" in result ? 422 : 200 })
   } catch (err) {
     console.error(`[arc/trade] ${(err as Error).message}`)
-    return NextResponse.json({ error: "Couldn't build this trade right now" }, { status: 503 })
+    return NextResponse.json(
+      { error: "Couldn't build this trade right now" },
+      { status: 503 },
+    )
   }
 }

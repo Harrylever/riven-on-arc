@@ -43,7 +43,9 @@ function parse(raw: string): State {
   try {
     const s = JSON.parse(raw) as Partial<State>
     return {
-      pairs: Array.isArray(s.pairs) ? s.pairs.filter((p) => typeof p === "string") : [],
+      pairs: Array.isArray(s.pairs)
+        ? s.pairs.filter((p) => typeof p === "string")
+        : [],
       alerts: Array.isArray(s.alerts) ? s.alerts : [],
       seenSignals: Array.isArray(s.seenSignals) ? s.seenSignals : [],
     }
@@ -53,7 +55,10 @@ function parse(raw: string): State {
 }
 
 function write(next: State) {
-  const raw = JSON.stringify({ ...next, seenSignals: next.seenSignals.slice(-500) })
+  const raw = JSON.stringify({
+    ...next,
+    seenSignals: next.seenSignals.slice(-500),
+  })
   try {
     localStorage.setItem(KEY, raw)
   } catch {
@@ -77,20 +82,40 @@ function subscribe(cb: () => void) {
 }
 
 export function usePerpWatch() {
-  const raw = useSyncExternalStore(subscribe, readRaw, () => JSON.stringify(EMPTY))
+  const raw = useSyncExternalStore(subscribe, readRaw, () =>
+    JSON.stringify(EMPTY),
+  )
   const state = parse(raw)
 
   const toggleTrack = useCallback((coin: string) => {
     const s = parse(readRaw())
-    write({ ...s, pairs: s.pairs.includes(coin) ? s.pairs.filter((p) => p !== coin) : [coin, ...s.pairs] })
+    write({
+      ...s,
+      pairs: s.pairs.includes(coin)
+        ? s.pairs.filter((p) => p !== coin)
+        : [coin, ...s.pairs],
+    })
   }, [])
 
-  const addAlert = useCallback((coin: string, direction: "above" | "below", price: number) => {
-    if (!Number.isFinite(price) || price <= 0) return
-    const s = parse(readRaw())
-    const alert: PriceAlert = { id: `${coin}-${Date.now()}`, coin, direction, price, createdAt: Date.now() }
-    write({ ...s, alerts: [alert, ...s.alerts], pairs: s.pairs.includes(coin) ? s.pairs : [coin, ...s.pairs] })
-  }, [])
+  const addAlert = useCallback(
+    (coin: string, direction: "above" | "below", price: number) => {
+      if (!Number.isFinite(price) || price <= 0) return
+      const s = parse(readRaw())
+      const alert: PriceAlert = {
+        id: `${coin}-${Date.now()}`,
+        coin,
+        direction,
+        price,
+        createdAt: Date.now(),
+      }
+      write({
+        ...s,
+        alerts: [alert, ...s.alerts],
+        pairs: s.pairs.includes(coin) ? s.pairs : [coin, ...s.pairs],
+      })
+    },
+    [],
+  )
 
   const removeAlert = useCallback((id: string) => {
     const s = parse(readRaw())

@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test"
-import { closeProceeds, marked, triggerFor, type MarkablePosition } from "./paper-perps"
+import {
+  closeProceeds,
+  marked,
+  triggerFor,
+  type MarkablePosition,
+} from "./paper-perps"
 
 // 1 BTC long at 60k, 10x: margin 6k, liq at 60k * (1 - 0.09) = 54.6k.
 const LONG: MarkablePosition = {
@@ -23,7 +28,10 @@ describe("marked", () => {
     expect(m.markPrice).toBe(66_000)
   })
   test("shorts gain when price falls", () => {
-    expect(marked({ ...LONG, side: "SHORT", liqPrice: 65_400, sl: 63_000 }, 57_000).pnl).toBe(3_000)
+    expect(
+      marked({ ...LONG, side: "SHORT", liqPrice: 65_400, sl: 63_000 }, 57_000)
+        .pnl,
+    ).toBe(3_000)
   })
 })
 
@@ -35,14 +43,25 @@ describe("triggerFor", () => {
     expect(triggerFor(LONG, 56_900)).toEqual({ kind: "sl", price: 57_000 })
   })
   test("liquidation beats the stop", () => {
-    expect(triggerFor({ ...LONG, sl: 50_000 }, 54_000)).toEqual({ kind: "liquidated", price: 54_600 })
+    expect(triggerFor({ ...LONG, sl: 50_000 }, 54_000)).toEqual({
+      kind: "liquidated",
+      price: 54_600,
+    })
   })
   test("TP1 closes a third, the last TP closes the rest", () => {
-    expect(triggerFor(LONG, 63_500)).toMatchObject({ kind: "tp", level: 1, closeSize: 1 / 3 })
-    expect(triggerFor({ ...LONG, size: 1 / 3, tpsHit: 2 }, 69_100)).toMatchObject({ kind: "tp", level: 3, closeSize: 1 / 3 })
+    expect(triggerFor(LONG, 63_500)).toMatchObject({
+      kind: "tp",
+      level: 1,
+      closeSize: 1 / 3,
+    })
+    expect(
+      triggerFor({ ...LONG, size: 1 / 3, tpsHit: 2 }, 69_100),
+    ).toMatchObject({ kind: "tp", level: 3, closeSize: 1 / 3 })
   })
   test("a single tp closes everything", () => {
-    expect(triggerFor({ ...LONG, tps: undefined, tp: 62_000 }, 62_000)).toMatchObject({ kind: "tp", closeSize: 1 })
+    expect(
+      triggerFor({ ...LONG, tps: undefined, tp: 62_000 }, 62_000),
+    ).toMatchObject({ kind: "tp", closeSize: 1 })
   })
 })
 

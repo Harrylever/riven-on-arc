@@ -27,7 +27,11 @@ interface Quote {
   error?: string
 }
 
-type Step = { label: string; state: "waiting" | "signing" | "done" | "failed"; hash?: string }
+type Step = {
+  label: string
+  state: "waiting" | "signing" | "done" | "failed"
+  hash?: string
+}
 
 const EXPLORER = "https://explorer.arc.io/tx/"
 
@@ -75,7 +79,13 @@ export function TradeSheet({
         const res = await fetch("/api/arc/trade", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ token: token.address, side, amount, wallet: wallet.address, slippageBps: slippage * 100 }),
+          body: JSON.stringify({
+            token: token.address,
+            side,
+            amount,
+            wallet: wallet.address,
+            slippageBps: slippage * 100,
+          }),
           signal: ctrl.signal,
         })
         setQuote((await res.json()) as Quote)
@@ -96,13 +106,25 @@ export function TradeSheet({
     const all = [...quote.approvals, quote.swap]
     setSteps(all.map((t) => ({ label: t.label, state: "waiting" })))
     for (let i = 0; i < all.length; i++) {
-      setSteps((s) => s!.map((x, j) => (j === i ? { ...x, state: "signing" } : x)))
+      setSteps((s) =>
+        s!.map((x, j) => (j === i ? { ...x, state: "signing" } : x)),
+      )
       try {
         const hash = await wallet.send(all[i]!)
-        setSteps((s) => s!.map((x, j) => (j === i ? { ...x, state: "done", hash } : x)))
+        setSteps((s) =>
+          s!.map((x, j) => (j === i ? { ...x, state: "done", hash } : x)),
+        )
       } catch (e) {
         setSteps((s) =>
-          s!.map((x, j) => (j === i ? { ...x, state: "failed", label: `${x.label} — ${(e as Error).message.split("\n")[0]}` } : x)),
+          s!.map((x, j) =>
+            j === i
+              ? {
+                  ...x,
+                  state: "failed",
+                  label: `${x.label} — ${(e as Error).message.split("\n")[0]}`,
+                }
+              : x,
+          ),
         )
         return
       }
@@ -127,10 +149,19 @@ export function TradeSheet({
     >
       <div className="flex flex-col gap-3 p-5">
         <div className="flex items-center justify-between">
-          <h2 id="trade-title" className="rv-display text-[20px] font-extrabold">
+          <h2
+            id="trade-title"
+            className="rv-display text-[20px] font-extrabold"
+          >
             {side === "buy" ? "Buy" : "Sell"} ${token.symbol}
           </h2>
-          <button type="button" onClick={onClose} disabled={running} className="text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]" aria-label="Close">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={running}
+            className="text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+            aria-label="Close"
+          >
             ✕
           </button>
         </div>
@@ -144,7 +175,12 @@ export function TradeSheet({
               disabled={running}
               className="rv-body rounded-md py-2 text-[14px] font-bold capitalize"
               style={{
-                background: side === s ? (s === "buy" ? "var(--rv-up)" : "var(--rv-down)") : "transparent",
+                background:
+                  side === s
+                    ? s === "buy"
+                      ? "var(--rv-up)"
+                      : "var(--rv-down)"
+                    : "transparent",
                 color: side === s ? "#000" : "var(--rv-ink-2)",
               }}
             >
@@ -154,7 +190,9 @@ export function TradeSheet({
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="rv-body text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">You pay ({unit})</span>
+          <span className="rv-body text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
+            You pay ({unit})
+          </span>
           <input
             inputMode="decimal"
             value={amount}
@@ -173,7 +211,11 @@ export function TradeSheet({
               type="button"
               onClick={() => setSlippage(v)}
               className="rv-num rounded px-2 py-0.5"
-              style={{ background: slippage === v ? "var(--rv-blue)" : "rgba(255,255,255,0.05)", color: slippage === v ? "#fff" : "var(--rv-ink-2)" }}
+              style={{
+                background:
+                  slippage === v ? "var(--rv-blue)" : "rgba(255,255,255,0.05)",
+                color: slippage === v ? "#fff" : "var(--rv-ink-2)",
+              }}
             >
               {v}%
             </button>
@@ -182,9 +224,13 @@ export function TradeSheet({
 
         <div className="rv-card rv-num px-3 py-2.5 text-[13px]">
           {!wallet.address ? (
-            <span className="rv-body text-[var(--rv-ink-2)]">Connect your wallet to get a quote.</span>
+            <span className="rv-body text-[var(--rv-ink-2)]">
+              Connect your wallet to get a quote.
+            </span>
           ) : loading ? (
-            <span className="text-[var(--rv-ink-3)]">Getting a quote from Uniswap…</span>
+            <span className="text-[var(--rv-ink-3)]">
+              Getting a quote from Uniswap…
+            </span>
           ) : quote?.error ? (
             <span className="rv-body text-[var(--rv-risk)]">{quote.error}</span>
           ) : quote ? (
@@ -196,17 +242,24 @@ export function TradeSheet({
                 </span>
               </div>
               <div className="flex justify-between text-[12px]">
-                <span className="text-[var(--rv-ink-3)]">Minimum after {slippage}% slippage</span>
+                <span className="text-[var(--rv-ink-3)]">
+                  Minimum after {slippage}% slippage
+                </span>
                 <span>
                   {compact(Number(quote.minOut))} {outUnit}
                 </span>
               </div>
               {quote.approvals.length > 0 && (
                 <div className="rv-body text-[11px] text-[var(--rv-ink-3)]">
-                  First trade of this token: {quote.approvals.length} one-time approval{quote.approvals.length > 1 ? "s" : ""} first.
+                  First trade of this token: {quote.approvals.length} one-time
+                  approval{quote.approvals.length > 1 ? "s" : ""} first.
                 </div>
               )}
-              {quote.insufficient && <div className="rv-body text-[12px] text-[var(--rv-risk)]">Not enough {unit} in your wallet.</div>}
+              {quote.insufficient && (
+                <div className="rv-body text-[12px] text-[var(--rv-risk)]">
+                  Not enough {unit} in your wallet.
+                </div>
+              )}
             </div>
           ) : (
             <span className="text-[var(--rv-ink-3)]">Enter an amount</span>
@@ -215,7 +268,12 @@ export function TradeSheet({
 
         {side === "buy" && risky && (
           <label className="rv-body flex gap-2.5 rounded-lg border border-[rgba(239,68,68,0.4)] bg-[rgba(239,68,68,0.06)] p-3 text-[12px] leading-snug">
-            <input type="checkbox" checked={riskAck} onChange={(e) => setRiskAck(e.target.checked)} className="mt-0.5 accent-[var(--rv-risk)]" />
+            <input
+              type="checkbox"
+              checked={riskAck}
+              onChange={(e) => setRiskAck(e.target.checked)}
+              className="mt-0.5 accent-[var(--rv-risk)]"
+            />
             <span>
               <b style={{ color: m.color }}>Anti-rug warning.</b>{" "}
               {token.fake
@@ -223,7 +281,9 @@ export function TradeSheet({
                 : token.band === "risk"
                   ? `Riven scores it ${token.score?.toFixed(1)}/10 — risky.`
                   : ""}{" "}
-              {token.copies > 0 ? `${token.copies + 1} tokens use this ticker — make sure it's the right contract. ` : ""}
+              {token.copies > 0
+                ? `${token.copies + 1} tokens use this ticker — make sure it's the right contract. `
+                : ""}
               I understand I could lose this money.
             </span>
           </label>
@@ -232,18 +292,43 @@ export function TradeSheet({
         {steps ? (
           <ol className="flex flex-col gap-1.5">
             {steps.map((s, i) => (
-              <li key={i} className="rv-body flex items-center gap-2 text-[13px]">
+              <li
+                key={i}
+                className="rv-body flex items-center gap-2 text-[13px]"
+              >
                 <span
                   className="rv-num w-5 text-center font-bold"
                   style={{
-                    color: s.state === "done" ? "var(--rv-up)" : s.state === "failed" ? "var(--rv-down)" : s.state === "signing" ? "var(--rv-ice)" : "var(--rv-ink-3)",
+                    color:
+                      s.state === "done"
+                        ? "var(--rv-up)"
+                        : s.state === "failed"
+                          ? "var(--rv-down)"
+                          : s.state === "signing"
+                            ? "var(--rv-ice)"
+                            : "var(--rv-ink-3)",
                   }}
                 >
-                  {s.state === "done" ? "✓" : s.state === "failed" ? "✕" : s.state === "signing" ? "…" : i + 1}
+                  {s.state === "done"
+                    ? "✓"
+                    : s.state === "failed"
+                      ? "✕"
+                      : s.state === "signing"
+                        ? "…"
+                        : i + 1}
                 </span>
-                <span className="flex-1">{s.state === "signing" ? `${s.label} — confirm in your wallet` : s.label}</span>
+                <span className="flex-1">
+                  {s.state === "signing"
+                    ? `${s.label} — confirm in your wallet`
+                    : s.label}
+                </span>
                 {s.hash && (
-                  <a href={EXPLORER + s.hash} target="_blank" rel="noreferrer" className="text-[12px] text-[var(--rv-ice)] hover:underline">
+                  <a
+                    href={EXPLORER + s.hash}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[12px] text-[var(--rv-ice)] hover:underline"
+                  >
                     tx ↗
                   </a>
                 )}
@@ -253,22 +338,40 @@ export function TradeSheet({
         ) : null}
 
         {!wallet.address ? (
-          <button type="button" onClick={() => void wallet.connect()} className="rv-body h-12 rounded-lg bg-[var(--rv-blue)] text-[15px] font-bold text-white">
+          <button
+            type="button"
+            onClick={() => void wallet.connect()}
+            className="rv-body h-12 rounded-lg bg-[var(--rv-blue)] text-[15px] font-bold text-white"
+          >
             Connect wallet
           </button>
         ) : (
           <button
             type="button"
             onClick={() => void execute()}
-            disabled={!quote || !!quote.error || quote.insufficient || blocked || running || steps?.every((s) => s.state === "done")}
+            disabled={
+              !quote ||
+              !!quote.error ||
+              quote.insufficient ||
+              blocked ||
+              running ||
+              steps?.every((s) => s.state === "done")
+            }
             className="rv-body h-12 rounded-lg text-[15px] font-bold text-black disabled:opacity-40"
-            style={{ background: side === "buy" ? "var(--rv-up)" : "var(--rv-down)" }}
+            style={{
+              background: side === "buy" ? "var(--rv-up)" : "var(--rv-down)",
+            }}
           >
-            {steps?.every((s) => s.state === "done") ? "Done" : running ? "Waiting for your wallet…" : `${side === "buy" ? "Buy" : "Sell"} $${token.symbol}`}
+            {steps?.every((s) => s.state === "done")
+              ? "Done"
+              : running
+                ? "Waiting for your wallet…"
+                : `${side === "buy" ? "Buy" : "Sell"} $${token.symbol}`}
           </button>
         )}
         <p className="rv-body text-center text-[11px] text-[var(--rv-ink-3)]">
-          Routed through Uniswap v4 on Arc. You sign every transaction in your own wallet — Riven never holds your funds.
+          Routed through Uniswap v4 on Arc. You sign every transaction in your
+          own wallet — Riven never holds your funds.
         </p>
       </div>
     </dialog>

@@ -13,6 +13,9 @@ export async function GET(req: Request) {
     return NextResponse.json(light ? await getSyncStatus() : await getStats())
   } catch (err) {
     console.error(`[arc/status] ${(err as Error).message}`)
-    return NextResponse.json({ lastBlock: null, syncedAt: null, error: "unavailable" }, { status: 503 })
+    return NextResponse.json(
+      { lastBlock: null, syncedAt: null, error: "unavailable" },
+      { status: 503 },
+    )
   }
 }

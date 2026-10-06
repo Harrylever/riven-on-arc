@@ -28,7 +28,9 @@ export function SearchClient() {
     const ctrl = new AbortController()
     const id = setTimeout(() => {
       setLoading(true)
-      fetch(`/api/arc/search?q=${encodeURIComponent(query)}`, { signal: ctrl.signal })
+      fetch(`/api/arc/search?q=${encodeURIComponent(query)}`, {
+        signal: ctrl.signal,
+      })
         .then(async (r) => {
           if (!r.ok) throw new Error(`search ${r.status}`)
           return (await r.json()) as { tokens: TokenSummary[] }
@@ -37,7 +39,8 @@ export function SearchClient() {
           setFailed(false)
           setResults(d.tokens)
           // A pasted address that we track goes straight to its page.
-          if (ADDRESS.test(query) && d.tokens.length === 1) router.push(`/token/${d.tokens[0]!.address}`)
+          if (ADDRESS.test(query) && d.tokens.length === 1)
+            router.push(`/token/${d.tokens[0]!.address}`)
         })
         .catch((err: Error) => {
           if (err.name !== "AbortError") setFailed(true)
@@ -52,13 +55,24 @@ export function SearchClient() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="rv-display text-[30px] font-extrabold text-[var(--rv-ink)]">Check a token</h1>
+      <h1 className="rv-display text-[30px] font-extrabold text-[var(--rv-ink)]">
+        Check a token
+      </h1>
       <motion.label
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className="rv-card flex items-center gap-3 px-4 py-1 focus-within:border-[var(--rv-ice)]"
       >
-        <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="var(--rv-ink-3)" strokeWidth={2} strokeLinecap="round" aria-hidden>
+        <svg
+          viewBox="0 0 24 24"
+          width={22}
+          height={22}
+          fill="none"
+          stroke="var(--rv-ink-3)"
+          strokeWidth={2}
+          strokeLinecap="round"
+          aria-hidden
+        >
           <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4.3-4.3" />
         </svg>
         <input
@@ -72,22 +86,34 @@ export function SearchClient() {
           className="rv-body h-14 min-w-0 flex-1 bg-transparent text-[16px] text-[var(--rv-ink)] outline-none placeholder:text-[var(--rv-ink-3)]"
         />
         {q && (
-          <button type="button" onClick={() => setQ("")} className="rv-body text-[13px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]">
+          <button
+            type="button"
+            onClick={() => setQ("")}
+            className="rv-body text-[13px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+          >
             Clear
           </button>
         )}
       </motion.label>
 
-      {loading && <p className="rv-body text-sm text-[var(--rv-ink-3)]">Searching…</p>}
+      {loading && (
+        <p className="rv-body text-sm text-[var(--rv-ink-3)]">Searching…</p>
+      )}
       {failed && !loading && (
         <div className="rv-card px-5 py-6 text-center" role="alert">
-          <p className="rv-display text-lg font-bold text-[var(--rv-caution)]">Search is unavailable right now</p>
-          <p className="rv-body mt-1 text-sm text-[var(--rv-ink-2)]">Riven couldn&apos;t reach its database. Try again in a moment.</p>
+          <p className="rv-display text-lg font-bold text-[var(--rv-caution)]">
+            Search is unavailable right now
+          </p>
+          <p className="rv-body mt-1 text-sm text-[var(--rv-ink-2)]">
+            Riven couldn&apos;t reach its database. Try again in a moment.
+          </p>
         </div>
       )}
       {!failed && results !== null && !loading && results.length === 0 && (
         <div className="rv-card px-5 py-8 text-center">
-          <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">No match</p>
+          <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">
+            No match
+          </p>
           <p className="rv-body mt-1 text-sm text-[var(--rv-ink-2)]">
             {ADDRESS.test(q.trim())
               ? "Riven scores every Arc token with a USDC pool on Uniswap v4. This address doesn't have one yet."
@@ -106,7 +132,8 @@ export function SearchClient() {
       )}
       {results === null && (
         <p className="rv-body text-sm text-[var(--rv-ink-3)]">
-          Tip: copycats are everywhere on Arc. Search a ticker and you&apos;ll see every token using it, with its score.
+          Tip: copycats are everywhere on Arc. Search a ticker and you&apos;ll
+          see every token using it, with its score.
         </p>
       )}
     </div>

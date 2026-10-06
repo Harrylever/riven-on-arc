@@ -54,8 +54,12 @@ export function CopycatWarning({
   }, [open])
 
   if (copies.length === 0) return null
-  const all = [{ ...token, current: true } as const, ...copies.map((c) => ({ ...c, current: false }))].sort(
-    (a, b) => new Date(a.launchedAt).getTime() - new Date(b.launchedAt).getTime(),
+  const all = [
+    { ...token, current: true } as const,
+    ...copies.map((c) => ({ ...c, current: false })),
+  ].sort(
+    (a, b) =>
+      new Date(a.launchedAt).getTime() - new Date(b.launchedAt).getTime(),
   )
   const oldest = all[0]!
   const ack = () => {
@@ -72,11 +76,16 @@ export function CopycatWarning({
         onClick={() => setOpen(true)}
         className="rv-body flex w-full items-center gap-2 rounded-[var(--rv-radius)] border border-[rgba(234,179,8,0.4)] bg-[rgba(234,179,8,0.07)] px-4 py-2.5 text-left text-[13px] text-[var(--rv-ink)]"
       >
-        <span className="font-bold text-[var(--rv-caution)]">⚠ Copycat warning:</span>
-        <span className="flex-1">
-          {copies.length + 1} tokens on Arc use ${token.symbol}. Make sure this is the contract you meant.
+        <span className="font-bold text-[var(--rv-caution)]">
+          ⚠ Copycat warning:
         </span>
-        <span className="text-[12px] font-semibold text-[var(--rv-ice)]">See all</span>
+        <span className="flex-1">
+          {copies.length + 1} tokens on Arc use ${token.symbol}. Make sure this
+          is the contract you meant.
+        </span>
+        <span className="text-[12px] font-semibold text-[var(--rv-ice)]">
+          See all
+        </span>
       </button>
 
       <dialog
@@ -89,24 +98,46 @@ export function CopycatWarning({
         className="m-auto w-[min(560px,calc(100vw-24px))] rounded-[var(--rv-radius)] border border-[rgba(234,179,8,0.45)] bg-[#05080e] p-0 text-[var(--rv-ink)] backdrop:bg-black/75"
       >
         <div className="p-5">
-          <p className="rv-body text-[11px] font-bold tracking-[0.14em] text-[var(--rv-caution)] uppercase">Copycat warning</p>
-          <h2 id="copycat-title" className="rv-display mt-1 text-[22px] leading-tight font-extrabold">
+          <p className="rv-body text-[11px] font-bold tracking-[0.14em] text-[var(--rv-caution)] uppercase">
+            Copycat warning
+          </p>
+          <h2
+            id="copycat-title"
+            className="rv-display mt-1 text-[22px] leading-tight font-extrabold"
+          >
             There are {copies.length + 1} tokens called ${token.symbol}
           </h2>
           <p className="rv-body mt-2 text-[14px] leading-relaxed text-[var(--rv-ink-2)]">
-            When a token gets attention, scammers launch copies with the same ticker to catch people buying the wrong
-            one. Most copies are worthless or rugs. Avoid copies, check the contract address against the project&apos;s
-            official links, and trade with caution.
+            When a token gets attention, scammers launch copies with the same
+            ticker to catch people buying the wrong one. Most copies are
+            worthless or rugs. Avoid copies, check the contract address against
+            the project&apos;s official links, and trade with caution.
           </p>
           <ul className="mt-4 max-h-[42vh] divide-y divide-[var(--rv-stroke)] overflow-y-auto rounded-lg border border-[var(--rv-stroke)]">
             {all.map((c) => (
-              <li key={c.address} className="flex items-center gap-3 px-3 py-2.5 text-[13px]" style={{ background: c.current ? "rgba(30,123,255,0.1)" : "transparent" }}>
+              <li
+                key={c.address}
+                className="flex items-center gap-3 px-3 py-2.5 text-[13px]"
+                style={{
+                  background: c.current
+                    ? "rgba(30,123,255,0.1)"
+                    : "transparent",
+                }}
+              >
                 <div className="min-w-0 flex-1">
                   <div className="rv-num flex items-center gap-2">
-                    <span className="text-[var(--rv-ink)]">{shortAddr(c.address)}</span>
-                    {c.current && <span className="rv-body text-[10px] font-bold text-[var(--rv-ice)] uppercase">You&apos;re here</span>}
+                    <span className="text-[var(--rv-ink)]">
+                      {shortAddr(c.address)}
+                    </span>
+                    {c.current && (
+                      <span className="rv-body text-[10px] font-bold text-[var(--rv-ice)] uppercase">
+                        You&apos;re here
+                      </span>
+                    )}
                     {c.address === oldest.address && (
-                      <span className="rv-body text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">Oldest</span>
+                      <span className="rv-body text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                        Oldest
+                      </span>
                     )}
                   </div>
                   <div className="rv-num text-[11px] text-[var(--rv-ink-3)]">
@@ -115,9 +146,15 @@ export function CopycatWarning({
                     {"fake" in c && c.fake ? " · hidden as fake" : ""}
                   </div>
                 </div>
-                {"score" in c && <ScoreBadge score={c.score} band={c.band} size="sm" />}
+                {"score" in c && (
+                  <ScoreBadge score={c.score} band={c.band} size="sm" />
+                )}
                 {!c.current && (
-                  <Link href={`/token/${c.address}`} onClick={ack} className="rv-body text-[12px] font-semibold text-[var(--rv-ice)] hover:underline">
+                  <Link
+                    href={`/token/${c.address}`}
+                    onClick={ack}
+                    className="rv-body text-[12px] font-semibold text-[var(--rv-ice)] hover:underline"
+                  >
                     View
                   </Link>
                 )}
@@ -125,10 +162,17 @@ export function CopycatWarning({
             ))}
           </ul>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <Link href="/" className="rv-body rounded-lg px-4 py-2 text-[14px] font-semibold text-[var(--rv-ink-2)] ring-1 ring-[var(--rv-stroke)]">
+            <Link
+              href="/"
+              className="rv-body rounded-lg px-4 py-2 text-[14px] font-semibold text-[var(--rv-ink-2)] ring-1 ring-[var(--rv-stroke)]"
+            >
               Take me back
             </Link>
-            <button type="button" onClick={ack} className="rv-body rounded-lg bg-[var(--rv-caution)] px-4 py-2 text-[14px] font-bold text-black">
+            <button
+              type="button"
+              onClick={ack}
+              className="rv-body rounded-lg bg-[var(--rv-caution)] px-4 py-2 text-[14px] font-bold text-black"
+            >
               I understand, continue
             </button>
           </div>

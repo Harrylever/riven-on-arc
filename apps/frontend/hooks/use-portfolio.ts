@@ -350,8 +350,10 @@ export function usePortfolio(targetAccountId?: string) {
   // Calculated portfolio metrics
   const positionMargin = state.positions.reduce((acc, p) => acc + p.margin, 0)
   const totalUnrealizedPnl = state.positions.reduce((acc, p) => acc + p.pnl, 0)
-  const totalEquity = state.cashBalance + state.usdtBalance + positionMargin + totalUnrealizedPnl
-  const tradingEquity = state.cashBalance + state.usdtBalance + totalUnrealizedPnl
+  const totalEquity =
+    state.cashBalance + state.usdtBalance + positionMargin + totalUnrealizedPnl
+  const tradingEquity =
+    state.cashBalance + state.usdtBalance + totalUnrealizedPnl
 
   const placeOrder = useCallback(
     ({
@@ -386,7 +388,9 @@ export function usePortfolio(targetAccountId?: string) {
       const fee = orderValue * 0.00045 // 0.0450% taker fee
 
       if (balanceOf(current, collateral) < requiredMargin + fee) {
-        throw new Error(`Insufficient ${collateral} balance to place this order.`)
+        throw new Error(
+          `Insufficient ${collateral} balance to place this order.`,
+        )
       }
 
       if (type === "LIMIT") {
@@ -498,7 +502,15 @@ export function usePortfolio(targetAccountId?: string) {
         if (t) {
           changed = true
           const closeSize = t.kind === "tp" ? t.closeSize : p.size
-          const r = t.kind === "liquidated" ? { pnl: -p.margin, fee: 0, returned: 0, marginReleased: p.margin } : closeProceeds(p, closeSize, t.price)
+          const r =
+            t.kind === "liquidated"
+              ? {
+                  pnl: -p.margin,
+                  fee: 0,
+                  returned: 0,
+                  marginReleased: p.margin,
+                }
+              : closeProceeds(p, closeSize, t.price)
           adjust(current, p.collateral, r.returned)
           current.tradeHistory = [
             {
@@ -516,9 +528,19 @@ export function usePortfolio(targetAccountId?: string) {
             },
             ...current.tradeHistory,
           ]
-          const label = t.kind === "liquidated" ? "Liquidated" : t.kind === "sl" ? "Stop loss hit" : `TP${t.level} hit`
+          const label =
+            t.kind === "liquidated"
+              ? "Liquidated"
+              : t.kind === "sl"
+                ? "Stop loss hit"
+                : `TP${t.level} hit`
           toast.add({
-            type: t.kind === "tp" ? "success" : t.kind === "sl" ? "warning" : "error",
+            type:
+              t.kind === "tp"
+                ? "success"
+                : t.kind === "sl"
+                  ? "warning"
+                  : "error",
             title: `${label} · ${p.market}`,
             description: `${t.kind === "tp" && closeSize < p.size ? "Closed part" : "Closed"} at ${t.price} · PnL ${r.pnl >= 0 ? "+" : ""}${r.pnl.toFixed(2)}`,
             timeout: 6000,
@@ -526,7 +548,12 @@ export function usePortfolio(targetAccountId?: string) {
           const left = p.size - closeSize
           if (t.kind === "tp" && left > 1e-12) {
             p = marked(
-              { ...p, size: left, margin: p.margin - r.marginReleased, tpsHit: (p.tpsHit ?? 0) + 1 },
+              {
+                ...p,
+                size: left,
+                margin: p.margin - r.marginReleased,
+                tpsHit: (p.tpsHit ?? 0) + 1,
+              },
               mark,
             )
             kept.push(p)
@@ -624,7 +651,9 @@ export function usePortfolio(targetAccountId?: string) {
       if (amount <= 0) return
       const current = readStorage(effectiveAccountId)
       if (amount > balanceOf(current, collateral)) {
-        throw new Error(`Withdrawal amount exceeds available ${collateral} balance.`)
+        throw new Error(
+          `Withdrawal amount exceeds available ${collateral} balance.`,
+        )
       }
       adjust(current, collateral, -amount)
       writeStorage(effectiveAccountId, current)

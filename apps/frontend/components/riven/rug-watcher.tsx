@@ -29,7 +29,10 @@ export function RugWatcher() {
     let alive = true
     const seen = new Set<string>()
     try {
-      for (const id of JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]") as string[]) seen.add(id)
+      for (const id of JSON.parse(
+        localStorage.getItem(SEEN_KEY) ?? "[]",
+      ) as string[])
+        seen.add(id)
     } catch {}
     const check = async () => {
       try {
@@ -43,12 +46,21 @@ export function RugWatcher() {
           localStorage.setItem(SEEN_KEY, JSON.stringify([...seen].slice(-500)))
         } catch {}
         const known = baselined.current
-        const toWarn = fresh.filter((a) => known.has(a.token.address.toLowerCase()))
+        const toWarn = fresh.filter((a) =>
+          known.has(a.token.address.toLowerCase()),
+        )
         for (const m of key.split(",")) known.add(m.toLowerCase())
         for (const a of toWarn) {
           const title = `${a.token.symbol}: ${a.message}`
-          toast.add({ title: `Rug alert · ${a.token.symbol}`, description: a.message, type: "error" })
-          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+          toast.add({
+            title: `Rug alert · ${a.token.symbol}`,
+            description: a.message,
+            type: "error",
+          })
+          if (
+            typeof Notification !== "undefined" &&
+            Notification.permission === "granted"
+          ) {
             new Notification("Riven rug alert", { body: title, tag: a.id })
           }
         }

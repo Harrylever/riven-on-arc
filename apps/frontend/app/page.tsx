@@ -13,9 +13,18 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 }
 
-export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>
+}) {
   const filters = parseFilters(await searchParams)
-  let result: Awaited<ReturnType<typeof getScreener>> = { tokens: [], total: 0, page: 1, pages: 1 }
+  let result: Awaited<ReturnType<typeof getScreener>> = {
+    tokens: [],
+    total: 0,
+    page: 1,
+    pages: 1,
+  }
   let stats: Awaited<ReturnType<typeof getStats>> | null = null
   let failed = false
   try {
@@ -29,8 +38,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       <TerminalHeader stats={stats} now={Date.now()} />
       {failed ? (
         <div className="rv-card px-6 py-10 text-center">
-          <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">Can&apos;t reach the Riven database</p>
-          <p className="rv-body mt-2 text-sm text-[var(--rv-ink-2)]">The page can&apos;t load tokens right now. Try again in a moment.</p>
+          <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">
+            Can&apos;t reach the Riven database
+          </p>
+          <p className="rv-body mt-2 text-sm text-[var(--rv-ink-2)]">
+            The page can&apos;t load tokens right now. Try again in a moment.
+          </p>
         </div>
       ) : (
         <Screener

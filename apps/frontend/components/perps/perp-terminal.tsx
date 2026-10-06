@@ -85,7 +85,11 @@ export function PerpTerminal({
       </div>
 
       {/* Two sections per market: Chart (TradingView, with drawing tools) and Trade */}
-      <div className="flex border-b border-[var(--border)]" role="tablist" aria-label={`${market.symbol} sections`}>
+      <div
+        className="flex border-b border-[var(--border)]"
+        role="tablist"
+        aria-label={`${market.symbol} sections`}
+      >
         {(["chart", "trade"] as const).map((v) => (
           <button
             key={v}
@@ -104,13 +108,18 @@ export function PerpTerminal({
           </button>
         ))}
         <span className="rv-body ml-auto hidden self-center px-3 text-[11px] text-[var(--text-muted)] sm:block">
-          {view === "chart" ? "Draw trendlines, fibs and more with the toolbar on the left" : "Paper account · USDC or USDT"}
+          {view === "chart"
+            ? "Draw trendlines, fibs and more with the toolbar on the left"
+            : "Paper account · USDC or USDT"}
         </span>
       </div>
 
       {view === "chart" ? (
         <div className="h-[460px] sm:h-[640px]">
-          <TradingViewChart key={market.symbol} symbol={tradingViewSymbol(market.symbol)} />
+          <TradingViewChart
+            key={market.symbol}
+            symbol={tradingViewSymbol(market.symbol)}
+          />
         </div>
       ) : (
         <div className="grid lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -118,7 +127,11 @@ export function PerpTerminal({
             <OrderBook coin={market.symbol} markPrice={market.markPrice} />
           </div>
           <div className="mx-auto w-full max-w-[560px] lg:max-h-[640px] lg:overflow-y-auto">
-            <PerpTradePanel key={market.symbol} market={market} signal={signal} />
+            <PerpTradePanel
+              key={market.symbol}
+              market={market}
+              signal={signal}
+            />
           </div>
         </div>
       )}

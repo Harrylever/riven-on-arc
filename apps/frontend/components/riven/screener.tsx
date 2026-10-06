@@ -16,7 +16,14 @@ import {
   type ViewFilter,
 } from "@/lib/screener-params"
 import { REASON_LABEL } from "@/lib/reasons"
-import { BAND_META, age, change, changeColor, compact, usd } from "@/lib/riven-format"
+import {
+  BAND_META,
+  age,
+  change,
+  changeColor,
+  compact,
+  usd,
+} from "@/lib/riven-format"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
@@ -24,11 +31,16 @@ import { CopyBadge } from "./copycat"
 
 const REFRESH_MS = 20_000
 /** Where score disputes go: set NEXT_PUBLIC_DISPUTE_URL (form, X account, email); else the methodology page. */
-const DISPUTE_URL = process.env.NEXT_PUBLIC_DISPUTE_URL || "/methodology#disputes"
+const DISPUTE_URL =
+  process.env.NEXT_PUBLIC_DISPUTE_URL || "/methodology#disputes"
 const BANDS: BandFilter[] = ["all", "healthy", "caution", "risk"]
 const VIEWS: Array<{ id: ViewFilter; label: string; hint: string }> = [
   { id: "listed", label: "Listed", hint: "Flagged tokens hidden" },
-  { id: "caught", label: "Caught", hint: "Only flagged tokens, with the evidence" },
+  {
+    id: "caught",
+    label: "Caught",
+    hint: "Only flagged tokens, with the evidence",
+  },
   { id: "all", label: "Everything", hint: "Listed and flagged together" },
 ]
 
@@ -54,7 +66,10 @@ export function Screener({
 
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 1000)
-    const refresh = setInterval(() => startTransition(() => router.refresh()), REFRESH_MS)
+    const refresh = setInterval(
+      () => startTransition(() => router.refresh()),
+      REFRESH_MS,
+    )
     return () => {
       clearInterval(tick)
       clearInterval(refresh)
@@ -64,23 +79,41 @@ export function Screener({
   // Any filter change starts again from page 1; paging keeps everything else.
   const go = (patch: Partial<ScreenerFilters>) =>
     startTransition(() =>
-      router.push(`/${filtersToQuery({ ...filters, page: 1, ...patch })}`, { scroll: false }),
+      router.push(`/${filtersToQuery({ ...filters, page: 1, ...patch })}`, {
+        scroll: false,
+      }),
     )
   const goPage = (p: number) =>
     startTransition(() => {
-      router.push(`/${filtersToQuery({ ...filters, page: p })}`, { scroll: false })
-      document.getElementById("screener-top")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      router.push(`/${filtersToQuery({ ...filters, page: p })}`, {
+        scroll: false,
+      })
+      document
+        .getElementById("screener-top")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" })
     })
 
-  const activeCount = (Object.keys(DEFAULT_FILTERS) as Array<keyof ScreenerFilters>).filter(
-    (k) => !["sort", "band", "page", "view"].includes(k) && filters[k] !== DEFAULT_FILTERS[k],
+  const activeCount = (
+    Object.keys(DEFAULT_FILTERS) as Array<keyof ScreenerFilters>
+  ).filter(
+    (k) =>
+      !["sort", "band", "page", "view"].includes(k) &&
+      filters[k] !== DEFAULT_FILTERS[k],
   ).length
 
   return (
-    <section id="screener-top" aria-label="Arc token screener" className="flex scroll-mt-20 flex-col gap-3">
+    <section
+      id="screener-top"
+      aria-label="Arc token screener"
+      className="flex scroll-mt-20 flex-col gap-3"
+    >
       {/* Listed / Caught / Everything */}
       <div className="flex items-center gap-3">
-        <div className="inline-flex rounded-lg bg-[var(--rv-card)] p-1 ring-1 ring-[var(--rv-stroke)]" role="radiogroup" aria-label="Which tokens">
+        <div
+          className="inline-flex rounded-lg bg-[var(--rv-card)] p-1 ring-1 ring-[var(--rv-stroke)]"
+          role="radiogroup"
+          aria-label="Which tokens"
+        >
           {VIEWS.map((v) => {
             const on = v.id === filters.view
             const caught = v.id === "caught"
@@ -94,8 +127,18 @@ export function Screener({
                 onClick={() => go({ view: v.id })}
                 className="rv-body rounded-md px-3.5 py-1.5 text-[13px] font-semibold transition-colors"
                 style={{
-                  color: on ? (caught ? "#fff" : "#000") : caught ? "var(--rv-risk)" : "var(--rv-ink-2)",
-                  background: on ? (caught ? "var(--rv-risk)" : "var(--rv-ice)") : "transparent",
+                  color: on
+                    ? caught
+                      ? "#fff"
+                      : "#000"
+                    : caught
+                      ? "var(--rv-risk)"
+                      : "var(--rv-ink-2)",
+                  background: on
+                    ? caught
+                      ? "var(--rv-risk)"
+                      : "var(--rv-ice)"
+                    : "transparent",
                 }}
               >
                 {v.label}
@@ -109,7 +152,10 @@ export function Screener({
       </div>
 
       {/* Sort tabs */}
-      <nav className="scrollbar-hidden -mx-4 flex gap-1.5 overflow-x-auto px-4" aria-label="Sort">
+      <nav
+        className="scrollbar-hidden -mx-4 flex gap-1.5 overflow-x-auto px-4"
+        aria-label="Sort"
+      >
         {SORTS.map((s) => {
           const on = s.id === filters.sort
           return (
@@ -184,16 +230,29 @@ export function Screener({
         >
           Filters{activeCount > 0 ? ` · ${activeCount}` : ""}
         </button>
-        <span className="rv-num ml-auto text-[11px] text-[var(--rv-ink-3)]" aria-live="polite">
+        <span
+          className="rv-num ml-auto text-[11px] text-[var(--rv-ink-3)]"
+          aria-live="polite"
+        >
           {pending ? "syncing…" : "live"}
         </span>
       </div>
 
-      {panel && <FilterPanel filters={filters} onApply={(f) => { setPanel(false); go(f) }} />}
+      {panel && (
+        <FilterPanel
+          filters={filters}
+          onApply={(f) => {
+            setPanel(false)
+            go(f)
+          }}
+        />
+      )}
 
       {tokens.length === 0 ? (
         <div className="rv-card px-6 py-12 text-center">
-          <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">No tokens match these filters</p>
+          <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">
+            No tokens match these filters
+          </p>
           <p className="rv-body mt-1 text-sm text-[var(--rv-ink-2)]">
             {filters.view === "caught"
               ? "Nothing flagged under these filters — loosen one to see more."
@@ -211,20 +270,36 @@ export function Screener({
         </div>
       ) : (
         <>
-          <DesktopTable tokens={tokens} now={now} offset={(page - 1) * PAGE_SIZE} showWhy={filters.view !== "listed"} />
-          <MobileList tokens={tokens} now={now} showWhy={filters.view !== "listed"} />
+          <DesktopTable
+            tokens={tokens}
+            now={now}
+            offset={(page - 1) * PAGE_SIZE}
+            showWhy={filters.view !== "listed"}
+          />
+          <MobileList
+            tokens={tokens}
+            now={now}
+            showWhy={filters.view !== "listed"}
+          />
           <Pagination page={page} pages={pages} total={total} onPage={goPage} />
         </>
       )}
       {filters.view === "listed" && (
         <p className="rv-body text-[12px] text-[var(--rv-ink-3)]">
-          Riven hides tokens flagged for fake volume, serial launchers, creators who sold out, pulled liquidity, dead tokens
-          and impersonation.{" "}
-          <button type="button" onClick={() => go({ view: "caught" })} className="font-semibold text-[var(--rv-risk)] hover:underline">
+          Riven hides tokens flagged for fake volume, serial launchers, creators
+          who sold out, pulled liquidity, dead tokens and impersonation.{" "}
+          <button
+            type="button"
+            onClick={() => go({ view: "caught" })}
+            className="font-semibold text-[var(--rv-risk)] hover:underline"
+          >
             See them with the evidence
           </button>
           . Think a flag is wrong?{" "}
-          <a href={DISPUTE_URL} className="font-semibold text-[var(--rv-ice)] hover:underline">
+          <a
+            href={DISPUTE_URL}
+            className="font-semibold text-[var(--rv-ice)] hover:underline"
+          >
             Dispute a score
           </a>
           .
@@ -261,16 +336,33 @@ function Select({
   )
 }
 
-function FilterPanel({ filters, onApply }: { filters: ScreenerFilters; onApply: (f: Partial<ScreenerFilters>) => void }) {
+function FilterPanel({
+  filters,
+  onApply,
+}: {
+  filters: ScreenerFilters
+  onApply: (f: Partial<ScreenerFilters>) => void
+}) {
   const [draft, setDraft] = useState(filters)
-  const field = (key: "minLiq" | "minMcap" | "maxMcap" | "minVol" | "minScore", label: string, hint: string) => (
+  const field = (
+    key: "minLiq" | "minMcap" | "maxMcap" | "minVol" | "minScore",
+    label: string,
+    hint: string,
+  ) => (
     <label className="flex flex-col gap-1">
-      <span className="rv-body text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">{label}</span>
+      <span className="rv-body text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
+        {label}
+      </span>
       <input
         inputMode="decimal"
         value={draft[key] || ""}
         placeholder={hint}
-        onChange={(e) => setDraft({ ...draft, [key]: Math.max(0, Number(e.target.value) || 0) })}
+        onChange={(e) =>
+          setDraft({
+            ...draft,
+            [key]: Math.max(0, Number(e.target.value) || 0),
+          })
+        }
         className="rv-input h-10 px-3 text-[14px]"
       />
     </label>
@@ -296,7 +388,10 @@ function FilterPanel({ filters, onApply }: { filters: ScreenerFilters; onApply: 
         >
           Reset
         </button>
-        <button type="submit" className="rv-body rounded-lg bg-[var(--rv-blue)] px-4 py-2 text-sm font-semibold text-white">
+        <button
+          type="submit"
+          className="rv-body rounded-lg bg-[var(--rv-blue)] px-4 py-2 text-sm font-semibold text-white"
+        >
           Apply
         </button>
       </div>
@@ -323,14 +418,25 @@ function Pagination({
   total: number
   onPage: (p: number) => void
 }) {
-  if (pages <= 1) return <p className="rv-num text-[11px] text-[var(--rv-ink-3)]">{total} tokens</p>
+  if (pages <= 1)
+    return (
+      <p className="rv-num text-[11px] text-[var(--rv-ink-3)]">
+        {total} tokens
+      </p>
+    )
   // Window of page numbers around the current one, always including first and last.
-  const nums = [...new Set([1, page - 2, page - 1, page, page + 1, page + 2, pages])]
+  const nums = [
+    ...new Set([1, page - 2, page - 1, page, page + 1, page + 2, pages]),
+  ]
     .filter((n) => n >= 1 && n <= pages)
     .sort((a, b) => a - b)
-  const btn = "rv-num h-9 min-w-9 rounded-md px-2.5 text-[13px] font-semibold transition-colors"
+  const btn =
+    "rv-num h-9 min-w-9 rounded-md px-2.5 text-[13px] font-semibold transition-colors"
   return (
-    <nav className="flex flex-wrap items-center justify-center gap-1.5 py-1" aria-label="Pages">
+    <nav
+      className="flex flex-wrap items-center justify-center gap-1.5 py-1"
+      aria-label="Pages"
+    >
       <button
         type="button"
         disabled={page <= 1}
@@ -341,7 +447,9 @@ function Pagination({
       </button>
       {nums.map((n, i) => (
         <span key={n} className="flex items-center gap-1.5">
-          {i > 0 && n - nums[i - 1]! > 1 && <span className="text-[var(--rv-ink-3)]">…</span>}
+          {i > 0 && n - nums[i - 1]! > 1 && (
+            <span className="text-[var(--rv-ink-3)]">…</span>
+          )}
           <button
             type="button"
             onClick={() => onPage(n)}
@@ -350,7 +458,8 @@ function Pagination({
             style={{
               color: n === page ? "#fff" : "var(--rv-ink-2)",
               background: n === page ? "var(--rv-blue)" : "transparent",
-              boxShadow: n === page ? "none" : "inset 0 0 0 1px var(--rv-stroke)",
+              boxShadow:
+                n === page ? "none" : "inset 0 0 0 1px var(--rv-stroke)",
             }}
           >
             {n}
@@ -376,10 +485,21 @@ function Pagination({
 function Why({ t }: { t: TokenSummary }) {
   if (!t.fake) return null
   const code = t.fakeCodes[0]
+  const label = (code && REASON_LABEL[code]?.label) ?? "Flagged"
+  // The flag text often already starts with its own label ("Fake volume: …").
+  const raw = t.fakeReasons[0] ?? ""
+  const text = raw.toLowerCase().startsWith(label.toLowerCase())
+    ? raw.slice(label.length).replace(/^:?\s*/, "")
+    : raw
   return (
     <span className="rv-body mt-0.5 block text-[11.5px] leading-snug text-[var(--rv-risk)]">
-      <b>{(code && REASON_LABEL[code]?.label) ?? "Flagged"}:</b> {t.fakeReasons[0]}
-      {t.fakeReasons.length > 1 && <span className="text-[var(--rv-ink-3)]"> · +{t.fakeReasons.length - 1} more</span>}
+      <b>{label}:</b> {text}
+      {t.fakeReasons.length > 1 && (
+        <span className="text-[var(--rv-ink-3)]">
+          {" "}
+          · +{t.fakeReasons.length - 1} more
+        </span>
+      )}
     </span>
   )
 }
@@ -435,35 +555,72 @@ function DesktopTable({
               onClick={() => router.push(`/token/${t.address}`)}
               className="cursor-pointer border-b border-[var(--rv-stroke)] transition-colors last:border-0 hover:bg-[var(--rv-row-hover)]"
             >
-              <td className="rv-num px-3 py-2.5 text-[var(--rv-ink-3)]">{offset + i + 1}</td>
+              <td className="rv-num px-3 py-2.5 text-[var(--rv-ink-3)]">
+                {offset + i + 1}
+              </td>
               <td className="px-2 py-2">
-                <Link href={`/token/${t.address}`} className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
-                  <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={30} />
+                <Link
+                  href={`/token/${t.address}`}
+                  className="flex items-center gap-2.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <TokenAvatar
+                    image={t.image}
+                    symbol={t.symbol}
+                    address={t.address}
+                    size={30}
+                  />
                   <span className="min-w-0">
                     <span className="flex items-center gap-1.5">
-                      <span className="rv-body max-w-[150px] truncate font-semibold text-[var(--rv-ink)]">{t.symbol}</span>
+                      <span className="rv-body max-w-[150px] truncate font-semibold text-[var(--rv-ink)]">
+                        {t.symbol}
+                      </span>
                       {t.fake && <FlagBadge />}
                       <CopyBadge copies={t.copies} />
                     </span>
                     <span className="rv-body block max-w-[180px] truncate text-[11px] text-[var(--rv-ink-3)]">
                       {t.name} · {t.launchpad}
                     </span>
-                    {showWhy && <span className="block max-w-[360px]"><Why t={t} /></span>}
+                    {showWhy && (
+                      <span className="block max-w-[360px]">
+                        <Why t={t} />
+                      </span>
+                    )}
                   </span>
                 </Link>
               </td>
-              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink)]">{usd(t.priceUsd, { precise: true })}</td>
-              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink-2)]">{age(t.launchedAt, now)}</td>
-              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink-2)]">
-                {t.buys24h === null ? "—" : compact((t.buys24h ?? 0) + (t.sells24h ?? 0))}
+              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink)]">
+                {usd(t.priceUsd, { precise: true })}
               </td>
-              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink)]">{usd(t.volume.h24)}</td>
-              <td className="px-2 py-2.5 text-right"><Pct v={t.change.m5} /></td>
-              <td className="px-2 py-2.5 text-right"><Pct v={t.change.h1} /></td>
-              <td className="px-2 py-2.5 text-right"><Pct v={t.change.h6} /></td>
-              <td className="px-2 py-2.5 text-right"><Pct v={t.change.h24} /></td>
-              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink-2)]">{usd(t.liquidityUsd)}</td>
-              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink)]">{usd(t.marketCap)}</td>
+              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink-2)]">
+                {age(t.launchedAt, now)}
+              </td>
+              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink-2)]">
+                {t.buys24h === null
+                  ? "—"
+                  : compact((t.buys24h ?? 0) + (t.sells24h ?? 0))}
+              </td>
+              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink)]">
+                {usd(t.volume.h24)}
+              </td>
+              <td className="px-2 py-2.5 text-right">
+                <Pct v={t.change.m5} />
+              </td>
+              <td className="px-2 py-2.5 text-right">
+                <Pct v={t.change.h1} />
+              </td>
+              <td className="px-2 py-2.5 text-right">
+                <Pct v={t.change.h6} />
+              </td>
+              <td className="px-2 py-2.5 text-right">
+                <Pct v={t.change.h24} />
+              </td>
+              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink-2)]">
+                {usd(t.liquidityUsd)}
+              </td>
+              <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink)]">
+                {usd(t.marketCap)}
+              </td>
               <td className="px-3 py-2 text-right">
                 <ScoreBadge score={t.score} band={t.band} size="sm" word />
               </td>
@@ -478,24 +635,46 @@ function DesktopTable({
   )
 }
 
-function MobileList({ tokens, now, showWhy }: { tokens: TokenSummary[]; now: number; showWhy: boolean }) {
+function MobileList({
+  tokens,
+  now,
+  showWhy,
+}: {
+  tokens: TokenSummary[]
+  now: number
+  showWhy: boolean
+}) {
   return (
     <ol className="rv-card divide-y divide-[var(--rv-stroke)] md:hidden">
       {tokens.map((t) => (
         <li key={t.address} className="flex items-center">
-          <Link href={`/token/${t.address}`} className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 active:bg-[var(--rv-row-hover)]">
-            <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={40} />
+          <Link
+            href={`/token/${t.address}`}
+            className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 active:bg-[var(--rv-row-hover)]"
+          >
+            <TokenAvatar
+              image={t.image}
+              symbol={t.symbol}
+              address={t.address}
+              size={40}
+            />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="rv-body truncate text-[15px] font-semibold text-[var(--rv-ink)]">{t.symbol}</span>
+                <span className="rv-body truncate text-[15px] font-semibold text-[var(--rv-ink)]">
+                  {t.symbol}
+                </span>
                 {t.fake && <FlagBadge />}
                 <CopyBadge copies={t.copies} />
-                <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">{age(t.launchedAt, now)}</span>
+                <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">
+                  {age(t.launchedAt, now)}
+                </span>
               </div>
               <div className="rv-num mt-0.5 flex gap-2.5 text-[12px] text-[var(--rv-ink-2)]">
                 <span>MC {usd(t.marketCap)}</span>
                 <span>Liq {usd(t.liquidityUsd)}</span>
-                <span style={{ color: changeColor(t.change.h24) }}>{change(t.change.h24)}</span>
+                <span style={{ color: changeColor(t.change.h24) }}>
+                  {change(t.change.h24)}
+                </span>
               </div>
               {showWhy && <Why t={t} />}
             </div>

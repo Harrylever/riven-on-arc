@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "Perps terminal",
-  description: "Hyperliquid perps with TradingView charts, order book, funding, sakz-bot signals, pair tracking and price alerts.",
+  description:
+    "Hyperliquid perps with TradingView charts, order book, funding, sakz-bot signals, pair tracking and price alerts.",
 }
 
 export default function PerpsPage() {

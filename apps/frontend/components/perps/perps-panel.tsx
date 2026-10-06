@@ -130,7 +130,9 @@ export function PerpsPanel() {
   const [markets, setMarkets] = useState<PerpMarket[] | null>(null)
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null)
   const [showAllMarkets, setShowAllMarkets] = useState(false)
-  const [marketGroup, setMarketGroup] = useState<"all" | "signal" | "meme" | "major">("all")
+  const [marketGroup, setMarketGroup] = useState<
+    "all" | "signal" | "meme" | "major"
+  >("all")
 
   const { openOrders, fillOrder, updateMarks } = usePortfolio()
 
@@ -328,7 +330,12 @@ export function PerpsPanel() {
       )}
 
       {selectedMarket && markets && (
-        <PerpWatch market={selectedMarket} markets={markets} signals={signals} onSelect={setSelectedSymbol} />
+        <PerpWatch
+          market={selectedMarket}
+          markets={markets}
+          signals={signals}
+          onSelect={setSelectedSymbol}
+        />
       )}
 
       {/* Track Record Stats Header */}
@@ -593,108 +600,129 @@ export function PerpsPanel() {
       </div>
 
       {/* All perp markets */}
-      {displayedMarkets && displayedMarkets.length > 0 && (() => {
-        const groups = {
-          all: displayedMarkets,
-          signal: displayedMarkets.filter((m) => signalByCoin.has(m.symbol.toUpperCase())),
-          meme: displayedMarkets.filter((m) => isMemePerp(m.symbol)),
-          major: displayedMarkets.filter((m) => isMajorPerp(m.symbol)),
-        }
-        const list = groups[marketGroup]
-        return (
-        <div className="border border-[var(--border)] bg-[var(--surface)]">
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {([
-                ["all", "All"],
-                ["signal", "With signal"],
-                ["meme", "Meme coins"],
-                ["major", "Majors"],
-              ] as const).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setMarketGroup(id)}
-                  aria-pressed={marketGroup === id}
-                  className="px-2.5 py-1 text-[11px] font-bold"
-                  style={{
-                    color: marketGroup === id ? "#fff" : "var(--text-muted)",
-                    background: marketGroup === id ? "var(--brand)" : "transparent",
-                    boxShadow: marketGroup === id ? "none" : "inset 0 0 0 1px var(--border)",
-                  }}
-                >
-                  {label} ({groups[id].length})
-                </button>
-              ))}
-            </div>
-            <span className="hidden text-[10px] text-[var(--text-muted)] sm:inline">
-              Signals first, then by volume · click to open
-            </span>
-          </div>
-          <div className="grid gap-px bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
-            {(showAllMarkets || search || marketGroup !== "all" ? list : list.slice(0, 24)).map((m) => {
-              const sig = signalByCoin.get(m.symbol.toUpperCase())
-              return (
-                <button
-                  key={m.symbol}
-                  onClick={() => {
-                    setSelectedSymbol(m.symbol)
-                    window.scrollTo({ top: 0, behavior: "smooth" })
-                  }}
-                  className="flex items-center justify-between bg-[var(--surface)] px-3 py-2 text-left hover:bg-[var(--surface-sunken)]"
-                >
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs font-extrabold">
-                      {m.symbol}
-                      {sig && (
-                        <span
-                          className="border px-1 text-[9px] font-bold"
-                          style={{
-                            borderColor:
-                              sig.bias === "LONG" ? "var(--up)" : "var(--down)",
-                            color:
-                              sig.bias === "LONG" ? "var(--up)" : "var(--down)",
-                          }}
-                        >
-                          {sig.bias} {sig.confidence}/10
-                        </span>
-                      )}
-                    </div>
-                    <div className="font-mono text-[10px] text-[var(--text-muted)]">
-                      {priceUsd(m.markPrice)}
-                    </div>
-                  </div>
-                  <span
-                    className="font-mono text-xs font-bold"
-                    style={{
-                      color: m.change24h >= 0 ? "var(--up)" : "var(--down)",
-                    }}
+      {displayedMarkets &&
+        displayedMarkets.length > 0 &&
+        (() => {
+          const groups = {
+            all: displayedMarkets,
+            signal: displayedMarkets.filter((m) =>
+              signalByCoin.has(m.symbol.toUpperCase()),
+            ),
+            meme: displayedMarkets.filter((m) => isMemePerp(m.symbol)),
+            major: displayedMarkets.filter((m) => isMajorPerp(m.symbol)),
+          }
+          const list = groups[marketGroup]
+          return (
+            <div className="border border-[var(--border)] bg-[var(--surface)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {(
+                    [
+                      ["all", "All"],
+                      ["signal", "With signal"],
+                      ["meme", "Meme coins"],
+                      ["major", "Majors"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setMarketGroup(id)}
+                      aria-pressed={marketGroup === id}
+                      className="px-2.5 py-1 text-[11px] font-bold"
+                      style={{
+                        color:
+                          marketGroup === id ? "#fff" : "var(--text-muted)",
+                        background:
+                          marketGroup === id ? "var(--brand)" : "transparent",
+                        boxShadow:
+                          marketGroup === id
+                            ? "none"
+                            : "inset 0 0 0 1px var(--border)",
+                      }}
+                    >
+                      {label} ({groups[id].length})
+                    </button>
+                  ))}
+                </div>
+                <span className="hidden text-[10px] text-[var(--text-muted)] sm:inline">
+                  Signals first, then by volume · click to open
+                </span>
+              </div>
+              <div className="grid gap-px bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
+                {(showAllMarkets || search || marketGroup !== "all"
+                  ? list
+                  : list.slice(0, 24)
+                ).map((m) => {
+                  const sig = signalByCoin.get(m.symbol.toUpperCase())
+                  return (
+                    <button
+                      key={m.symbol}
+                      onClick={() => {
+                        setSelectedSymbol(m.symbol)
+                        window.scrollTo({ top: 0, behavior: "smooth" })
+                      }}
+                      className="flex items-center justify-between bg-[var(--surface)] px-3 py-2 text-left hover:bg-[var(--surface-sunken)]"
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                          {m.symbol}
+                          {sig && (
+                            <span
+                              className="border px-1 text-[9px] font-bold"
+                              style={{
+                                borderColor:
+                                  sig.bias === "LONG"
+                                    ? "var(--up)"
+                                    : "var(--down)",
+                                color:
+                                  sig.bias === "LONG"
+                                    ? "var(--up)"
+                                    : "var(--down)",
+                              }}
+                            >
+                              {sig.bias} {sig.confidence}/10
+                            </span>
+                          )}
+                        </div>
+                        <div className="font-mono text-[10px] text-[var(--text-muted)]">
+                          {priceUsd(m.markPrice)}
+                        </div>
+                      </div>
+                      <span
+                        className="font-mono text-xs font-bold"
+                        style={{
+                          color: m.change24h >= 0 ? "var(--up)" : "var(--down)",
+                        }}
+                      >
+                        {m.change24h >= 0 ? "+" : ""}
+                        {m.change24h.toFixed(2)}%
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              {!showAllMarkets &&
+                !search &&
+                marketGroup === "all" &&
+                list.length > 24 && (
+                  <button
+                    onClick={() => setShowAllMarkets(true)}
+                    className="w-full border-t border-[var(--border)] py-2 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                   >
-                    {m.change24h >= 0 ? "+" : ""}
-                    {m.change24h.toFixed(2)}%
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-          {!showAllMarkets && !search && marketGroup === "all" && list.length > 24 && (
-            <button
-              onClick={() => setShowAllMarkets(true)}
-              className="w-full border-t border-[var(--border)] py-2 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            >
-              Show all {list.length} markets
-            </button>
-          )}
-          {list.length === 0 && (
-            <div className="px-3 py-6 text-center text-[11px] text-[var(--text-muted)]">
-              {marketGroup === "signal"
-                ? "No open sakz-bot calls match a Hyperliquid market right now."
-                : "No markets in this group."}
+                    Show all {list.length} markets
+                  </button>
+                )}
+              {list.length === 0 && (
+                <div className="px-3 py-6 text-center text-[11px] text-[var(--text-muted)]">
+                  {marketGroup === "signal"
+                    ? "No open sakz-bot calls match a Hyperliquid market right now."
+                    : "No markets in this group."}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        )
-      })()}
+          )
+        })()}
 
       {/* Signals Content Grid */}
       {loading && signals === null ? (

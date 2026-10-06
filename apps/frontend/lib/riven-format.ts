@@ -1,13 +1,39 @@
 import type { ArcBand } from "@clawdex/shared"
 
-export const BAND_META: Record<ArcBand, { label: string; short: string; color: string; tint: string }> = {
-  healthy: { label: "Looks healthy", short: "Healthy", color: "var(--rv-healthy)", tint: "rgba(34, 197, 94, 0.10)" },
-  caution: { label: "Be careful", short: "Caution", color: "var(--rv-caution)", tint: "rgba(234, 179, 8, 0.10)" },
-  risk: { label: "Risky", short: "Risky", color: "var(--rv-risk)", tint: "rgba(239, 68, 68, 0.10)" },
-  unscored: { label: "Scoring…", short: "Scoring", color: "var(--rv-unscored)", tint: "rgba(100, 116, 139, 0.10)" },
+export const BAND_META: Record<
+  ArcBand,
+  { label: string; short: string; color: string; tint: string }
+> = {
+  healthy: {
+    label: "Looks healthy",
+    short: "Healthy",
+    color: "var(--rv-healthy)",
+    tint: "rgba(34, 197, 94, 0.10)",
+  },
+  caution: {
+    label: "Be careful",
+    short: "Caution",
+    color: "var(--rv-caution)",
+    tint: "rgba(234, 179, 8, 0.10)",
+  },
+  risk: {
+    label: "Risky",
+    short: "Risky",
+    color: "var(--rv-risk)",
+    tint: "rgba(239, 68, 68, 0.10)",
+  },
+  unscored: {
+    label: "Scoring…",
+    short: "Scoring",
+    color: "var(--rv-unscored)",
+    tint: "rgba(100, 116, 139, 0.10)",
+  },
 }
 
-export function usd(n: number | null | undefined, opts: { precise?: boolean } = {}): string {
+export function usd(
+  n: number | null | undefined,
+  opts: { precise?: boolean } = {},
+): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return "—"
   const abs = Math.abs(n)
   if (abs >= 1e9) return `$${(n / 1e9).toFixed(2)}B`
@@ -47,12 +73,18 @@ export function pct(n: number): string {
 export function change(n: number | null | undefined): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return "—"
   const a = Math.abs(n)
-  const v = a >= 1000 ? `${Math.round(a / 100) / 10}K` : a >= 100 ? Math.round(a).toString() : a.toFixed(1)
+  const v =
+    a >= 1000
+      ? `${Math.round(a / 100) / 10}K`
+      : a >= 100
+        ? Math.round(a).toString()
+        : a.toFixed(1)
   return `${n >= 0 ? "+" : "−"}${v}%`
 }
 
 export function changeColor(n: number | null | undefined): string {
-  if (n === null || n === undefined || !Number.isFinite(n) || n === 0) return "var(--rv-ink-3)"
+  if (n === null || n === undefined || !Number.isFinite(n) || n === 0)
+    return "var(--rv-ink-3)"
   return n > 0 ? "var(--rv-up)" : "var(--rv-down)"
 }
 

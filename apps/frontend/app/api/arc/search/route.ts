@@ -10,6 +10,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ q, tokens: await searchTokens(q) })
   } catch (err) {
     console.error(`[arc/search] ${(err as Error).message}`)
-    return NextResponse.json({ q, tokens: [], error: "unavailable" }, { status: 503 })
+    return NextResponse.json(
+      { q, tokens: [], error: "unavailable" },
+      { status: 503 },
+    )
   }
 }

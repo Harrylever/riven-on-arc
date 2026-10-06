@@ -20,11 +20,52 @@ export function marketKey(hyperliquidSymbol: string): string {
 
 /** Hyperliquid meme perps: every "k"-prefixed 1000x contract plus well-known memes. */
 const MEMES = new Set([
-  "DOGE", "WIF", "POPCAT", "FARTCOIN", "PENGU", "TRUMP", "MELANIA", "BRETT", "MEW", "MOODENG",
-  "GOAT", "PNUT", "SPX", "TURBO", "NEIRO", "NEIROETH", "MOG", "BOME", "MYRO", "PEOPLE", "CHILLGUY",
-  "GRIFFAIN", "AI16Z", "BABY", "PUMP", "BRETT", "WOJAK", "TROLL", "USELESS", "HYPE",
+  "DOGE",
+  "WIF",
+  "POPCAT",
+  "FARTCOIN",
+  "PENGU",
+  "TRUMP",
+  "MELANIA",
+  "BRETT",
+  "MEW",
+  "MOODENG",
+  "GOAT",
+  "PNUT",
+  "SPX",
+  "TURBO",
+  "NEIRO",
+  "NEIROETH",
+  "MOG",
+  "BOME",
+  "MYRO",
+  "PEOPLE",
+  "CHILLGUY",
+  "GRIFFAIN",
+  "AI16Z",
+  "BABY",
+  "PUMP",
+  "BRETT",
+  "WOJAK",
+  "TROLL",
+  "USELESS",
+  "HYPE",
 ])
-const MAJORS = new Set(["BTC", "ETH", "SOL", "BNB", "XRP", "HYPE", "ADA", "AVAX", "LINK", "SUI", "LTC", "DOT", "TRX"])
+const MAJORS = new Set([
+  "BTC",
+  "ETH",
+  "SOL",
+  "BNB",
+  "XRP",
+  "HYPE",
+  "ADA",
+  "AVAX",
+  "LINK",
+  "SUI",
+  "LTC",
+  "DOT",
+  "TRX",
+])
 
 export function isMemePerp(symbol: string): boolean {
   const u = symbol.toUpperCase()

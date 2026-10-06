@@ -10,7 +10,10 @@ import { signalCoinKey } from "@/lib/perp-symbols"
 
 function notify(title: string, body: string, tag: string) {
   toast.add({ title, description: body, type: "info" })
-  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+  if (
+    typeof Notification !== "undefined" &&
+    Notification.permission === "granted"
+  ) {
     new Notification(title, { body, tag })
   }
 }
@@ -31,7 +34,15 @@ export function PerpWatch({
   signals: PerpSignal[] | null
   onSelect: (symbol: string) => void
 }) {
-  const { pairs, alerts, seenSignals, toggleTrack, addAlert, removeAlert, markSignalsSeen } = usePerpWatch()
+  const {
+    pairs,
+    alerts,
+    seenSignals,
+    toggleTrack,
+    addAlert,
+    removeAlert,
+    markSignalsSeen,
+  } = usePerpWatch()
   const [price, setPrice] = useState("")
   const [direction, setDirection] = useState<"above" | "below">("above")
   const firstSignals = useRef(true)
@@ -43,9 +54,16 @@ export function PerpWatch({
     for (const a of alerts) {
       const m = byCoin.get(a.coin)
       if (!m) continue
-      const hit = a.direction === "above" ? m.markPrice >= a.price : m.markPrice <= a.price
+      const hit =
+        a.direction === "above"
+          ? m.markPrice >= a.price
+          : m.markPrice <= a.price
       if (hit) {
-        notify(`${a.coin} ${a.direction === "above" ? "broke above" : "fell below"} ${priceUsd(a.price)}`, `Mark price ${priceUsd(m.markPrice)}`, a.id)
+        notify(
+          `${a.coin} ${a.direction === "above" ? "broke above" : "fell below"} ${priceUsd(a.price)}`,
+          `Mark price ${priceUsd(m.markPrice)}`,
+          a.id,
+        )
         removeAlert(a.id)
       }
     }
@@ -82,9 +100,13 @@ export function PerpWatch({
   return (
     <section className="rv-card p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rv-body text-[12px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">Tracked pairs</span>
+        <span className="rv-body text-[12px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
+          Tracked pairs
+        </span>
         {pairs.length === 0 && (
-          <span className="rv-body text-[12px] text-[var(--rv-ink-3)]">Track a pair to see it here and get its signals.</span>
+          <span className="rv-body text-[12px] text-[var(--rv-ink-3)]">
+            Track a pair to see it here and get its signals.
+          </span>
         )}
         {pairs.map((coin) => {
           const m = byCoin.get(coin)
@@ -95,10 +117,19 @@ export function PerpWatch({
               type="button"
               onClick={() => onSelect(coin)}
               className="rv-num flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] ring-1 ring-[var(--rv-stroke)] hover:ring-[var(--rv-stroke-strong)]"
-              style={{ background: coin === market.symbol ? "rgba(30,123,255,0.16)" : "transparent" }}
+              style={{
+                background:
+                  coin === market.symbol
+                    ? "rgba(30,123,255,0.16)"
+                    : "transparent",
+              }}
             >
               <span className="font-semibold text-[var(--rv-ink)]">{coin}</span>
-              {m && <span className="text-[var(--rv-ink-2)]">{priceUsd(m.markPrice)}</span>}
+              {m && (
+                <span className="text-[var(--rv-ink-2)]">
+                  {priceUsd(m.markPrice)}
+                </span>
+              )}
               {m && (
                 <span style={{ color: up ? "var(--rv-up)" : "var(--rv-down)" }}>
                   {up ? "+" : ""}
@@ -115,7 +146,9 @@ export function PerpWatch({
           style={{
             color: tracked ? "#000" : "var(--rv-ice)",
             background: tracked ? "var(--rv-ice)" : "transparent",
-            boxShadow: tracked ? "none" : "inset 0 0 0 1px var(--rv-stroke-strong)",
+            boxShadow: tracked
+              ? "none"
+              : "inset 0 0 0 1px var(--rv-stroke-strong)",
           }}
         >
           {tracked ? `Tracking ${market.symbol}` : `Track ${market.symbol}`}
@@ -128,10 +161,16 @@ export function PerpWatch({
           e.preventDefault()
           addAlert(market.symbol, direction, Number(price))
           setPrice("")
-          if (typeof Notification !== "undefined" && Notification.permission === "default") void Notification.requestPermission()
+          if (
+            typeof Notification !== "undefined" &&
+            Notification.permission === "default"
+          )
+            void Notification.requestPermission()
         }}
       >
-        <span className="rv-body text-[12px] text-[var(--rv-ink-2)]">Alert me when {market.symbol} goes</span>
+        <span className="rv-body text-[12px] text-[var(--rv-ink-2)]">
+          Alert me when {market.symbol} goes
+        </span>
         <select
           value={direction}
           onChange={(e) => setDirection(e.target.value as "above" | "below")}
@@ -149,14 +188,21 @@ export function PerpWatch({
           aria-label="Alert price"
           className="rv-input h-8 w-28 px-2 text-[12px]"
         />
-        <button type="submit" className="rv-body h-8 rounded-md bg-[var(--rv-blue)] px-3 text-[12px] font-semibold text-white">
+        <button
+          type="submit"
+          className="rv-body h-8 rounded-md bg-[var(--rv-blue)] px-3 text-[12px] font-semibold text-white"
+        >
           Set alert
         </button>
         {alerts.length > 0 && (
           <ul className="flex w-full flex-wrap gap-1.5 pt-1">
             {alerts.map((a) => (
-              <li key={a.id} className="rv-num flex items-center gap-1.5 rounded-md bg-white/[0.04] px-2 py-1 text-[11px] text-[var(--rv-ink-2)]">
-                {a.coin} {a.direction === "above" ? "≥" : "≤"} {priceUsd(a.price)}
+              <li
+                key={a.id}
+                className="rv-num flex items-center gap-1.5 rounded-md bg-white/[0.04] px-2 py-1 text-[11px] text-[var(--rv-ink-2)]"
+              >
+                {a.coin} {a.direction === "above" ? "≥" : "≤"}{" "}
+                {priceUsd(a.price)}
                 <button
                   type="button"
                   onClick={() => removeAlert(a.id)}

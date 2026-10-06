@@ -4,7 +4,10 @@ import { PERPS_ENABLED } from "@/lib/flags"
 import { getMockPerpSignals } from "@/lib/mock-perps"
 
 /** Prisma Decimal / string / number → number, with a fallback for null or junk. */
-function num(v: { toString(): string } | number | string | null | undefined, fallback = 0): number {
+function num(
+  v: { toString(): string } | number | string | null | undefined,
+  fallback = 0,
+): number {
   if (v === null || v === undefined) return fallback
   const n = Number(v.toString())
   return Number.isFinite(n) ? n : fallback
@@ -14,7 +17,9 @@ function num(v: { toString(): string } | number | string | null | undefined, fal
 export const dynamic = "force-dynamic"
 
 /** Invented demo signals are opt-in for local development only — never mixed into real calls. */
-const DEMO_SIGNALS = process.env.USE_MOCK_DATA === "true" && process.env.VERCEL_ENV !== "production"
+const DEMO_SIGNALS =
+  process.env.USE_MOCK_DATA === "true" &&
+  process.env.VERCEL_ENV !== "production"
 
 const VALID_EXCHANGES = new Set(["BYBIT", "MEXC", "BINANCE"] as const)
 const VALID_BIASES = new Set(["LONG", "SHORT"] as const)
@@ -260,7 +265,10 @@ export async function GET(req: Request) {
   } catch (err) {
     console.warn("[api/perp-signals] database unavailable:", err)
     if (!DEMO_SIGNALS) {
-      return NextResponse.json({ signals: [], stats: null, error: "unavailable" }, { status: 503 })
+      return NextResponse.json(
+        { signals: [], stats: null, error: "unavailable" },
+        { status: 503 },
+      )
     }
     const mock = getMockPerpSignals({
       status: statusParam,
