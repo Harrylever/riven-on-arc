@@ -10,6 +10,7 @@ interface Msg {
   role: "user" | "riven"
   text: string
   tokens?: TokenSummary[]
+  mode?: "claude" | "rules"
 }
 
 const STARTERS = ["What rugged today?", "Safest tokens on Arc", "What's trending?", "Newest launches"]
@@ -40,7 +41,7 @@ export function AgentChat() {
         body: JSON.stringify({ question: text }),
       })
       const d = await res.json()
-      setMsgs((m) => [...m, { role: "riven", text: d.text ?? d.error ?? "No answer.", tokens: d.tokens }])
+      setMsgs((m) => [...m, { role: "riven", text: d.text ?? d.error ?? "No answer.", tokens: d.tokens, mode: d.mode }])
     } catch {
       setMsgs((m) => [...m, { role: "riven", text: "I couldn't reach Riven's data just now. Try again." }])
     } finally {
@@ -53,7 +54,8 @@ export function AgentChat() {
       <header>
         <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">Ask Riven</h1>
         <p className="rv-body text-[13px] text-[var(--rv-ink-2)]">
-          Answers come only from Riven&apos;s on-chain data. It explains — it never tells you to buy or sell.
+          Answers come only from Riven&apos;s on-chain data — each one says whether Riven&apos;s rule engine wrote it or
+          Claude rephrased those same facts. It explains; it never tells you to buy or sell.
         </p>
       </header>
       <div className="rv-card flex flex-1 flex-col gap-3 p-4" aria-live="polite">
@@ -67,6 +69,11 @@ export function AgentChat() {
               {m.role === "riven" && <span className="rv-num mr-1 text-[12px] text-[var(--rv-cyan)]">riven&gt;</span>}
               {m.text}
             </div>
+            {m.mode && (
+              <p className="rv-num mt-1 text-[10.5px] text-[var(--rv-ink-3)]">
+                {m.mode === "claude" ? "Written by Claude from Riven's data" : "Riven rule engine · no AI model"}
+              </p>
+            )}
             {m.tokens && m.tokens.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {m.tokens.map((t) => (

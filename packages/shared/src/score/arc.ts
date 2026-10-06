@@ -188,7 +188,13 @@ export function arcBand(score: number | null): ArcBand {
 
 const pct = (n: number) => `${n < 10 ? n.toFixed(1) : Math.round(n)}%`;
 const usd = (n: number) =>
-  n >= 1_000_000 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${Math.round(n)}`;
+  n >= 1_000_000
+    ? `$${(n / 1e6).toFixed(1)}M`
+    : n >= 1000
+      ? `$${(n / 1000).toFixed(1)}k`
+      : n >= 10
+        ? `$${Math.round(n)}`
+        : `$${n.toFixed(2)}`; // "$0.63", not "$1": small pools are the evidence
 
 function tiers(value: number, steps: Array<[number, number]>, otherwise = 0) {
   for (const [limit, points] of steps) if (value <= limit) return points;
@@ -366,7 +372,7 @@ export function computeArcScore(input: ArcScoreInput): ArcScoreResult {
       sub.creator += c.soldPct < 25 ? 5 : c.soldPct < 75 ? 2 : 0;
       if (c.soldPct >= 75) {
         caps.push([49, "the creator has dumped their tokens"]);
-        flag("danger", "creator", `Creator dumped ${pct(c.soldPct)} of their tokens`, "CREATOR_DUMP");
+        flag("danger", "creator", `Creator sold ${pct(c.soldPct)} of the tokens they received`, "CREATOR_DUMP");
       }
       else if (c.soldPct >= 25) flag("warning", "creator", `Creator has sold ${pct(c.soldPct)} of their tokens`);
     }
@@ -387,7 +393,7 @@ export function computeArcScore(input: ArcScoreInput): ArcScoreResult {
     sub.activity += !wash && act.buys24h > 0 && act.buys24h >= act.sells24h ? 3 : 0;
     if (wash) {
       sub.activity = Math.max(0, sub.activity - 5);
-      flag("danger", "activity", `Volume looks fake: ${usd(act.volume24h)} traded but only ${usd(input.poolUsdc ?? 0)} stayed in the pool`, "WASH");
+      flag("danger", "activity", `Fake volume: ${usd(act.volume24h)} traded in 24h through a pool holding only ${usd(input.poolUsdc ?? 0)} of USDC`, "WASH");
     }
     sub.activity += act.hasSocials ? 3 : 0;
     if (act.sells24h > 0) flag("good", "activity", `Sells are going through (${act.sells24h} in 24h)`);

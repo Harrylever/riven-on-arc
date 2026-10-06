@@ -94,8 +94,8 @@ test("creator dump + dead token + wash volume (real TOIIY pattern) is risky", ()
   expect(r.score).toBe(4.9);
   expect(fakeReasons(r.flags).length).toBe(2); // creator dump + wash (11.1k vs $56 = 198x)
   const dangers = r.flags.filter((f) => f.level === "danger").map((f) => f.text);
-  expect(dangers.some((t) => t.startsWith("Creator dumped"))).toBe(true);
-  expect(dangers.some((t) => t.startsWith("Volume looks fake"))).toBe(true);
+  expect(dangers.some((t) => t.startsWith("Creator sold 100%"))).toBe(true);
+  expect(dangers.some((t) => t === "Fake volume: $11.1k traded in 24h through a pool holding only $56 of USDC")).toBe(true);
   expect(r.flags.some((f) => f.code === "CHURN")).toBe(true);
   expect(r.flags.some((f) => f.code === "DEAD")).toBe(false);
 });

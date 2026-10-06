@@ -127,10 +127,10 @@ const num = (v: unknown): number | null => (v === null || v === undefined ? null
 
 /** arc-v2 rows predate flag codes: derive them from the (stable) flag text. */
 const TEXT_CODES: Array<[RegExp, string]> = [
-  [/^Volume looks fake/, "WASH"],
+  [/^(Volume looks fake|Fake volume)/, "WASH"],
   [/^Holders own only/, "DEAD"],
   [/^Serial launcher/, "SERIAL"],
-  [/^Creator dumped/, "CREATOR_DUMP"],
+  [/^Creator (dumped|sold)/, "CREATOR_DUMP"],
   [/^Liquidity has already been removed/, "LP_REMOVED"],
   [/^Liquidity is not locked/, "LP_UNLOCKED"],
   [/^Contract can still create/, "MINT"],
@@ -155,7 +155,7 @@ function marketFakeReasons(t: { name: string; symbol: string }, vol24: number | 
   if (isWash(vol24, usdcInPool)) {
     out.push({
       code: "WASH",
-      text: `Volume looks fake: $${Math.round(vol24!).toLocaleString()} traded but only $${Math.round(usdcInPool!)} in the pool`,
+      text: `Fake volume: $${Math.round(vol24!).toLocaleString()} traded in 24h through a pool holding only $${usdcInPool! < 10 ? usdcInPool!.toFixed(2) : Math.round(usdcInPool!)} of USDC`,
     })
   }
   return out

@@ -476,7 +476,7 @@ export class ArcScoringService {
         },
       },
     });
-    const FAILED = /^(Dead:|Creator dumped|Liquidity has already been removed)/;
+    const FAILED = /^(Dead:|Creator (dumped|sold)|Liquidity has already been removed)/;
     // Only count verdicts from the current methodology's codes: older runs'
     // DEAD/WASH flags had known false positives (fixed in arc-v5).
     const FAILED_CODES = new Set(["DEAD", "CREATOR_DUMP", "WASH", "LP_REMOVED"]);
