@@ -16,7 +16,11 @@ const META: Record<string, { label: string; color: string }> = {
 }
 
 export default async function AlertsPage() {
-  const alerts = await getAlerts({ limit: 100 }).catch(() => [])
+  // A failed read must never look like "no rugs": keep the two states apart.
+  const alerts = await getAlerts({ limit: 100 }).catch((err: Error) => {
+    console.error(`[alerts] ${err.message}`)
+    return null
+  })
   const now = Date.now()
   return (
     <div className="flex flex-col gap-4">
@@ -27,7 +31,14 @@ export default async function AlertsPage() {
         </p>
       </header>
       <AlertSettings />
-      {alerts.length === 0 ? (
+      {alerts === null ? (
+        <div className="rv-card px-6 py-10 text-center" role="alert">
+          <p className="rv-display text-lg font-bold text-[var(--rv-caution)]">Alerts unavailable right now</p>
+          <p className="rv-body mt-1 text-sm text-[var(--rv-ink-2)]">
+            Riven couldn&apos;t read its alert log. This is not an all-clear — check back in a moment.
+          </p>
+        </div>
+      ) : alerts.length === 0 ? (
         <div className="rv-card px-6 py-10 text-center">
           <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">Quiet for now</p>
           <p className="rv-body mt-1 text-sm text-[var(--rv-ink-2)]">No rugs, dumps or score drops caught yet. Riven keeps watching.</p>

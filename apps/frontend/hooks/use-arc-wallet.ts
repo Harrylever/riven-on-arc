@@ -133,6 +133,7 @@ export function useArcWallet() {
     async (tx: TxRequest): Promise<Hex> => {
       const eth = window.ethereum
       if (!eth || !address) throw new Error("Connect a wallet first")
+      assertSafeTx(tx)
       if (chainId !== 5042) await ensureArc()
       const wallet = createWalletClient({ account: address, chain: arcChain, transport: custom(eth) })
       const hash = await wallet.sendTransaction({ to: tx.to, data: tx.data, value: BigInt(tx.value) })
@@ -144,4 +145,24 @@ export function useArcWallet() {
   )
 
   return { hasWallet, address, chainId, onArc: chainId === 5042, error, connect, disconnect, ensureArc, send }
+}
+
+// Contract calls Riven ever asks a wallet to sign: the Uniswap router, Permit2,
+// and ERC-20 approve/transfer on a token. Anything else is refused, so even a
+// compromised server response can't turn into an arbitrary signing request.
+const KNOWN_TARGETS = new Set(
+  [
+    "0x4fcA4a51Ab4F23A7447b3284fBd7D73289A89Fb1", // Universal Router
+    "0x000000000022D473030F116dDEE9F6B43aC78BA3", // Permit2
+  ].map((a) => a.toLowerCase()),
+)
+const ERC20_SELECTORS = new Set(["0x095ea7b3", "0xa9059cbb"]) // approve, transfer
+
+export function assertSafeTx(tx: { to: string; data?: string; value: string }) {
+  const data = (tx.data ?? "0x").toLowerCase()
+  if (data === "0x") return // plain USDC send (withdraw) — the user typed the recipient
+  if (tx.value !== "0") throw new Error("Refusing a contract call that also sends USDC")
+  if (KNOWN_TARGETS.has(tx.to.toLowerCase())) return
+  if (ERC20_SELECTORS.has(data.slice(0, 10))) return
+  throw new Error("Refusing to sign a call to an unknown contract")
 }

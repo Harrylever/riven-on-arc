@@ -12,8 +12,9 @@ function read(): string[] {
   try {
     const raw = localStorage.getItem(KEY)
     const parsed = raw ? JSON.parse(raw) : []
+    // Riven is EVM-only: drop leftover Solana (base58) entries from ClawDex.
     return Array.isArray(parsed)
-      ? parsed.filter((m): m is string => typeof m === "string")
+      ? parsed.filter((m): m is string => typeof m === "string" && /^0x[0-9a-fA-F]{40}$/.test(m))
       : []
   } catch {
     return []

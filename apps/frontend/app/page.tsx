@@ -26,7 +26,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   }
   return (
     <div className="flex flex-col gap-4">
-      <TerminalHeader stats={stats} />
+      <TerminalHeader stats={stats} now={Date.now()} />
       {failed ? (
         <div className="rv-card px-6 py-10 text-center">
           <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">Can&apos;t reach the Riven database</p>

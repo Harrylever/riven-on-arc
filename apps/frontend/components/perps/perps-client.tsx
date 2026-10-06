@@ -1,6 +1,6 @@
 "use client"
 
-import { PerpsPanel } from "@/components/terminal/perps-panel"
+import { PerpsPanel } from "@/components/perps/perps-panel"
 import { PERPS_ENABLED } from "@/lib/flags"
 
 export function PerpsClient() {

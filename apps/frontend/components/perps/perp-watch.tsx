@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "@/components/ui/toast"
 import { usePerpWatch } from "@/hooks/use-perp-watch"
 import type { PerpMarket } from "@/lib/hyperliquid"
-import type { PerpSignal } from "@/components/terminal/perps-panel"
+import type { PerpSignal } from "@/components/perps/perps-panel"
 import { priceUsd } from "@/lib/format"
 import { signalCoinKey } from "@/lib/perp-symbols"
 
@@ -56,6 +56,10 @@ export function PerpWatch({
   // New sakz-bot calls on tracked pairs. The first load only records what exists.
   useEffect(() => {
     if (!signals) return
+    // The first batch only records what exists — even if nothing is unseen,
+    // so the next genuinely new call does notify.
+    const isFirst = firstSignals.current
+    firstSignals.current = false
     const fresh = signals.filter(
       (s) =>
         s.outcome === "pending" &&
@@ -63,7 +67,7 @@ export function PerpWatch({
         pairs.some((p) => p.toUpperCase() === signalCoinKey(s.symbol)),
     )
     if (fresh.length === 0) return
-    if (!firstSignals.current) {
+    if (!isFirst) {
       for (const s of fresh) {
         notify(
           `New ${s.bias} call: ${s.symbol}`,
@@ -72,7 +76,6 @@ export function PerpWatch({
         )
       }
     }
-    firstSignals.current = false
     markSignalsSeen(fresh.map((s) => s.id))
   }, [signals, pairs, seenSignals, markSignalsSeen])
 

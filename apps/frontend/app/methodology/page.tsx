@@ -3,7 +3,7 @@ import Link from "next/link"
 
 export const metadata: Metadata = {
   title: "How the score works",
-  description: "Riven's arc-v2 methodology: five sub-scores, automatic red flags, and where every number comes from.",
+  description: "Riven's arc-v5 methodology: five sub-scores, automatic red flags, and where every number comes from.",
 }
 
 const PARTS = [
@@ -30,7 +30,7 @@ const PARTS = [
       "Has any liquidity already been removed?",
       "How much USDC is actually left in the pool?",
     ],
-    from: "Uniswap v4 PositionManager ownership plus every swap on the pool since launch.",
+    from: "Uniswap v4 PositionManager ownership, every liquidity add/remove on the launch position, and the pool's live liquidity and price (StateView) for the USDC actually in it.",
   },
   {
     name: "Holders",
@@ -66,7 +66,7 @@ const PARTS = [
     checks: [
       "Have sells gone through (can you actually get out)?",
       "Are there real holders, or just dust wallets?",
-      "Wash trading: huge volume while almost no USDC stays in the pool",
+      "Wash trading: a day's volume over 50× the USDC in the pool",
       "Does the project list a website or socials?",
     ],
     from: "Swaps on the token's pool over the last 24 hours.",
@@ -74,12 +74,14 @@ const PARTS = [
 ]
 
 const CAPS = [
-  ["Liquidity already pulled", 19],
+  ["Liquidity already pulled from the launch position", 19],
+  ["Impersonates an official token (USDC, Circle, Arc…)", 19],
   ["Contract can still mint", 29],
   ["Trading fee over 10%", 29],
   ["Creator launched 10+ tokens", 29],
   ["Most of the creator's past tokens died or dumped", 29],
-  ["Holders own under 1% of supply (everyone sold)", 39],
+  ["Dead: holders own under 1% and nobody traded in 24h", 39],
+  ["Churn: holders keep under 1% while traders flip in and out", 49],
   ["Contract is upgradeable", 49],
   ["Creator dumped 75%+ of their tokens", 49],
   ["Trading can be paused / wallets blocked", 59],
@@ -94,7 +96,7 @@ export default function MethodologyPage() {
   return (
     <article className="rv-body flex flex-col gap-4 text-[15px] leading-relaxed text-[var(--rv-ink-2)]">
       <header className="rv-card p-5 sm:p-7">
-        <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--rv-cyan)] uppercase">Methodology · arc-v4</p>
+        <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--rv-cyan)] uppercase">Methodology · arc-v5</p>
         <h1 className="rv-display mt-2 text-[32px] leading-tight font-extrabold text-[var(--rv-ink)] sm:text-[40px]">
           How Riven scores a launch
         </h1>
@@ -138,7 +140,8 @@ export default function MethodologyPage() {
           <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">Automatic red flags</h2>
           <p className="mt-1 text-[14px]">
             Some things are bad enough that no amount of good elsewhere can hide them, so they cap the score. The worst
-            ones also mark a token as fake: it&apos;s hidden from the screener (search still finds it).
+            ones (fake volume, serial launcher, creator sold out, liquidity pulled, dead, impersonation) also flag the
+            token: it&apos;s hidden from the default list and shown in the <b>Caught</b> view with the evidence.
           </p>
           <ul className="mt-3 grid gap-1.5 text-[14px] sm:grid-cols-2">
             {CAPS.map(([what, cap]) => (
@@ -163,6 +166,32 @@ export default function MethodologyPage() {
       </section>
 
       <section className="rv-card p-5 sm:p-6">
+        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">What changed in arc-v5</h2>
+        <p className="mt-2 text-[14px]">
+          An October 2026 audit found that earlier versions flagged too much. Arc is only weeks old, so &ldquo;almost
+          everything is fake&rdquo; needed checking rather than trusting. Fixed:
+        </p>
+        <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-[14px]">
+          <li>USDC in the pool is read from on-chain liquidity, not estimated from swaps (which missed liquidity adds and caused false &ldquo;fake volume&rdquo;).</li>
+          <li>&ldquo;Liquidity pulled&rdquo; now means the launch position was emptied, not that some other LP came and went.</li>
+          <li>A creator burning their tokens no longer counts as selling them.</li>
+          <li>A busy token whose buyers sell quickly is &ldquo;churn&rdquo;, not dead; brand-new tokens are never dead.</li>
+          <li>Fake volume needs 50× pool turnover (busy launches routinely do 20×).</li>
+          <li>Whale-dump alerts only fire on real sells, not on the launch seeding its own pool.</li>
+        </ul>
+      </section>
+
+      <section id="disputes" className="rv-card scroll-mt-20 p-5 sm:p-6">
+        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">Think a flag is wrong?</h2>
+        <p className="mt-2 text-[14px]">
+          Every flag names the on-chain fact behind it, so it can be checked on the Arc explorer. Scores are recomputed
+          every few minutes from chain data: if the facts change (liquidity added back, real holders arrive), the score
+          follows on its own. If you believe a rule is misreading a token, contact the Riven team with the token address
+          and which flag looks wrong — rules get fixed for everyone, never overridden for one token.
+        </p>
+      </section>
+
+      <section className="rv-card p-5 sm:p-6">
         <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">What Riven can&apos;t see</h2>
         <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-[14px]">
           <li>Contract checks read bytecode, not verified source code. A clean scan is strong evidence, not proof.</li>
@@ -170,7 +199,8 @@ export default function MethodologyPage() {
           <li>Insider detection only follows direct USDC funding from the creator around launch, not multi-hop funding.</li>
           <li>Thresholds are a starting point and haven&apos;t been back-tested against outcomes yet.</li>
           <li>Riven indexes every token with a USDC pool on Uniswap v4. Holder checks need a token&apos;s full transfer history; older tokens show &ldquo;Scoring&rdquo; until it&apos;s replayed.</li>
-          <li>Prices, liquidity and volume in the screener come from DexScreener and are never used in the score.</li>
+          <li>Prices, liquidity and volume in the screener come from DexScreener for display. The score uses on-chain data; DexScreener&apos;s pool figure is only a fallback if the on-chain read fails.</li>
+          <li>USDC in the pool uses the pool&apos;s active liquidity over the launch range: exact for a single launch position, an estimate once others add liquidity.</li>
         </ul>
         <p className="mt-4 text-[13px] text-[var(--rv-ink-3)]">
           The score is never sold: no paid boosts, no paid badges. Not financial advice. DYOR.

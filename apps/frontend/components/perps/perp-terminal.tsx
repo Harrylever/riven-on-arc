@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import type { PerpSignal } from "@/components/terminal/perps-panel"
+import type { PerpSignal } from "@/components/perps/perps-panel"
 import { PerpMarketPicker } from "@/components/perps/perp-market-picker"
 import { PerpTradePanel } from "@/components/perps/perp-trade-panel"
 import { TradingViewChart } from "@/components/perps/tradingview-chart"

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import type { PerpSignal } from "@/components/terminal/perps-panel"
+import type { PerpSignal } from "@/components/perps/perps-panel"
 import { usePortfolio, type Collateral } from "@/hooks/use-portfolio"
 import type { PerpMarket } from "@/lib/hyperliquid"
 import { priceUsd } from "@/lib/format"
@@ -177,7 +177,8 @@ export function PerpTradePanel({
             key={pct}
             onClick={() =>
               setUsdSize(
-                String(Math.floor(balance * leverage * pct * 0.99)),
+                // Margin (notional/lev) plus the 0.045% fee must fit in pct of the balance.
+                String(Math.floor((balance * pct) / (1 / leverage + 0.00045))),
               )
             }
             className="flex-1 border border-[var(--border)] py-1 text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]"

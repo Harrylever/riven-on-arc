@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server"
 import { getDb } from "@clawdex/shared"
-import { num } from "@/lib/contract"
 import { PERPS_ENABLED } from "@/lib/flags"
 import { getMockPerpSignals } from "@/lib/mock-perps"
+
+/** Prisma Decimal / string / number → number, with a fallback for null or junk. */
+function num(v: { toString(): string } | number | string | null | undefined, fallback = 0): number {
+  if (v === null || v === undefined) return fallback
+  const n = Number(v.toString())
+  return Number.isFinite(n) ? n : fallback
+}
 
 // Live signal data: never served from a build-time or route cache.
 export const dynamic = "force-dynamic"
@@ -184,9 +190,15 @@ export async function GET(req: Request) {
         expired++
       }
 
-      if (r.bestTargetHit === "t1" || r.outcome === "t1_hit") t1Hits++
-      if (r.bestTargetHit === "t2" || r.outcome === "t2_hit") t2Hits++
-      if (r.bestTargetHit === "t3" || r.outcome === "t3_hit") t3Hits++
+      // Reaching T3 means T1 and T2 were reached too: count cumulatively.
+      const rank = Math.max(
+        r.bestTargetHit === "t3" || r.outcome === "t3_hit" ? 3 : 0,
+        r.bestTargetHit === "t2" || r.outcome === "t2_hit" ? 2 : 0,
+        r.bestTargetHit === "t1" || r.outcome === "t1_hit" ? 1 : 0,
+      )
+      if (rank >= 1) t1Hits++
+      if (rank >= 2) t2Hits++
+      if (rank >= 3) t3Hits++
 
       const conf = r.confidence ?? 5
       const bandKey = conf >= 8 ? "high" : conf >= 5 ? "medium" : "low"

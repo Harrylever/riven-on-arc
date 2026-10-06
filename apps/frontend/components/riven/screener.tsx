@@ -13,7 +13,9 @@ import {
   type BandFilter,
   type PadFilter,
   type ScreenerFilters,
+  type ViewFilter,
 } from "@/lib/screener-params"
+import { REASON_LABEL } from "@/lib/reasons"
 import { BAND_META, age, change, changeColor, compact, usd } from "@/lib/riven-format"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
@@ -21,7 +23,14 @@ import { WatchButton } from "./watch-button"
 import { CopyBadge } from "./copycat"
 
 const REFRESH_MS = 20_000
+/** Where score disputes go: set NEXT_PUBLIC_DISPUTE_URL (form, X account, email); else the methodology page. */
+const DISPUTE_URL = process.env.NEXT_PUBLIC_DISPUTE_URL || "/methodology#disputes"
 const BANDS: BandFilter[] = ["all", "healthy", "caution", "risk"]
+const VIEWS: Array<{ id: ViewFilter; label: string; hint: string }> = [
+  { id: "listed", label: "Listed", hint: "Flagged tokens hidden" },
+  { id: "caught", label: "Caught", hint: "Only flagged tokens, with the evidence" },
+  { id: "all", label: "Everything", hint: "Listed and flagged together" },
+]
 
 export function Screener({
   filters,
@@ -64,11 +73,41 @@ export function Screener({
     })
 
   const activeCount = (Object.keys(DEFAULT_FILTERS) as Array<keyof ScreenerFilters>).filter(
-    (k) => !["sort", "band", "page"].includes(k) && filters[k] !== DEFAULT_FILTERS[k],
+    (k) => !["sort", "band", "page", "view"].includes(k) && filters[k] !== DEFAULT_FILTERS[k],
   ).length
 
   return (
     <section id="screener-top" aria-label="Arc token screener" className="flex scroll-mt-20 flex-col gap-3">
+      {/* Listed / Caught / Everything */}
+      <div className="flex items-center gap-3">
+        <div className="inline-flex rounded-lg bg-[var(--rv-card)] p-1 ring-1 ring-[var(--rv-stroke)]" role="radiogroup" aria-label="Which tokens">
+          {VIEWS.map((v) => {
+            const on = v.id === filters.view
+            const caught = v.id === "caught"
+            return (
+              <button
+                key={v.id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                title={v.hint}
+                onClick={() => go({ view: v.id })}
+                className="rv-body rounded-md px-3.5 py-1.5 text-[13px] font-semibold transition-colors"
+                style={{
+                  color: on ? (caught ? "#fff" : "#000") : caught ? "var(--rv-risk)" : "var(--rv-ink-2)",
+                  background: on ? (caught ? "var(--rv-risk)" : "var(--rv-ice)") : "transparent",
+                }}
+              >
+                {v.label}
+              </button>
+            )
+          })}
+        </div>
+        <span className="rv-body hidden text-[12px] text-[var(--rv-ink-3)] sm:inline">
+          {VIEWS.find((v) => v.id === filters.view)?.hint}
+        </span>
+      </div>
+
       {/* Sort tabs */}
       <nav className="scrollbar-hidden -mx-4 flex gap-1.5 overflow-x-auto px-4" aria-label="Sort">
         {SORTS.map((s) => {
@@ -145,16 +184,7 @@ export function Screener({
         >
           Filters{activeCount > 0 ? ` · ${activeCount}` : ""}
         </button>
-        <label className="rv-body ml-auto flex cursor-pointer items-center gap-2 text-[12px] text-[var(--rv-ink-2)]">
-          <input
-            type="checkbox"
-            checked={filters.showFake}
-            onChange={(e) => go({ showFake: e.target.checked })}
-            className="accent-[var(--rv-blue)]"
-          />
-          Show fake tokens
-        </label>
-        <span className="rv-num text-[11px] text-[var(--rv-ink-3)]" aria-live="polite">
+        <span className="rv-num ml-auto text-[11px] text-[var(--rv-ink-3)]" aria-live="polite">
           {pending ? "syncing…" : "live"}
         </span>
       </div>
@@ -165,7 +195,11 @@ export function Screener({
         <div className="rv-card px-6 py-12 text-center">
           <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">No tokens match these filters</p>
           <p className="rv-body mt-1 text-sm text-[var(--rv-ink-2)]">
-            Loosen a filter{filters.showFake ? "" : ", or tick “Show fake tokens”"}.
+            {filters.view === "caught"
+              ? "Nothing flagged under these filters — loosen one to see more."
+              : filters.view === "listed"
+                ? "Loosen a filter, or switch to “Everything” to include flagged tokens."
+                : "Loosen a filter."}
           </p>
           <button
             type="button"
@@ -177,15 +211,23 @@ export function Screener({
         </div>
       ) : (
         <>
-          <DesktopTable tokens={tokens} now={now} offset={(page - 1) * PAGE_SIZE} />
-          <MobileList tokens={tokens} now={now} />
+          <DesktopTable tokens={tokens} now={now} offset={(page - 1) * PAGE_SIZE} showWhy={filters.view !== "listed"} />
+          <MobileList tokens={tokens} now={now} showWhy={filters.view !== "listed"} />
           <Pagination page={page} pages={pages} total={total} onPage={goPage} />
         </>
       )}
-      {!filters.showFake && (
+      {filters.view === "listed" && (
         <p className="rv-body text-[12px] text-[var(--rv-ink-3)]">
-          Riven hides tokens it has caught faking it: wash-traded volume, dead tokens everyone has sold, serial launchers,
-          creators who dumped, and pulled liquidity. They still show up in Search.
+          Riven hides tokens flagged for fake volume, serial launchers, creators who sold out, pulled liquidity, dead tokens
+          and impersonation.{" "}
+          <button type="button" onClick={() => go({ view: "caught" })} className="font-semibold text-[var(--rv-risk)] hover:underline">
+            See them with the evidence
+          </button>
+          . Think a flag is wrong?{" "}
+          <a href={DISPUTE_URL} className="font-semibold text-[var(--rv-ice)] hover:underline">
+            Dispute a score
+          </a>
+          .
         </p>
       )}
     </section>
@@ -330,7 +372,40 @@ function Pagination({
   )
 }
 
-function DesktopTable({ tokens, now, offset }: { tokens: TokenSummary[]; now: number; offset: number }) {
+/** The first flag reason, as evidence the user can check. */
+function Why({ t }: { t: TokenSummary }) {
+  if (!t.fake) return null
+  const code = t.fakeCodes[0]
+  return (
+    <span className="rv-body mt-0.5 block text-[11.5px] leading-snug text-[var(--rv-risk)]">
+      <b>{(code && REASON_LABEL[code]?.label) ?? "Flagged"}:</b> {t.fakeReasons[0]}
+      {t.fakeReasons.length > 1 && <span className="text-[var(--rv-ink-3)]"> · +{t.fakeReasons.length - 1} more</span>}
+    </span>
+  )
+}
+
+function FlagBadge() {
+  return (
+    <span
+      className="rounded bg-[rgba(239,68,68,0.12)] px-1.5 text-[10px] font-bold text-[var(--rv-risk)] uppercase"
+      title="Flagged by on-chain evidence — open the token to see why"
+    >
+      flagged
+    </span>
+  )
+}
+
+function DesktopTable({
+  tokens,
+  now,
+  offset,
+  showWhy,
+}: {
+  tokens: TokenSummary[]
+  now: number
+  offset: number
+  showWhy: boolean
+}) {
   const router = useRouter()
   return (
     <div className="rv-card hidden overflow-x-auto md:block">
@@ -367,16 +442,13 @@ function DesktopTable({ tokens, now, offset }: { tokens: TokenSummary[]; now: nu
                   <span className="min-w-0">
                     <span className="flex items-center gap-1.5">
                       <span className="rv-body max-w-[150px] truncate font-semibold text-[var(--rv-ink)]">{t.symbol}</span>
-                      {t.fake && (
-                        <span className="rounded bg-[rgba(239,68,68,0.12)] px-1.5 text-[10px] font-bold text-[var(--rv-risk)] uppercase">
-                          fake
-                        </span>
-                      )}
+                      {t.fake && <FlagBadge />}
                       <CopyBadge copies={t.copies} />
                     </span>
                     <span className="rv-body block max-w-[180px] truncate text-[11px] text-[var(--rv-ink-3)]">
                       {t.name} · {t.launchpad}
                     </span>
+                    {showWhy && <span className="block max-w-[360px]"><Why t={t} /></span>}
                   </span>
                 </Link>
               </td>
@@ -393,7 +465,7 @@ function DesktopTable({ tokens, now, offset }: { tokens: TokenSummary[]; now: nu
               <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink-2)]">{usd(t.liquidityUsd)}</td>
               <td className="rv-num px-2 py-2.5 text-right text-[var(--rv-ink)]">{usd(t.marketCap)}</td>
               <td className="px-3 py-2 text-right">
-                <ScoreBadge score={t.score} band={t.band} size="sm" />
+                <ScoreBadge score={t.score} band={t.band} size="sm" word />
               </td>
               <td className="pr-2" onClick={(e) => e.stopPropagation()}>
                 <WatchButton address={t.address} />
@@ -406,7 +478,7 @@ function DesktopTable({ tokens, now, offset }: { tokens: TokenSummary[]; now: nu
   )
 }
 
-function MobileList({ tokens, now }: { tokens: TokenSummary[]; now: number }) {
+function MobileList({ tokens, now, showWhy }: { tokens: TokenSummary[]; now: number; showWhy: boolean }) {
   return (
     <ol className="rv-card divide-y divide-[var(--rv-stroke)] md:hidden">
       {tokens.map((t) => (
@@ -416,7 +488,7 @@ function MobileList({ tokens, now }: { tokens: TokenSummary[]; now: number }) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="rv-body truncate text-[15px] font-semibold text-[var(--rv-ink)]">{t.symbol}</span>
-                {t.fake && <span className="rounded bg-[rgba(239,68,68,0.12)] px-1 text-[9px] font-bold text-[var(--rv-risk)] uppercase">fake</span>}
+                {t.fake && <FlagBadge />}
                 <CopyBadge copies={t.copies} />
                 <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">{age(t.launchedAt, now)}</span>
               </div>
@@ -425,8 +497,9 @@ function MobileList({ tokens, now }: { tokens: TokenSummary[]; now: number }) {
                 <span>Liq {usd(t.liquidityUsd)}</span>
                 <span style={{ color: changeColor(t.change.h24) }}>{change(t.change.h24)}</span>
               </div>
+              {showWhy && <Why t={t} />}
             </div>
-            <ScoreBadge score={t.score} band={t.band} size="sm" />
+            <ScoreBadge score={t.score} band={t.band} size="sm" word />
           </Link>
           <WatchButton address={t.address} />
         </li>

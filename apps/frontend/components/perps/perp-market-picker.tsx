@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import type { PerpSignal } from "@/components/terminal/perps-panel"
+import type { PerpSignal } from "@/components/perps/perps-panel"
 import {
   Dialog,
   DialogContent,

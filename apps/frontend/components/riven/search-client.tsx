@@ -13,6 +13,7 @@ export function SearchClient() {
   const [q, setQ] = useState("")
   const [results, setResults] = useState<TokenSummary[] | null>(null)
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const [now] = useState(() => Date.now())
 
@@ -28,13 +29,19 @@ export function SearchClient() {
     const id = setTimeout(() => {
       setLoading(true)
       fetch(`/api/arc/search?q=${encodeURIComponent(query)}`, { signal: ctrl.signal })
-        .then((r) => r.json())
-        .then((d: { tokens: TokenSummary[] }) => {
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`search ${r.status}`)
+          return (await r.json()) as { tokens: TokenSummary[] }
+        })
+        .then((d) => {
+          setFailed(false)
           setResults(d.tokens)
           // A pasted address that we track goes straight to its page.
           if (ADDRESS.test(query) && d.tokens.length === 1) router.push(`/token/${d.tokens[0]!.address}`)
         })
-        .catch(() => {})
+        .catch((err: Error) => {
+          if (err.name !== "AbortError") setFailed(true)
+        })
         .finally(() => setLoading(false))
     }, 220)
     return () => {
@@ -72,13 +79,19 @@ export function SearchClient() {
       </motion.label>
 
       {loading && <p className="rv-body text-sm text-[var(--rv-ink-3)]">Searching…</p>}
-      {results !== null && !loading && results.length === 0 && (
+      {failed && !loading && (
+        <div className="rv-card px-5 py-6 text-center" role="alert">
+          <p className="rv-display text-lg font-bold text-[var(--rv-caution)]">Search is unavailable right now</p>
+          <p className="rv-body mt-1 text-sm text-[var(--rv-ink-2)]">Riven couldn&apos;t reach its database. Try again in a moment.</p>
+        </div>
+      )}
+      {!failed && results !== null && !loading && results.length === 0 && (
         <div className="rv-card px-5 py-8 text-center">
           <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">No match</p>
           <p className="rv-body mt-1 text-sm text-[var(--rv-ink-2)]">
             {ADDRESS.test(q.trim())
-              ? "Riven only scores tokens launched on Argus and Tolly on Arc. This address isn't one of them yet."
-              : "No tracked Arc launch has that name or ticker."}
+              ? "Riven scores every Arc token with a USDC pool on Uniswap v4. This address doesn't have one yet."
+              : "No Arc token with a USDC pool has that name or ticker."}
           </p>
         </div>
       )}

@@ -6,6 +6,8 @@ export type SortKey = "trending" | "new" | "gainers" | "losers" | "mcap" | "liqu
 export type BandFilter = "all" | ArcBand
 export type AgeFilter = "all" | "1h" | "6h" | "24h" | "7d"
 export type PadFilter = "all" | "ARGUS" | "TOLLY" | "OTHER"
+/** listed = flagged tokens hidden (default); caught = only flagged ones, with why; all = both. */
+export type ViewFilter = "listed" | "caught" | "all"
 
 export interface ScreenerFilters {
   sort: SortKey
@@ -17,7 +19,7 @@ export interface ScreenerFilters {
   maxMcap: number
   minVol: number
   minScore: number
-  showFake: boolean
+  view: ViewFilter
   page: number
 }
 
@@ -33,7 +35,7 @@ export const DEFAULT_FILTERS: ScreenerFilters = {
   maxMcap: 0,
   minVol: 0,
   minScore: 0,
-  showFake: false,
+  view: "listed",
   page: 1,
 }
 
@@ -65,7 +67,8 @@ export function parseFilters(sp: Record<string, string | undefined>): ScreenerFi
     maxMcap: n(sp.maxMcap),
     minVol: n(sp.minVol),
     minScore: Math.min(10, n(sp.minScore)),
-    showFake: sp.fake === "1",
+    // `fake=1` is the old "show fake tokens" link: keep it working.
+    view: sp.fake === "1" ? "all" : pick(sp.view, ["listed", "caught", "all"] as const, "listed"),
     page: Math.max(1, Math.floor(n(sp.page)) || 1),
   }
 }
@@ -74,8 +77,7 @@ export function filtersToQuery(f: ScreenerFilters): string {
   const q = new URLSearchParams()
   for (const [k, v] of Object.entries(f) as Array<[keyof ScreenerFilters, unknown]>) {
     if (v === DEFAULT_FILTERS[k]) continue
-    if (k === "showFake") q.set("fake", "1")
-    else q.set(k, String(v))
+    q.set(k, String(v))
   }
   const s = q.toString()
   return s ? `?${s}` : ""

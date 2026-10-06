@@ -3,6 +3,7 @@
 import { useCallback, useSyncExternalStore } from "react"
 import { useAuth } from "@/components/auth/auth-provider"
 import { toast } from "@/components/ui/toast"
+import { closeProceeds, marked, triggerFor } from "@/lib/paper-perps"
 
 export interface PerpPosition {
   id: string
@@ -25,6 +26,10 @@ export interface PerpPosition {
   openedAt: string
   /** Which paper balance funded the margin (older positions: USDC). */
   collateral?: Collateral
+  /** Size when opened — each TP level closes an equal share of it. */
+  initialSize?: number
+  /** TP levels already taken. */
+  tpsHit?: number
 }
 
 export type Collateral = "USDC" | "USDT"
@@ -273,6 +278,8 @@ function openPosition(state: PortfolioState, p: NewPosition) {
     exchange: p.exchange,
     openedAt: new Date().toISOString(),
     collateral: p.collateral ?? "USDC",
+    initialSize: p.size,
+    tpsHit: 0,
   }
 
   const trade: TradeRecord = {
@@ -438,8 +445,9 @@ export function usePortfolio(targetAccountId?: string) {
       const pos = current.positions.find((p) => p.id === positionId)
       if (!pos) return
 
-      const returnAmount = Math.max(0, pos.margin + pos.pnl)
-      adjust(current, pos.collateral, returnAmount)
+      // Close at the latest mark; the closing fee really comes out of the balance.
+      const { pnl, fee, returned } = closeProceeds(pos, pos.size, pos.markPrice)
+      adjust(current, pos.collateral, returned)
       current.positions = current.positions.filter((p) => p.id !== positionId)
 
       const closingTrade: TradeRecord = {
@@ -449,20 +457,87 @@ export function usePortfolio(targetAccountId?: string) {
         side: pos.side === "LONG" ? "SHORT" : "LONG",
         price: pos.markPrice,
         size: pos.size,
-        value: pos.positionValue,
-        fee: pos.positionValue * 0.00045,
-        pnl: pos.pnl,
+        value: pos.size * pos.markPrice,
+        fee,
+        pnl,
         exchange: pos.exchange,
         timestamp: new Date().toISOString(),
       }
       current.tradeHistory = [closingTrade, ...current.tradeHistory]
       writeStorage(effectiveAccountId, current)
       toast.add({
-        type: pos.pnl >= 0 ? "success" : "warning",
+        type: pnl >= 0 ? "success" : "warning",
         title: "Position closed",
-        description: `${pos.market} · PnL ${pos.pnl >= 0 ? "+" : ""}${pos.pnl.toFixed(2)}`,
+        description: `${pos.market} · PnL ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`,
         timeout: 4000,
       })
+    },
+    [effectiveAccountId],
+  )
+
+  /**
+   * Mark every open position to the live price (by coin, e.g. { BTC: 61000 })
+   * and execute whatever that triggers: liquidation, stop loss, or the next
+   * take-profit level (TP1–3 each close an equal share).
+   */
+  const updateMarks = useCallback(
+    (prices: Record<string, number>) => {
+      const current = readStorage(effectiveAccountId)
+      if (current.positions.length === 0) return
+      let changed = false
+      const kept: PerpPosition[] = []
+      for (const pos of current.positions) {
+        const mark = prices[pos.market.replace(/-PERP$/, "")]
+        if (!mark || !Number.isFinite(mark)) {
+          kept.push(pos)
+          continue
+        }
+        let p = marked(pos, mark)
+        changed ||= p.markPrice !== pos.markPrice
+        const t = triggerFor(p, mark)
+        if (t) {
+          changed = true
+          const closeSize = t.kind === "tp" ? t.closeSize : p.size
+          const r = t.kind === "liquidated" ? { pnl: -p.margin, fee: 0, returned: 0, marginReleased: p.margin } : closeProceeds(p, closeSize, t.price)
+          adjust(current, p.collateral, r.returned)
+          current.tradeHistory = [
+            {
+              id: `trd_${t.kind}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              market: p.market,
+              type: "MARKET",
+              side: p.side === "LONG" ? "SHORT" : "LONG",
+              price: t.price,
+              size: closeSize,
+              value: closeSize * t.price,
+              fee: r.fee,
+              pnl: r.pnl,
+              exchange: p.exchange,
+              timestamp: new Date().toISOString(),
+            },
+            ...current.tradeHistory,
+          ]
+          const label = t.kind === "liquidated" ? "Liquidated" : t.kind === "sl" ? "Stop loss hit" : `TP${t.level} hit`
+          toast.add({
+            type: t.kind === "tp" ? "success" : t.kind === "sl" ? "warning" : "error",
+            title: `${label} · ${p.market}`,
+            description: `${t.kind === "tp" && closeSize < p.size ? "Closed part" : "Closed"} at ${t.price} · PnL ${r.pnl >= 0 ? "+" : ""}${r.pnl.toFixed(2)}`,
+            timeout: 6000,
+          })
+          const left = p.size - closeSize
+          if (t.kind === "tp" && left > 1e-12) {
+            p = marked(
+              { ...p, size: left, margin: p.margin - r.marginReleased, tpsHit: (p.tpsHit ?? 0) + 1 },
+              mark,
+            )
+            kept.push(p)
+          }
+          continue
+        }
+        kept.push(p)
+      }
+      if (!changed) return
+      current.positions = kept
+      writeStorage(effectiveAccountId, current)
     },
     [effectiveAccountId],
   )
@@ -585,6 +660,7 @@ export function usePortfolio(targetAccountId?: string) {
     tradingEquity,
     placeOrder,
     closePosition,
+    updateMarks,
     cancelOrder,
     fillOrder,
     deposit,

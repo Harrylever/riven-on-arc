@@ -25,6 +25,8 @@ export function TokenAvatar({
         src={image}
         alt=""
         loading="lazy"
+        // Creator-hosted images must not learn which page (or wallet) viewed them.
+        referrerPolicy="no-referrer"
         onError={() => setBroken(true)}
         className="shrink-0 rounded-[30%] object-cover ring-1 ring-[var(--rv-stroke-strong)]"
         style={style}

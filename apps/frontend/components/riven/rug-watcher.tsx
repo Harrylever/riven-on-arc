@@ -20,7 +20,9 @@ interface Alert {
 export function RugWatcher() {
   const { mints } = useWatchlist()
   const key = mints.join(",")
-  const first = useRef(true)
+  // Tokens whose existing alerts have been recorded. A newly watched token's
+  // history is recorded silently on its first poll, so only new alerts toast.
+  const baselined = useRef(new Set<string>())
 
   useEffect(() => {
     if (!key) return
@@ -32,6 +34,7 @@ export function RugWatcher() {
     const check = async () => {
       try {
         const res = await fetch(`/api/arc/alerts?addresses=${key}`)
+        if (!res.ok) return
         const { alerts } = (await res.json()) as { alerts: Alert[] }
         if (!alive) return
         const fresh = alerts.filter((a) => !seen.has(a.id))
@@ -39,12 +42,10 @@ export function RugWatcher() {
         try {
           localStorage.setItem(SEEN_KEY, JSON.stringify([...seen].slice(-500)))
         } catch {}
-        // The first poll only records what already exists; warn about new ones.
-        if (first.current) {
-          first.current = false
-          return
-        }
-        for (const a of fresh) {
+        const known = baselined.current
+        const toWarn = fresh.filter((a) => known.has(a.token.address.toLowerCase()))
+        for (const m of key.split(",")) known.add(m.toLowerCase())
+        for (const a of toWarn) {
           const title = `${a.token.symbol}: ${a.message}`
           toast.add({ title: `Rug alert · ${a.token.symbol}`, description: a.message, type: "error" })
           if (typeof Notification !== "undefined" && Notification.permission === "granted") {

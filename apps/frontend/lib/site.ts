@@ -15,3 +15,6 @@ export const SITE_DESCRIPTION =
   "Riven is the anti-rug screener for Arc: live prices and volume for every token, plus a 1–10 safety score from on-chain facts — contract, liquidity, holders, creator history and real trading. Fakes are hidden. The score is never sold."
 
 export const SITE_TAGLINE = "Every token on Arc, rug-checked."
+
+/** Ends every agent answer and every signal view (AGENTS.md agent rule 2). */
+export const DISCLAIMER = "Not financial advice. DYOR."

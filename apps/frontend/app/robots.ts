@@ -11,7 +11,7 @@ export default function robots(): MetadataRoute.Robots {
       // /watchlist: purely a browser-localStorage view — empty for any
       // crawler, and whatever it renders is one visitor's own data anyway.
       // /api/*: JSON endpoints, not pages.
-      disallow: ["/login", "/watchlist", "/api/"],
+      disallow: ["/watchlist", "/api/"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   }

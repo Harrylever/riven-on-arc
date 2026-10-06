@@ -6,14 +6,17 @@ export function ScoreBadge({
   score,
   band,
   size = "md",
+  word = false,
 }: {
   score: number | null
   band: ArcBand
   size?: "sm" | "md"
+  /** Show the one-word verdict under the number ("Risky", "Caution"…). */
+  word?: boolean
 }) {
   const m = BAND_META[band]
   const sm = size === "sm"
-  return (
+  const chip = (
     <span
       className={`rv-num inline-flex shrink-0 items-baseline justify-center gap-0.5 rounded-md font-semibold ${
         sm ? "min-w-[46px] px-1.5 py-0.5 text-[12px]" : "min-w-[58px] px-2 py-1 text-[15px]"
@@ -24,6 +27,15 @@ export function ScoreBadge({
     >
       {score === null ? "…" : score.toFixed(1)}
       {score !== null && <span className="text-[0.7em] opacity-60">/10</span>}
+    </span>
+  )
+  if (!word) return chip
+  return (
+    <span className="inline-flex shrink-0 flex-col items-end gap-0.5">
+      {chip}
+      <span className="rv-body text-[10px] font-semibold tracking-wide uppercase" style={{ color: m.color }}>
+        {m.short}
+      </span>
     </span>
   )
 }

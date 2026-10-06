@@ -192,12 +192,18 @@ export function TokenView({ t, serverNow }: { t: TokenDetail; serverNow: number 
             {/^0x[0-9a-f]{40}$/.test(t.creator) && <Row label="Creator" value={t.creator} href={`${EXPLORER}/address/${t.creator}`} />}
             {t.launchTx && <Row label="Launch tx" value={t.launchTx} href={`${EXPLORER}/tx/${t.launchTx}`} />}
             {t.dexUrl && <Row label="DexScreener" value="Open pair" href={t.dexUrl} />}
-            {[...new Set(t.links)].map((l) => (
-              <Row key={l} label="Website" value={l} href={l} />
+            {[...new Set(t.links)].filter(safeLink).map((l) => (
+              <Row key={l} label="Website" value={l} href={l} unverified />
             ))}
-            {t.socials.map((s) => (
-              <Row key={s.url} label={s.type} value={s.url} href={s.url} />
+            {t.socials.filter((s) => safeLink(s.url)).map((s) => (
+              <Row key={s.url} label={s.type} value={s.url} href={s.url} unverified />
             ))}
+            {(t.links.length > 0 || t.socials.length > 0) && (
+              <p className="text-[11px] text-[var(--rv-caution)]">
+                Website and social links are set by the token creator and aren&apos;t verified. Never connect your wallet to
+                a site just because a token links to it.
+              </p>
+            )}
             <p className="mt-1 text-[11px] text-[var(--rv-ink-3)]">
               Scores come from Arc mainnet. Market numbers come from DexScreener. Not financial advice. DYOR.
             </p>
@@ -466,13 +472,31 @@ function Trades({ t, now }: { t: TokenDetail; now: number }) {
   )
 }
 
-function Row({ label, value, href }: { label: string; value: string; href: string }) {
+/** Creator-supplied links: plain http(s) only — no javascript:, data: or app schemes. */
+function safeLink(url: string) {
+  try {
+    const u = new URL(url)
+    return u.protocol === "https:" || u.protocol === "http:"
+  } catch {
+    return false
+  }
+}
+
+function Row({ label, value, href, unverified = false }: { label: string; value: string; href: string; unverified?: boolean }) {
   const [copied, setCopied] = useState(false)
+  // Show creator links by host only, so a look-alike path can't pass as a real site.
+  const shown = value.startsWith("0x") ? shortAddr(value) : unverified ? new URL(value).host : value
   return (
     <div className="flex items-center gap-3">
       <span className="w-20 shrink-0 text-[var(--rv-ink-3)] capitalize">{label}</span>
-      <a href={href} target="_blank" rel="noreferrer" className="rv-num min-w-0 flex-1 truncate text-[var(--rv-ink-2)] hover:text-[var(--rv-ice)]">
-        {value.startsWith("0x") ? shortAddr(value) : value}
+      <a
+        href={href}
+        target="_blank"
+        rel={unverified ? "noopener noreferrer nofollow ugc" : "noopener noreferrer"}
+        className="rv-num min-w-0 flex-1 truncate text-[var(--rv-ink-2)] hover:text-[var(--rv-ice)]"
+      >
+        {shown}
+        {unverified && <span className="ml-1.5 text-[10px] text-[var(--rv-ink-3)]">(creator link)</span>}
       </a>
       {value.startsWith("0x") && (
         <button

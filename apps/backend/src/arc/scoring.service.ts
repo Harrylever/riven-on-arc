@@ -246,6 +246,8 @@ export class ArcScoringService {
     const due = candidates
       .filter((t) => {
         const last = t.scoreRuns[0]?.calculatedAt.getTime();
+        // A methodology change rescores everything promptly, not on the slow cadence.
+        if (t.scoreRuns[0] && t.scoreRuns[0].methodology !== ARC_METHODOLOGY) return true;
         if (last === undefined) return true;
         const fresh = now - t.launchTime.getTime() < FRESH_MS;
         return now - last > (fresh ? RESCORE_FRESH_MS : RESCORE_OLD_MS);

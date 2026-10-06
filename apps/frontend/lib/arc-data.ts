@@ -1,8 +1,11 @@
 // Server-only module: imports Prisma via @clawdex/shared, never import from a client component.
 import {
+  ARC_METHODOLOGY,
+  FAKE_FLAG_CODES,
   arcBand,
-  fakeReasons,
   getDb,
+  impersonates,
+  isWash,
   type ArcBand,
   type ArcFlag,
   type SubScoreKey,
@@ -17,7 +20,7 @@ import {
 export const EXPLORER = "https://explorer.arc.io"
 const IPFS_GATEWAY = "https://gateway.pinata.cloud/ipfs/"
 
-export type { SortKey, BandFilter, AgeFilter, PadFilter, ScreenerFilters } from "./screener-params"
+export type { SortKey, BandFilter, AgeFilter, PadFilter, ScreenerFilters, ViewFilter } from "./screener-params"
 import { PAGE_SIZE, type AgeFilter, type ScreenerFilters } from "./screener-params"
 
 export interface TokenSummary {
@@ -44,6 +47,8 @@ export interface TokenSummary {
   dangers: string[]
   fake: boolean
   fakeReasons: string[]
+  /** Machine codes behind fakeReasons (WASH, SERIAL, IMPERSONATION…), same order. */
+  fakeCodes: string[]
   /** Other tokens on Arc using the same ticker. */
   copies: number
   dexUrl: string | null
@@ -137,21 +142,38 @@ const TEXT_CODES: Array<[RegExp, string]> = [
   [/^Snipers/, "SNIPERS"],
   [/^Copycat/, "COPYCAT"],
 ]
-/**
- * Names that only the real issuer would use. On Arc (Circle's chain) a random
- * token called "Circle" or "USDC" is impersonation, whatever its contract says.
- */
-const BRANDS = /^(circle|usdc|usdt|eurc|tether|arc|arc network|coinbase|binance|uniswap|ethereum|eth|bitcoin|btc|solana|blackrock)$/i
+type Reason = { code: string; text: string }
 
-/** Fake signals that need no holder history, so unscored tokens get caught too. */
-function marketFakeReasons(t: { name: string; symbol: string }, vol24: number | null, usdcInPool: number | null): string[] {
-  const out: string[] = []
-  const brand = [t.name, t.symbol].map((x) => x.trim()).find((x) => BRANDS.test(x))
-  if (brand) out.push(`Impersonates ${brand} — not an official token`)
-  if (vol24 !== null && usdcInPool !== null && vol24 > 1000 && vol24 > 20 * Math.max(usdcInPool, 1)) {
-    out.push(`Volume looks fake: $${Math.round(vol24).toLocaleString()} traded but only $${Math.round(usdcInPool)} in the pool`)
+/**
+ * Flags that need no holder history, so unscored tokens get caught too. Same
+ * rules as the shared scorer (one source of truth), applied to market data.
+ */
+function marketFakeReasons(t: { name: string; symbol: string }, vol24: number | null, usdcInPool: number | null): Reason[] {
+  const out: Reason[] = []
+  const brand = impersonates(t)
+  if (brand) out.push({ code: "IMPERSONATION", text: `Impersonates ${brand} — not an official token` })
+  if (isWash(vol24, usdcInPool)) {
+    out.push({
+      code: "WASH",
+      text: `Volume looks fake: $${Math.round(vol24!).toLocaleString()} traded but only $${Math.round(usdcInPool!)} in the pool`,
+    })
   }
   return out
+}
+
+/**
+ * Flag codes from runs scored before arc-v5 carried known false positives
+ * (DEAD on busy tokens, WASH from a wrong pool-USDC figure, LP_REMOVED and
+ * CREATOR_DUMP from mis-summed liquidity/burns). Until a token is rescored,
+ * only trust the codes that weren't affected.
+ */
+const TRUSTED_LEGACY_CODES = new Set(["SERIAL", "IMPERSONATION"])
+function scoredReasons(flags: ArcFlag[], methodology: string | null | undefined): Reason[] {
+  const current = methodology === ARC_METHODOLOGY
+  return flags
+    .filter((f) => (FAKE_FLAG_CODES as readonly string[]).includes(f.code))
+    .filter((f) => current || TRUSTED_LEGACY_CODES.has(f.code))
+    .map((f) => ({ code: f.code, text: f.text }))
 }
 
 function withCodes(flags: ArcFlag[] | undefined): ArcFlag[] {
@@ -207,12 +229,10 @@ function summarize(t: TokenRow): TokenSummary {
   const score = scoreOf(run)
   const socialsJson = (m?.socials ?? null) as { usdcInPool?: number | null } | null
   const usdcInPool = sig.market?.poolUsdc ?? socialsJson?.usdcInPool ?? null
-  const scored = fakeReasons(flags)
+  const scored = scoredReasons(flags, run?.methodology)
   const reasons = [
     ...scored,
-    ...marketFakeReasons(t, num(m?.volume24h), usdcInPool).filter(
-      (r) => !(r.startsWith("Volume looks fake") && scored.some((x) => x.startsWith("Volume looks fake"))),
-    ),
+    ...marketFakeReasons(t, num(m?.volume24h), usdcInPool).filter((r) => !scored.some((x) => x.code === r.code)),
   ]
   return {
     address: t.mint,
@@ -236,7 +256,8 @@ function summarize(t: TokenRow): TokenSummary {
     verdict: sig.verdict ?? "Scoring… Riven is still reading this token's on-chain data.",
     dangers: flags.filter((f) => f.level === "danger").map((f) => f.text),
     fake: reasons.length > 0,
-    fakeReasons: reasons,
+    fakeReasons: reasons.map((r) => r.text),
+    fakeCodes: reasons.map((r) => r.code),
     copies: 0,
     dexUrl: m?.dexUrl ?? null,
     pairAddress: m?.pairAddress ?? null,
@@ -254,7 +275,8 @@ const AGE_MS: Record<Exclude<AgeFilter, "all">, number> = {
 /**
  * The screener: every indexed Arc token, filtered and sorted like DexScreener.
  * Fake tokens (wash trading, dead, serial launcher, creator dump, pulled LP)
- * are hidden unless `showFake` is set — search always finds them.
+ * are hidden in the default "listed" view; "caught" shows only them, with
+ * the evidence. Search always finds them.
  */
 export async function getScreener(
   f: ScreenerFilters,
@@ -284,7 +306,8 @@ export async function getScreener(
               : [{ arcMarket: { volume24h: { sort: "desc", nulls: "last" } } }, { launchTime: "desc" }]
 
   let list = (await rows(where, orderBy, f.sort === "safest" ? 1500 : 600)).map(summarize)
-  if (!f.showFake) list = list.filter((t) => !t.fake)
+  if (f.view === "listed") list = list.filter((t) => !t.fake)
+  else if (f.view === "caught") list = list.filter((t) => t.fake)
   if (f.band !== "all") list = list.filter((t) => t.band === f.band)
   if (f.minScore > 0) list = list.filter((t) => (t.score ?? 0) >= f.minScore)
   if (f.sort === "safest") {
@@ -317,6 +340,9 @@ export async function getStats() {
   ])
   const s = recent.map(summarize)
   const scored = s.filter((r) => r.score !== null)
+  // What the flagged launches were caught doing, most common first.
+  const byCode = new Map<string, number>()
+  for (const r of s) for (const c of new Set(r.fakeCodes)) byCode.set(c, (byCode.get(c) ?? 0) + 1)
   return {
     tokensTracked: total,
     listed,
@@ -324,7 +350,9 @@ export async function getStats() {
     scored24h: scored.length,
     fake24h: s.filter((r) => r.fake).length,
     healthy24h: scored.filter((r) => r.band === "healthy").length,
+    caution24h: scored.filter((r) => r.band === "caution").length,
     risky24h: scored.filter((r) => r.band === "risk").length,
+    reasons24h: [...byCode.entries()].sort((a, b) => b[1] - a[1]).map(([code, count]) => ({ code, count })),
     lastBlock: cursor ? cursor.lastBlock.toString() : null,
     syncedAt: cursor ? cursor.updatedAt.toISOString() : null,
   }

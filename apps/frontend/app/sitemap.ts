@@ -2,18 +2,18 @@ import type { MetadataRoute } from "next"
 import { getDb } from "@clawdex/shared"
 import { getSiteUrl } from "@/lib/site"
 
-// Static, always-indexable routes. /login and /watchlist are excluded — see
-// robots.ts for why (no unique server-rendered content for a crawler).
+// Static, always-indexable routes. /watchlist is per-user, so it's left out.
 const STATIC_ROUTES: Array<{
   path: string
   priority: number
   changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]
 }> = [
   { path: "/", priority: 1, changeFrequency: "hourly" },
-  { path: "/terminal", priority: 0.9, changeFrequency: "hourly" },
-  { path: "/agent", priority: 0.7, changeFrequency: "daily" },
+  { path: "/alerts", priority: 0.8, changeFrequency: "hourly" },
+  { path: "/methodology", priority: 0.7, changeFrequency: "weekly" },
+  { path: "/agent", priority: 0.6, changeFrequency: "daily" },
   { path: "/ecosystem", priority: 0.6, changeFrequency: "daily" },
-  { path: "/kol", priority: 0.6, changeFrequency: "hourly" },
+  { path: "/portfolio", priority: 0.4, changeFrequency: "weekly" },
   { path: "/search", priority: 0.4, changeFrequency: "weekly" },
 ]
 
@@ -32,7 +32,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const db = getDb()
     const tokens = await db.token.findMany({
-      where: { discoveredVia: { not: "ON_DEMAND_RESOLUTION" } },
+      // Arc tokens with a pool only — anything else would 404.
+      where: { mint: { startsWith: "0x" }, pools: { some: {} } },
       orderBy: { createdAt: "desc" },
       take: MAX_TOKEN_URLS,
       select: { mint: true, createdAt: true },

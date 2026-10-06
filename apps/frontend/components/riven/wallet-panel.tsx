@@ -25,6 +25,7 @@ type Panel = null | "deposit" | "withdraw" | "convert"
 export function WalletPanel() {
   const wallet = useArcWallet()
   const [data, setData] = useState<WalletData | null>(null)
+  const [failed, setFailed] = useState(false)
   const [panel, setPanel] = useState<Panel>(null)
   const [trade, setTrade] = useState<{ token: TradeToken; side: "buy" | "sell" } | null>(null)
 
@@ -32,8 +33,12 @@ export function WalletPanel() {
     if (!wallet.address) return
     try {
       const res = await fetch(`/api/arc/wallet?address=${wallet.address}`)
-      if (res.ok) setData(await res.json())
-    } catch {}
+      if (!res.ok) throw new Error(`wallet ${res.status}`)
+      setData(await res.json())
+      setFailed(false)
+    } catch {
+      setFailed(true)
+    }
   }, [wallet.address])
 
   useEffect(() => {
@@ -67,10 +72,15 @@ export function WalletPanel() {
           <div>
             <p className="rv-body text-[11px] font-semibold tracking-[0.14em] text-[var(--rv-ink-3)] uppercase">Wallet balance</p>
             <p className="rv-display mt-1 text-[36px] leading-none font-extrabold text-[var(--rv-ink)]">
-              {data ? usd(data.usdc + data.eurc * 1.0 + tokensValue) : "…"}
+              {/* EURC isn't a dollar: it's shown on its own line, not added at 1:1. */}
+              {data ? usd(data.usdc + tokensValue) : "…"}
             </p>
             <p className="rv-num mt-2 text-[12px] text-[var(--rv-ink-2)]">
-              {data ? `${data.usdc.toFixed(2)} USDC · ${data.eurc.toFixed(2)} EURC · ${usd(tokensValue)} in tokens` : "Loading balances…"}
+              {data
+                ? `${data.usdc.toFixed(2)} USDC · ${usd(tokensValue)} in tokens${data.eurc > 0 ? ` · plus ${data.eurc.toFixed(2)} EURC` : ""}`
+                : failed
+                  ? "Couldn't load balances — retrying…"
+                  : "Loading balances…"}
             </p>
           </div>
           <div className="text-right">
