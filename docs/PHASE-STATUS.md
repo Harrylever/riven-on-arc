@@ -1,0 +1,16 @@
+# Chain & data — phase status
+
+Quick export of `AGENTS.md`'s phase roadmap. One branch per phase, `chain-data/<n>-<slug>`. Full detail (exact caveats, verified vs. heuristic pieces, file paths) lives in `AGENTS.md` — this is the scannable version.
+
+| # | Branch | Status | What it is |
+| --- | --- | --- | --- |
+| 1 | `chain-data/1-launch-detection` | ✅ Built | Helius webhooks detect new launches on pump.fun/LaunchLab; ClawPump via API polling (no on-chain program); on-demand CA resolution. Mint-extraction and ClawPump API path unvalidated against real traffic yet. |
+| 2 | `chain-data/2-market-data` | ✅ Built | Swap ingestion → `Trade`/`PairSnapshot`. Schema reconciled with teammate's `docs/BLUEPRINT.md` first (`Pool`/`Trade`/`PairSnapshot` adopted, old `Swap` model dropped). `liquidityUsd` left null (no USD feed) — closed in phase 4 via a SOL-denominated ratio instead. |
+| 3 | `chain-data/3-rug-signals` | ✅ Built | Mint/freeze authority + top-10 concentration via standard SPL RPC (high confidence). LP-lock is venue-aware (bonding curve = locked by construction). Attributed-burn ingestion. |
+| 4 | `chain-data/4-scoring-pipeline` | ✅ Built | Wires phases 1–3 into `computeScore` every 5 min. Sanity-tested: healthy inputs → 74 (green), risky inputs → 0 (hard-red gate). Tokens missing rug-signal data are skipped, not fabricated. |
+| 5 | `chain-data/5-kol-ingestion` | ✅ Built | `KolProvider` interface — MadeOnSol (primary, verified against real docs) / Solana Tracker (fallback, path verified, response shape best-effort) / Mock. REST polling only (MadeOnSol's WebSocket is PRO-tier). Provider choice is a runtime env var, not hardcoded. |
+| 6 | `chain-data/6-z500-rank` | ⚫ Scrapped | Real endpoint was found and confirmed, but it's behind a Cloudflare JS challenge that blocks reliable server-side fetching. Decided not to depend the score on an unreliable third party — z500 removed entirely (schema, poller, formula term). Weights redistributed to 40/35/25. Full writeup in `AGENTS.md` open decision #4 and `docs/DECISIONS.md`. |
+| 7 | `chain-data/7-monitoring-alerts` | ✅ Built | Five independent signals (concentration shift, volume spike, unusual burns, authority/LP-lock change, KOL coordination), each with its own cooldown. Outputs structured facts (`Alert.type`/`message`/`details`), not a bundled narrative — that's the AI agent's job. `Alert` model redesigned from an unused shape to a token-scoped event log. Wired into `GET /api/token/[mint]` as `recentAlerts`. |
+| 8 | `chain-data/8-hardening` | ✅ Done | Redis + rate limiting (verified against real Redis — survived a process restart). Retention: daily prune of 6 high-volume tables, 30-day default; archival to cold storage deliberately deferred (no bucket/format yet). Graceful degradation: fixed 3 cron services with missing per-item error isolation, added shared RPC retry. **Also ran the first-ever migration against the real Railway Postgres** (nothing had ever been applied) — `/health` now connects and reports data freshness live. |
+
+**Merged into `chain-and-data`:** phases 1–4. **Phase 5 is built and committed on its own branch** (`chain-data/5-kol-ingestion`) but not yet merged or pushed to `origin` as of this export.

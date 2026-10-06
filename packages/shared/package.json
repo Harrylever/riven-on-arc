@@ -1,0 +1,38 @@
+{
+  "name": "@clawdex/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./db": "./dist/db/index.js",
+    "./score": "./dist/score/index.js",
+    "./chain": "./dist/chain/index.js",
+    "./providers": "./dist/providers/index.js",
+    "./redis": "./dist/redis/index.js"
+  },
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "test": "bun test src/score",
+    "check-types": "prisma generate && tsc --noEmit -p tsconfig.json",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.0.0",
+    "@prisma/client": "^7.0.0",
+    "dotenv": "^16.4.5",
+    "ioredis": "^6.0.0",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@nestjs/config": "^4.0.0",
+    "@types/pg": "^8.11.10",
+    "prisma": "^7.0.0",
+    "typescript": "5.9.2"
+  }
+}

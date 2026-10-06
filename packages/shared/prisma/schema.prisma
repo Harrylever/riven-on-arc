@@ -1,0 +1,506 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Launchpad {
+  PUMPFUN
+  LAUNCHLAB
+  CLAWPUMP
+  ARGUS
+  TOLLY
+  OTHER
+
+  @@map("launchpad")
+}
+
+/// How a Token row first entered the DB — lets us tell "we caught it at launch" apart
+/// from "a user searched a CA we'd never seen" (final spec: both are valid entry points).
+enum DiscoverySource {
+  HELIUS_WEBHOOK
+  CLAWPUMP_POLLER
+  ON_DEMAND_RESOLUTION
+  ARC_FACTORY_INDEXER
+  ARC_POOL_INDEXER
+
+  @@map("discovery_source")
+}
+
+model Token {
+  id             String          @id @default(uuid())
+  mint           String          @unique
+  deployerWallet String          @map("deployer_wallet")
+  name           String
+  symbol         String
+  imageUri       String?         @map("image_uri")
+  decimals       Int?
+  metadataUri    String?         @map("metadata_uri")
+  launchpad      Launchpad       @default(OTHER)
+  discoveredVia  DiscoverySource @map("discovered_via")
+  launchTime     DateTime        @map("launch_time")
+  initialSupply  Decimal         @map("initial_supply")
+  currentPrice   Decimal?        @map("current_price")
+  marketCap      Decimal?        @map("market_cap")
+  /// Arc only: the factory tx that created the token, and its block.
+  launchTxHash   String?         @map("launch_tx_hash")
+  launchBlock    BigInt?         @map("launch_block")
+  /// Arc: website / X / Telegram links from the launch event.
+  links          Json?
+  /// Arc: block where the token contract first has code. Holder balances are only
+  /// trusted when transfers were indexed from here ("complete").
+  creationBlock  BigInt?         @map("creation_block")
+  holderHistory  String?         @map("holder_history") // complete | pending | partial
+  arcMarket      ArcMarket?
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  authorityChecks TokenAuthorityCheck[]
+  holderSnapshots HolderSnapshot[]
+  arcBalances     ArcTokenBalance[]
+  kolTrades       KolTrade[]
+  burns           Burn[]
+  pools           Pool[]
+  scoreRuns       ScoreRun[]
+  watchlists      Watchlist[]
+  alerts          Alert[]
+  executionLogs   ExecutionLog[]
+
+  @@map("tokens")
+}
+
+/// Raw Arc factory events are retained until each launchpad's event ABI has
+/// been verified. Indexing these logs does not imply a decoded token launch.
+model ArcFactoryLog {
+  id              String   @id @default(uuid())
+  factoryAddress  String   @map("factory_address")
+  topic0          String
+  topics          Json
+  data            String
+  blockNumber     BigInt   @map("block_number")
+  transactionHash String   @map("transaction_hash")
+  logIndex        Int      @map("log_index")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([transactionHash, logIndex])
+  @@index([factoryAddress, blockNumber])
+  @@map("arc_factory_logs")
+}
+
+model ArcIndexerCursor {
+  source    String   @id
+  lastBlock BigInt   @map("last_block")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("arc_indexer_cursors")
+}
+
+enum PoolVenue {
+  PUMPFUN_CURVE
+  PUMPSWAP
+  LAUNCHLAB
+  UNISWAP_V4
+  BONDING_CURVE
+  OTHER
+
+  @@map("pool_venue")
+}
+
+/// A token can have more than one pool over its life — a bonding-curve pool
+/// pre-migration, then an AMM pool (PumpSwap etc.) post-migration. Price and
+/// liquidity math differs by venue, so this is a real distinction, not just
+/// organizational — see apps/backend/src/market-data (phase 2).
+model Pool {
+  id         String    @id @default(uuid())
+  address    String    @unique
+  tokenId    String    @map("token_id")
+  token      Token     @relation(fields: [tokenId], references: [id])
+  venue      PoolVenue
+  quoteMint  String?   @map("quote_mint")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  migratedAt DateTime? @map("migrated_at")
+  /// Arc v4: the LP position NFT id, and launchpad contracts excluded from holder math.
+  positionId      String?   @map("position_id")
+  excludedHolders Json?     @map("excluded_holders")
+  lpRemovedAt     DateTime? @map("lp_removed_at")
+  /// Arc v4: launch range ticks + fee settings read from the launch tx.
+  launchInfo      Json?     @map("launch_info")
+  /// Wallets the creator sent USDC to around launch (insider/bundle detection).
+  creatorFunded   Json?     @map("creator_funded")
+
+  trades    Trade[]
+  snapshots PairSnapshot[]
+  arcSwaps  ArcSwap[]
+  lpEvents  ArcLpEvent[]
+
+  @@map("pools")
+}
+
+/// A single swap event on a pool. Replaces the earlier flat `Swap` model
+/// (removed — nothing had been built against it yet).
+model Trade {
+  signature   String   @id
+  poolId      String   @map("pool_id")
+  pool        Pool     @relation(fields: [poolId], references: [id])
+  ts          DateTime
+  side        String
+  wallet      String
+  solAmount   Decimal  @map("sol_amount")
+  tokenAmount Decimal  @map("token_amount")
+
+  @@map("trades")
+}
+
+/// Derived price/market-cap/liquidity/volume snapshot for a pool — phase 2's
+/// actual deliverable shape.
+model PairSnapshot {
+  id           String   @id @default(uuid())
+  poolId       String   @map("pool_id")
+  pool         Pool     @relation(fields: [poolId], references: [id])
+  ts           DateTime
+  priceSol     Decimal  @map("price_sol")
+  priceUsd     Decimal? @map("price_usd")
+  marketCapUsd Decimal? @map("market_cap_usd")
+  /// Null means "not computed yet," never a stand-in for zero — needs a
+  /// SOL/USD feed + real pool reserve read (phase 2 follow-up), see AGENTS.md.
+  liquidityUsd Decimal? @map("liquidity_usd")
+  volume5m     Decimal  @default(0) @map("volume_5m")
+  volume1h     Decimal  @default(0) @map("volume_1h")
+  volume24h    Decimal  @default(0) @map("volume_24h")
+  buys         Int      @default(0)
+  sells        Int      @default(0)
+
+  @@map("pair_snapshots")
+}
+
+model TokenAuthorityCheck {
+  id                    String   @id @default(uuid())
+  tokenId               String   @map("token_id")
+  token                 Token    @relation(fields: [tokenId], references: [id])
+  mintAuthorityActive   Boolean  @map("mint_authority_active")
+  freezeAuthorityActive Boolean  @map("freeze_authority_active")
+  lpLocked              Boolean  @map("lp_locked")
+  lpLockMethod          String?  @map("lp_lock_method")
+  checkedAt             DateTime @default(now()) @map("checked_at")
+
+  @@map("token_authority_checks")
+}
+
+/// From docs/BLUEPRINT.md's proposed model, added now that phase 3 (rug
+/// signals) actually needs it. top10Pct uses CURRENT supply (getTokenSupply),
+/// not Token.initialSupply, so burns since launch are reflected correctly.
+model HolderSnapshot {
+  id          String   @id @default(uuid())
+  tokenId     String   @map("token_id")
+  token       Token    @relation(fields: [tokenId], references: [id])
+  holderCount Int?     @map("holder_count") // best-effort — see rug-signals AGENTS.md note
+  top10Pct    Decimal  @map("top10_pct")
+  topHolders  Json     @map("top_holders")
+  checkedAt   DateTime @default(now()) @map("checked_at")
+
+  @@map("holder_snapshots")
+}
+
+enum KolSource {
+  MADEONSOL
+  SOLANA_TRACKER
+  MOCK
+
+  @@map("kol_source")
+}
+
+/// From docs/BLUEPRINT.md's proposed model. `tokenId` is nullable — a KOL
+/// trade can arrive for a token we haven't detected yet (phase 1's webhook
+/// only watches pump.fun/LaunchLab program IDs; a KOL provider watches ALL
+/// tokens). Backfilled once/if the token is detected.
+model KolTrade {
+  id                  String    @id @default(uuid())
+  signature           String    @unique
+  kolWallet           String    @map("kol_wallet")
+  kolName             String?   @map("kol_name")
+  tokenMint           String    @map("token_mint")
+  tokenId             String?   @map("token_id")
+  token               Token?    @relation(fields: [tokenId], references: [id])
+  side                String
+  solAmount           Decimal   @map("sol_amount")
+  marketCapUsdAtTrade Decimal?  @map("market_cap_usd_at_trade")
+  tradedAt            DateTime  @map("traded_at")
+  source              KolSource
+
+  @@map("kol_trades")
+}
+
+model Burn {
+  id         String   @id @default(uuid())
+  tokenId    String   @map("token_id")
+  token      Token    @relation(fields: [tokenId], references: [id])
+  wallet     String
+  amount     Decimal
+  attributed Boolean  @default(false)
+  burnedAt   DateTime @map("burned_at")
+  txHash     String   @unique @map("tx_hash")
+
+  @@map("burns")
+}
+
+model ScoreRun {
+  id             String   @id @default(uuid())
+  tokenId        String   @map("token_id")
+  token          Token    @relation(fields: [tokenId], references: [id])
+  score          Decimal
+  gate           Decimal
+  concentration  Decimal
+  burnScore      Decimal  @map("burn_score")
+  liquidityScore Decimal  @map("liquidity_score")
+  partial        Boolean? @default(false)
+  confidence     String?  @default("high")
+  staleSnapshot  Boolean? @default(false) @map("stale_snapshot")
+  /// Arc: "healthy" | "caution" | "risk" | "unscored", the full signal breakdown, and the methodology version.
+  band           String?
+  signals        Json?
+  methodology    String?
+  calculatedAt   DateTime @default(now()) @map("calculated_at")
+
+  @@map("score_runs")
+}
+
+model Watchlist {
+  id            String   @id @default(uuid())
+  userIdOrEmail String   @map("user_id_or_email")
+  tokenId       String   @map("token_id")
+  token         Token    @relation(fields: [tokenId], references: [id])
+  addedAt       DateTime @default(now()) @map("added_at")
+
+  @@map("watchlists")
+}
+
+enum AlertType {
+  LIQUIDITY_DROP
+  HOLDER_CONCENTRATION_SHIFT
+  VOLUME_SPIKE
+  UNUSUAL_BURN
+  AUTHORITY_CHANGE
+  KOL_COORDINATION
+  /// Arc anti-rug alerts
+  RUG_PULL
+  CREATOR_DUMP
+  WHALE_DUMP
+  SCORE_DROP
+
+  @@map("alert_type")
+}
+
+/// System-detected "this token's state changed meaningfully" events — the
+/// phase 7 monitoring loop's output. Redesigned from a per-user subscription
+/// row (userIdOrEmail + threshold + notifiedAt, unused anywhere in code) to
+/// a token-scoped event log, matching docs/BLUEPRINT.md's original shape
+/// minus the user link: no server-side watchlist exists yet (phase 3 on the
+/// product/agent side is localStorage-only), so there's no reliable way to
+/// target a specific user server-side. Matching alerts to watched tokens is
+/// a frontend concern once watchlists are DB-backed (phase 8, accounts).
+model Alert {
+  id        String    @id @default(uuid())
+  tokenId   String    @map("token_id")
+  token     Token     @relation(fields: [tokenId], references: [id])
+  type      AlertType
+  message   String // plain templated summary of this one signal, e.g. "Top-10 concentration rose 14pp in 10 min"
+  details   Json // the actual before/after numbers behind the message
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("alerts")
+}
+
+/// Trade Execution Service's own log. Frozen — trade execution is paused
+/// (AGENTS.md, docs/DECISIONS.md). Renamed from `Trade` to avoid colliding
+/// with the swap-event `Trade` model above; TradeService itself is untouched.
+model ExecutionLog {
+  id           String   @id @default(uuid())
+  tokenId      String   @map("token_id")
+  token        Token    @relation(fields: [tokenId], references: [id])
+  side         String
+  amountSol    Decimal  @map("amount_sol")
+  scoreAtEntry Decimal? @map("score_at_entry")
+  txHash       String?  @map("tx_hash")
+  status       String   @default("pending")
+  executedAt   DateTime @default(now()) @map("executed_at")
+
+  @@map("execution_logs")
+}
+
+enum TradingPlatform {
+  FOMO
+  PADRE
+  JUPITER
+  OTHER
+
+  @@map("trading_platform")
+}
+
+enum LoginMethod {
+  WALLET
+  GOOGLE
+  APPLE
+  EMAIL
+
+  @@map("login_method")
+}
+
+// One row per Privy user. privyUserId comes from a verified Privy access token,
+// never from the client. tradingPlatform is the self-declared "where do you trade".
+model UserProfile {
+  id                 String           @id @default(uuid())
+  privyUserId        String           @unique @map("privy_user_id")
+  loginMethod        LoginMethod      @map("login_method")
+  email              String?
+  walletAddress      String?          @map("wallet_address")
+  tradingPlatform    TradingPlatform? @map("trading_platform")
+  onboardingComplete Boolean          @default(false) @map("onboarding_complete")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  @@map("user_profiles")
+}
+
+enum PerpExchange {
+  BYBIT
+  MEXC
+  BINANCE
+
+  @@map("perp_exchange")
+}
+
+enum PerpBias {
+  LONG
+  SHORT
+
+  @@map("perp_bias")
+}
+
+/// Read-only mirror of sakz-bot-main's own `signal_outcomes` table — a separate,
+/// non-workspace Python trading-signal bot (see AGENTS.md "Perpetual futures
+/// signals" section for why it isn't rebuilt as ClawDex-native code). One row
+/// per finalized perp-futures call sakz-bot registered for outcome tracking,
+/// written by sakz-bot's own best-effort `clawdex_sync.py` module. ClawDex's
+/// own apps never write to this table, only read it.
+/// No FK to Token: these are CEX perp-futures symbols (e.g. BTCUSDT on Bybit),
+/// not ClawDex-indexed Solana tokens — nothing to relate them to.
+model PerpSignal {
+  id         String       @id @default(uuid())
+  exchange   PerpExchange
+  symbol     String
+  bias       PerpBias
+  /// 0-10 scale, matching sakz-bot's own signal_outcomes.confidence — NOT
+  /// 0-100. Feeds directly into the agent card's MiniBar, no rescaling.
+  confidence Int
+  entryPrice Decimal      @map("entry_price")
+  entryLow   Decimal      @map("entry_low")
+  entryHigh  Decimal      @map("entry_high")
+  stopLoss   Decimal      @map("stop_loss")
+  t1         Decimal
+  t2         Decimal
+  t3         Decimal
+  scanTime   DateTime     @map("scan_time")
+  /// Mirrors sakz-bot's own signal_outcomes.outcome (plain TEXT there too, not
+  /// an enum — same reason ExecutionLog.status is a String). Known values
+  /// (sakz_engine_outcomes.py): pending, t1_hit, t2_hit, t3_hit, sl_hit, expired.
+  outcome    String       @default("pending")
+  resolvedAt DateTime?    @map("resolved_at")
+  entryConfirmed Int      @default(-1) @map("entry_confirmed")
+  bestTargetHit  String?  @map("best_target_hit")
+  slAfterTarget  Int      @default(0)  @map("sl_after_target")
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  // No @@unique([exchange, symbol, bias]): deliberately not enforced. A hard
+  // unique constraint would force every re-insert into an upsert and lose
+  // history. Full history (a track record of past calls and how they
+  // resolved) is more useful for a read-only signals feed than "current row
+  // only" — "latest open call per pair" is served at read time via
+  // findMany({ distinct: ["exchange","symbol","bias"], orderBy: { scanTime: "desc" } }),
+  // the same pattern GET /api/leaderboard already uses for ScoreRun.
+  @@index([scanTime])
+  @@index([symbol])
+  @@index([exchange, symbol, bias])
+  @@map("perp_signals")
+}
+
+/// Running ERC-20 balance per holder for indexed Arc tokens, built from Transfer logs.
+/// Raw units (no decimals applied).
+model ArcTokenBalance {
+  tokenId String  @map("token_id")
+  token   Token   @relation(fields: [tokenId], references: [id])
+  holder  String
+  balance Decimal
+  /// Total ever received (raw units) — lets us tell how much a wallet has sold.
+  received   Decimal @default(0)
+  /// Block of this wallet's first incoming transfer (sniper detection).
+  firstBlock BigInt? @map("first_block")
+
+  @@id([tokenId, holder])
+  @@index([tokenId, balance])
+  @@map("arc_token_balances")
+}
+
+/// A Uniswap v4 Swap on a tracked Arc pool. USDC amounts are in whole USDC.
+model ArcSwap {
+  id          String   @id // txHash:logIndex
+  poolId      String   @map("pool_id")
+  pool        Pool     @relation(fields: [poolId], references: [id])
+  ts          DateTime
+  blockNumber BigInt   @map("block_number")
+  side        String // "buy" | "sell"
+  sender      String
+  usdcAmount  Decimal  @map("usdc_amount")
+  tokenAmount Decimal  @map("token_amount")
+  priceUsd    Decimal? @map("price_usd")
+
+  @@index([poolId, ts])
+  @@map("arc_swaps")
+}
+
+/// Latest market snapshot for an Arc token from DexScreener. Display only:
+/// never an input to the score (scores come from on-chain data).
+model ArcMarket {
+  tokenId       String    @id @map("token_id")
+  token         Token     @relation(fields: [tokenId], references: [id])
+  pairAddress   String?   @map("pair_address")
+  dexUrl        String?   @map("dex_url")
+  priceUsd      Decimal?  @map("price_usd")
+  marketCap     Decimal?  @map("market_cap")
+  fdv           Decimal?
+  liquidityUsd  Decimal?  @map("liquidity_usd")
+  volume5m      Decimal?  @map("volume_5m")
+  volume1h      Decimal?  @map("volume_1h")
+  volume6h      Decimal?  @map("volume_6h")
+  volume24h     Decimal?  @map("volume_24h")
+  change5m      Decimal?  @map("change_5m")
+  change1h      Decimal?  @map("change_1h")
+  change6h      Decimal?  @map("change_6h")
+  change24h     Decimal?  @map("change_24h")
+  buys24h       Int?      @map("buys_24h")
+  sells24h      Int?      @map("sells_24h")
+  imageUrl      String?   @map("image_url")
+  socials       Json?
+  pairCreatedAt DateTime? @map("pair_created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([liquidityUsd])
+  @@index([volume24h])
+  @@map("arc_markets")
+}
+
+/// A Uniswap v4 ModifyLiquidity on a tracked pool. For PositionManager adds,
+/// salt = the position NFT id, so this is how LP ownership is found for any pool.
+model ArcLpEvent {
+  id             String   @id // txHash:logIndex
+  poolId         String   @map("pool_id")
+  pool           Pool     @relation(fields: [poolId], references: [id])
+  sender         String
+  positionId     String?  @map("position_id")
+  liquidityDelta Decimal  @map("liquidity_delta")
+  blockNumber    BigInt   @map("block_number")
+
+  @@index([poolId])
+  @@map("arc_lp_events")
+}

@@ -1,0 +1,12 @@
+# Service root: repo root (needs the workspace + packages/shared).
+# Watch paths: apps/backend/**, packages/shared/**
+[build]
+builder = "RAILPACK"
+buildCommand = "bun run build:shared"
+
+[deploy]
+preDeployCommand = "bun run --filter @clawdex/shared db:migrate:deploy"
+startCommand = "bun run --filter backend start"
+healthcheckPath = "/health"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

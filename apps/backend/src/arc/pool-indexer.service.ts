@@ -1,0 +1,237 @@
+import { getDb } from "@clawdex/shared";
+import {
+  createPublicClient,
+  erc20Abi,
+  formatUnits,
+  http,
+  parseAbiItem,
+  type Address,
+  type PublicClient,
+} from "viem";
+import {
+  arc,
+  ARGUS_V4_HOOK,
+  DEFAULT_LOOKBACK_BLOCKS,
+  POOL_MANAGER,
+  POOL_MANAGER_DEPLOY_BLOCK,
+  USDC,
+} from "./config";
+import { scanBlockRange } from "./factory-log-indexer.service";
+
+const FORWARD_CURSOR = "v4:pools";
+const BACKFILL_CURSOR = "v4:pools:backfill";
+const CHUNK = 9_999n;
+const MAX_FORWARD_BLOCKS = 50_000n;
+/** History is walked backwards a little each tick so all of Arc gets covered over time. */
+const BACKFILL_BLOCKS_PER_RUN = BigInt(process.env.ARC_POOL_BACKFILL_BLOCKS ?? "60000");
+
+const INITIALIZE = parseAbiItem(
+  "event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)",
+);
+
+export interface PoolInit {
+  poolId: string;
+  token: string;
+  hooks: string;
+  blockNumber: bigint;
+  txHash: string;
+}
+
+/** Keep only USDC-quoted pools; returns the non-USDC side as the token. */
+export function toPoolInit(log: {
+  args: { id?: string; currency0?: string; currency1?: string; hooks?: string };
+  blockNumber: bigint | null;
+  transactionHash: string | null;
+}): PoolInit | null {
+  const { id, currency0, currency1, hooks } = log.args;
+  if (!id || !currency0 || !currency1 || log.blockNumber === null || !log.transactionHash) return null;
+  const usdc = USDC.toLowerCase();
+  const c0 = currency0.toLowerCase();
+  const c1 = currency1.toLowerCase();
+  const token = c0 === usdc ? c1 : c1 === usdc ? c0 : null;
+  if (!token || token === "0x0000000000000000000000000000000000000000") return null;
+  return {
+    poolId: id.toLowerCase(),
+    token,
+    hooks: (hooks ?? "").toLowerCase(),
+    blockNumber: log.blockNumber,
+    txHash: log.transactionHash,
+  };
+}
+
+/**
+ * Discovers every token on Arc that has a USDC pool on Uniswap v4, from the
+ * PoolManager's Initialize events — not just launchpad launches. New pools are
+ * followed forward; history is walked backwards to the PoolManager's deploy block.
+ */
+export class PoolIndexerService {
+  private readonly client: PublicClient;
+
+  constructor(client?: PublicClient) {
+    this.client =
+      client ??
+      createPublicClient({
+        chain: arc,
+        transport: http(process.env.ARC_RPC_URL ?? "https://rpc.mainnet.arc.io", {
+          timeout: 20_000,
+          retryCount: 3,
+          retryDelay: 1_500,
+        }),
+      });
+  }
+
+  async indexPoolsOnce() {
+    const db = getDb();
+    const head = await this.client.getBlockNumber();
+    const [fwd, back] = await Promise.all([
+      db.arcIndexerCursor.findUnique({ where: { source: FORWARD_CURSOR } }),
+      db.arcIndexerCursor.findUnique({ where: { source: BACKFILL_CURSOR } }),
+    ]);
+
+    const configured = process.env.ARC_INDEX_START_BLOCK;
+    const start = configured ? BigInt(configured) : head > DEFAULT_LOOKBACK_BLOCKS ? head - DEFAULT_LOOKBACK_BLOCKS : 0n;
+    const fFrom = fwd ? fwd.lastBlock + 1n : start;
+    const fTo = fFrom + MAX_FORWARD_BLOCKS - 1n > head ? head : fFrom + MAX_FORWARD_BLOCKS - 1n;
+
+    let forward = 0;
+    if (fFrom <= head) {
+      forward = await this.ingestRange(fFrom, fTo, "complete-if-new");
+      await db.arcIndexerCursor.upsert({
+        where: { source: FORWARD_CURSOR },
+        create: { source: FORWARD_CURSOR, lastBlock: fTo },
+        update: { lastBlock: fTo },
+      });
+    }
+
+    // Backwards history: [bTo - N, bTo], ending at the PoolManager deploy block.
+    const bTop = back ? back.lastBlock - 1n : start - 1n;
+    let backfilled = 0;
+    let backfillFrom: bigint | null = null;
+    if (bTop >= POOL_MANAGER_DEPLOY_BLOCK) {
+      backfillFrom = bTop - BACKFILL_BLOCKS_PER_RUN + 1n < POOL_MANAGER_DEPLOY_BLOCK
+        ? POOL_MANAGER_DEPLOY_BLOCK
+        : bTop - BACKFILL_BLOCKS_PER_RUN + 1n;
+      backfilled = await this.ingestRange(backfillFrom, bTop, "partial");
+      await db.arcIndexerCursor.upsert({
+        where: { source: BACKFILL_CURSOR },
+        create: { source: BACKFILL_CURSOR, lastBlock: backfillFrom },
+        update: { lastBlock: backfillFrom },
+      });
+    }
+
+    return {
+      forward: { from: fFrom.toString(), to: fTo.toString(), newTokens: forward },
+      backfill: backfillFrom === null ? "done" : { from: backfillFrom.toString(), to: bTop.toString(), newTokens: backfilled },
+    };
+  }
+
+  /**
+   * "complete-if-new": pools seen as they're created. If the token had no code a
+   * block before its pool, every transfer is ahead of us → holder history is
+   * complete. Older tokens (and all backfilled ones) are "partial" until the
+   * holder backfill job replays their transfers.
+   */
+  private async ingestRange(from: bigint, to: bigint, mode: "complete-if-new" | "partial") {
+    const db = getDb();
+    const logs = await scanBlockRange(from, to, CHUNK, (f, t) =>
+      this.client.getLogs({ address: POOL_MANAGER, event: INITIALIZE, fromBlock: f, toBlock: t }),
+    );
+    const inits = logs.map(toPoolInit).filter((p): p is PoolInit => p !== null);
+    if (inits.length === 0) return 0;
+
+    // Skip tokens/pools we already have.
+    const [knownTokens, knownPools] = await Promise.all([
+      db.token.findMany({ where: { mint: { in: inits.map((p) => p.token) } }, select: { mint: true, id: true } }),
+      db.pool.findMany({ where: { address: { in: inits.map((p) => p.poolId) } }, select: { address: true } }),
+    ]);
+    const tokenIds = new Map(knownTokens.map((t) => [t.mint, t.id]));
+    const poolSet = new Set(knownPools.map((p) => p.address));
+    const fresh = inits.filter((p) => !poolSet.has(p.poolId));
+    const newTokens = [...new Map(fresh.filter((p) => !tokenIds.has(p.token)).map((p) => [p.token, p])).values()];
+
+    const meta = await this.readMeta(newTokens.map((p) => p.token as Address));
+    // Holder history is only "complete" if the activity indexer hasn't passed the
+    // pool's block yet — otherwise its early transfers were never seen.
+    const activity = await db.arcIndexerCursor.findUnique({ where: { source: "arc:activity" } });
+    // Arc blocks are ~510ms and regular: interpolate launch times from one reference
+    // block instead of a getBlock per token.
+    const ref = await this.client.getBlock({ blockNumber: to });
+    const tsOf = (block: bigint) =>
+      new Date((Number(ref.timestamp) - Number(to - block) * 0.51) * 1000);
+    let created = 0;
+    for (const p of newTokens) {
+      const m = meta.get(p.token);
+      if (!m) continue; // not a readable ERC-20: skip rather than store junk
+      let history = "partial";
+      if (mode === "complete-if-new") {
+        const before = await this.client.getCode({ address: p.token as Address, blockNumber: p.blockNumber - 1n }).catch(() => "0x");
+        const createdHere = !before || before === "0x";
+        const ahead = !activity || p.blockNumber > activity.lastBlock;
+        history = createdHere && ahead ? "complete" : "partial";
+      }
+      // Pool creator stands in for the token creator. Fetched live for new pools;
+      // backfilled ones get it later from the holder backfill job, if they matter.
+      const sender =
+        mode === "complete-if-new"
+          ? await this.client
+              .getTransaction({ hash: p.txHash as `0x${string}` })
+              .then((tx) => tx.from.toLowerCase())
+              .catch(() => "unknown")
+          : "unknown";
+      const token = await db.token.upsert({
+        where: { mint: p.token },
+        create: {
+          mint: p.token,
+          deployerWallet: sender,
+          name: m.name,
+          symbol: m.symbol,
+          decimals: m.decimals,
+          launchpad: p.hooks === ARGUS_V4_HOOK.toLowerCase() ? "ARGUS" : "OTHER",
+          discoveredVia: "ARC_POOL_INDEXER",
+          launchTime: tsOf(p.blockNumber),
+          initialSupply: m.supply,
+          launchTxHash: p.txHash,
+          launchBlock: p.blockNumber,
+          holderHistory: history,
+        },
+        update: {},
+      });
+      tokenIds.set(p.token, token.id);
+      created++;
+    }
+    for (const p of fresh) {
+      const tokenId = tokenIds.get(p.token);
+      if (!tokenId) continue;
+      await db.pool.upsert({
+        where: { address: p.poolId },
+        create: { address: p.poolId, tokenId, venue: "UNISWAP_V4", quoteMint: USDC.toLowerCase() },
+        update: {},
+      });
+    }
+    return created;
+  }
+
+  private async readMeta(tokens: Address[]) {
+    const out = new Map<string, { name: string; symbol: string; decimals: number; supply: string }>();
+    if (tokens.length === 0) return out;
+    const calls = tokens.flatMap((address) => [
+      { address, abi: erc20Abi, functionName: "name" } as const,
+      { address, abi: erc20Abi, functionName: "symbol" } as const,
+      { address, abi: erc20Abi, functionName: "decimals" } as const,
+      { address, abi: erc20Abi, functionName: "totalSupply" } as const,
+    ]);
+    const res = await this.client.multicall({ allowFailure: true, contracts: calls });
+    tokens.forEach((a, i) => {
+      const [n, s, d, t] = res.slice(i * 4, i * 4 + 4);
+      if (d?.status !== "success" || t?.status !== "success") return;
+      const decimals = Number(d.result);
+      out.set(a.toLowerCase(), {
+        name: n?.status === "success" ? String(n.result).slice(0, 80) : "",
+        symbol: s?.status === "success" ? String(s.result).slice(0, 32) : "?",
+        decimals,
+        supply: formatUnits(t.result as bigint, decimals),
+      });
+    });
+    return out;
+  }
+}

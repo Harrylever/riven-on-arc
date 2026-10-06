@@ -1,0 +1,912 @@
+"use client"
+
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Freshness } from "@/components/terminal/freshness"
+import { MiniBar } from "@/components/agent/AgentAnswerCard"
+import { StatRow } from "@/components/ds"
+import { Skeleton } from "@/components/ui/skeleton"
+import { DISCLAIMER } from "@/lib/agent"
+import { ago, priceUsd } from "@/lib/format"
+import { PERPS_ENABLED } from "@/lib/flags"
+import { SignalOrderModal } from "@/components/terminal/signal-order-modal"
+import { usePortfolio } from "@/hooks/use-portfolio"
+import { PerpTerminal } from "@/components/perps/perp-terminal"
+import { PerpWatch } from "@/components/perps/perp-watch"
+import { isMajorPerp, isMemePerp, signalCoinKey } from "@/lib/perp-symbols"
+import type { PerpMarket } from "@/lib/hyperliquid"
+
+export interface PerpSignal {
+  id: string
+  exchange: "BYBIT" | "MEXC" | "BINANCE"
+  symbol: string
+  bias: "LONG" | "SHORT"
+  confidence: number
+  entryPrice: number
+  entryLow: number
+  entryHigh: number
+  stopLoss: number
+  t1: number
+  t2: number
+  t3: number
+  scanTime: string
+  outcome: string
+  resolvedAt: string | null
+  entryConfirmed: number
+  bestTargetHit: string | null
+  slAfterTarget: number
+  createdAt: string
+}
+
+export interface PerpStats {
+  totalResolved: number
+  confirmedTrades: number
+  missedEntries: number
+  wins: number
+  slHits: number
+  expired: number
+  winRate: number
+  stopLossRate: number
+  perTargetHit: {
+    t1: number
+    t2: number
+    t3: number
+    t1Rate: number
+    t2Rate: number
+    t3Rate: number
+  }
+  confidenceBands: {
+    high: { total: number; wins: number; winRate: number }
+    medium: { total: number; wins: number; winRate: number }
+    low: { total: number; wins: number; winRate: number }
+  }
+  criteria: string
+}
+
+const OUTCOME_META: Record<
+  string,
+  { label: string; color: string; tint: string }
+> = {
+  pending: {
+    label: "Active / Pending",
+    color: "var(--score-unknown)",
+    tint: "var(--score-unknown-tint)",
+  },
+  t1_hit: {
+    label: "Target 1 Hit",
+    color: "var(--score-healthy)",
+    tint: "var(--score-healthy-tint)",
+  },
+  t2_hit: {
+    label: "Target 2 Hit",
+    color: "var(--score-healthy)",
+    tint: "var(--score-healthy-tint)",
+  },
+  t3_hit: {
+    label: "Target 3 Hit",
+    color: "var(--score-healthy)",
+    tint: "var(--score-healthy-tint)",
+  },
+  sl_hit: {
+    label: "Stop Loss Hit",
+    color: "var(--score-risk)",
+    tint: "var(--score-risk-tint)",
+  },
+  expired: {
+    label: "Expired (48h)",
+    color: "var(--score-caution)",
+    tint: "var(--score-caution-tint)",
+  },
+}
+
+export function PerpsPanel() {
+  const [signals, setSignals] = useState<PerpSignal[] | null>(null)
+  const [stats, setStats] = useState<PerpStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null)
+
+  // Custom refresh interval (defaults to 10 minutes = 600,000ms, persisted in localStorage)
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("clawdex_perps_refresh_interval")
+      if (saved !== null) {
+        const parsed = Number(saved)
+        if (!isNaN(parsed)) return parsed
+      }
+    }
+    return 600_000 // 10 mins by default
+  })
+
+  // Filters - default to "all" so users see all available signals immediately
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "resolved">(
+    "all",
+  )
+  const [exchangeFilter, setExchangeFilter] = useState<
+    "ALL" | "BYBIT" | "MEXC" | "BINANCE"
+  >("ALL")
+  const [biasFilter, setBiasFilter] = useState<"ALL" | "LONG" | "SHORT">("ALL")
+  const [search, setSearch] = useState("")
+  const [selectedSignal, setSelectedSignal] = useState<PerpSignal | null>(null)
+  const [markets, setMarkets] = useState<PerpMarket[] | null>(null)
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null)
+  const [showAllMarkets, setShowAllMarkets] = useState(false)
+  const [marketGroup, setMarketGroup] = useState<"all" | "signal" | "meme" | "major">("all")
+
+  const { openOrders, fillOrder } = usePortfolio()
+
+  // Fill resting limit orders when the mark price crosses them
+  useEffect(() => {
+    if (!markets || openOrders.length === 0) return
+    const price = new Map(markets.map((m) => [m.symbol, m.markPrice]))
+    for (const o of openOrders) {
+      const mark = price.get(o.market.replace(/-PERP$/, ""))
+      if (!mark) continue
+      const isLong = o.side === "LONG" || o.side === "BUY"
+      if (isLong ? mark <= o.orderPrice : mark >= o.orderPrice) {
+        fillOrder(o.id)
+      }
+    }
+  }, [markets, openOrders, fillOrder])
+
+  // Every listed perp (not just the ones the scanner has a signal for)
+  useEffect(() => {
+    if (!PERPS_ENABLED) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch("/api/perps/markets", { cache: "no-store" })
+        if (!res.ok) return
+        const json = await res.json()
+        if (!cancelled) setMarkets(json.markets ?? [])
+      } catch (err) {
+        console.warn("Failed to load perp markets:", err)
+      }
+    }
+    void load()
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void load()
+    }, 10_000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [])
+
+  const loadData = useCallback(
+    async (silent = false) => {
+      if (!PERPS_ENABLED) {
+        setLoading(false)
+        return
+      }
+
+      if (!silent) setRefreshing(true)
+      try {
+        const params = new URLSearchParams()
+        if (statusFilter === "all") {
+          params.set("status", "all")
+        } else if (statusFilter === "resolved") {
+          params.set("status", "resolved")
+        } else {
+          params.set("status", "open")
+        }
+
+        if (exchangeFilter !== "ALL") {
+          params.set("exchange", exchangeFilter)
+        }
+
+        if (biasFilter !== "ALL") {
+          params.set("bias", biasFilter)
+        }
+
+        params.set("take", "200")
+
+        const res = await fetch(`/api/perp-signals?${params.toString()}`, {
+          cache: "no-store",
+        })
+
+        if (!res.ok) {
+          if (res.status === 404) {
+            setSignals([])
+            setStats(null)
+            return
+          }
+          throw new Error(`Failed to fetch signals: ${res.status}`)
+        }
+
+        const json = await res.json()
+        setSignals(json.signals ?? [])
+        if (json.stats) {
+          setStats(json.stats)
+        }
+        setUpdatedAt(Date.now())
+      } catch (err) {
+        console.warn("Failed to load perpetual signals:", err)
+        if (!silent) setSignals([])
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
+      }
+    },
+    [statusFilter, exchangeFilter, biasFilter],
+  )
+
+  // Initial load and whenever filters change
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData(false)
+  }, [loadData])
+
+  // Periodic poll: custom user timeframe (defaults to 10 mins) while tab is visible
+  useEffect(() => {
+    if (!PERPS_ENABLED || refreshIntervalMs <= 0) return
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void loadData(true)
+      }
+    }, refreshIntervalMs)
+    return () => clearInterval(timer)
+  }, [loadData, refreshIntervalMs])
+
+  // Filter signals locally with or without cashtags (e.g. $SOL or SOL)
+  const displayedSignals = useMemo(() => {
+    if (!signals) return null
+    const q = search
+      .trim()
+      .toUpperCase()
+      .replace(/^\$/, "")
+      .replace(/[-/]/g, "")
+      .replace(/PERP$/, "")
+    if (!q) return signals
+    return signals.filter((s) => {
+      const sym = s.symbol.toUpperCase()
+      const base = signalCoinKey(sym)
+      return (
+        sym.includes(q) ||
+        base.includes(q) ||
+        s.exchange.toUpperCase().includes(q)
+      )
+    })
+  }, [signals, search])
+
+  // Best open signal per base coin, so market rows can show the scanner's view
+  const signalByCoin = useMemo(() => {
+    const map = new Map<string, PerpSignal>()
+    for (const sig of signals ?? []) {
+      if (sig.outcome !== "pending") continue
+      const base = signalCoinKey(sig.symbol)
+      const prev = map.get(base)
+      if (!prev || sig.confidence > prev.confidence) map.set(base, sig)
+    }
+    return map
+  }, [signals])
+
+  const displayedMarkets = useMemo(() => {
+    if (!markets) return null
+    const q = search
+      .trim()
+      .toUpperCase()
+      .replace(/^\$/, "")
+      .replace(/PERP$/, "")
+    const filtered = q
+      ? markets.filter((m) => m.symbol.toUpperCase().includes(q))
+      : markets
+    // Scored coins first (highest conviction), then by 24h volume
+    return [...filtered].sort((a, b) => {
+      const sa = signalByCoin.get(a.symbol.toUpperCase())?.confidence ?? -1
+      const sb = signalByCoin.get(b.symbol.toUpperCase())?.confidence ?? -1
+      return sb - sa || b.volume24h - a.volume24h
+    })
+  }, [markets, search, signalByCoin])
+
+  // Selected market tracks the live list; defaults to the top-ranked coin
+  const selectedMarket =
+    markets?.find((m) => m.symbol === selectedSymbol) ??
+    displayedMarkets?.[0] ??
+    markets?.[0] ??
+    null
+
+  if (!PERPS_ENABLED) {
+    return null
+  }
+
+  return (
+    <div className="space-y-4">
+      {selectedMarket && markets && (
+        <PerpTerminal
+          market={selectedMarket}
+          markets={markets}
+          signal={signalByCoin.get(selectedMarket.symbol.toUpperCase()) ?? null}
+          signalByCoin={signalByCoin}
+          onSelect={setSelectedSymbol}
+        />
+      )}
+
+      {selectedMarket && markets && (
+        <PerpWatch market={selectedMarket} markets={markets} signals={signals} onSelect={setSelectedSymbol} />
+      )}
+
+      {/* Track Record Stats Header */}
+      {stats && (
+        <div className="rounded-none border border-[var(--border)] bg-[var(--surface)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-heading text-sm font-extrabold text-[var(--text-primary)]">
+                  Statistical Engine Track Record
+                </span>
+                <span className="rounded-none border border-[var(--brand)]/30 bg-[var(--brand)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--brand)]">
+                  Read-Only Verified
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                {stats.criteria}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+                <span className="text-[10px] font-bold tracking-wider uppercase">
+                  Auto-Refresh:
+                </span>
+                <select
+                  value={refreshIntervalMs}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    setRefreshIntervalMs(val)
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem(
+                        "clawdex_perps_refresh_interval",
+                        String(val),
+                      )
+                    }
+                  }}
+                  className="cursor-pointer rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] px-2 py-1 text-xs text-[var(--text-primary)] transition-colors outline-none hover:border-[var(--brand)] focus:border-[var(--brand)]"
+                >
+                  <option value={600000}>10m (Default)</option>
+                  <option value={300000}>5m</option>
+                  <option value={120000}>2m</option>
+                  <option value={60000}>1m</option>
+                  <option value={30000}>30s</option>
+                  <option value={0}>Manual (Off)</option>
+                </select>
+              </div>
+              <Freshness
+                updatedAt={updatedAt}
+                refreshing={refreshing}
+                onRefresh={() => void loadData(false)}
+              />
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                Win Rate
+              </div>
+              <div
+                className="mt-1 text-lg font-extrabold"
+                style={{
+                  color:
+                    stats.winRate >= 60 ? "var(--up)" : "var(--text-primary)",
+                }}
+              >
+                {stats.winRate > 0 ? `${stats.winRate}%` : "—"}
+              </div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                {stats.wins} wins / {stats.confirmedTrades} confirmed
+              </div>
+            </div>
+
+            <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                Stop-Loss Rate
+              </div>
+              <div
+                className="mt-1 text-lg font-extrabold"
+                style={{
+                  color:
+                    stats.stopLossRate > 35
+                      ? "var(--score-risk)"
+                      : "var(--text-primary)",
+                }}
+              >
+                {stats.stopLossRate > 0 ? `${stats.stopLossRate}%` : "—"}
+              </div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                {stats.slHits} stops hit
+              </div>
+            </div>
+
+            <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                Missed Entries
+              </div>
+              <div className="mt-1 text-lg font-extrabold text-[var(--score-caution)]">
+                {stats.missedEntries}
+              </div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                Unfilled (Excluded)
+              </div>
+            </div>
+
+            <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                Target Hits
+              </div>
+              <div className="mt-1 font-mono text-xs font-bold text-[var(--text-primary)]">
+                T1: {stats.perTargetHit.t1} · T2: {stats.perTargetHit.t2} · T3:{" "}
+                {stats.perTargetHit.t3}
+              </div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                T1: {stats.perTargetHit.t1Rate}% hit rate
+              </div>
+            </div>
+
+            <div className="col-span-2 rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                Conviction Bands
+              </div>
+              <div className="mt-1 flex items-center justify-between font-mono text-[11px]">
+                <div>
+                  <span className="text-[var(--text-muted)]">
+                    High (8-10):{" "}
+                  </span>
+                  <span className="font-bold text-[var(--up)]">
+                    {stats.confidenceBands.high.total > 0
+                      ? `${stats.confidenceBands.high.winRate}%`
+                      : "—"}
+                  </span>
+                  <span className="text-[10px] text-[var(--text-muted)]">
+                    {" "}
+                    ({stats.confidenceBands.high.wins}/
+                    {stats.confidenceBands.high.total})
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[var(--text-muted)]">Med (5-7): </span>
+                  <span className="font-bold text-[var(--text-primary)]">
+                    {stats.confidenceBands.medium.total > 0
+                      ? `${stats.confidenceBands.medium.winRate}%`
+                      : "—"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[var(--text-muted)]">Low (1-4): </span>
+                  <span className="font-bold text-[var(--text-muted)]">
+                    {stats.confidenceBands.low.total > 0
+                      ? `${stats.confidenceBands.low.winRate}%`
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-1 text-[10px] text-[var(--text-muted)]">
+                Total resolved: {stats.totalResolved} calls
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-none border border-[var(--border)] bg-[var(--surface)] p-3">
+        {/* Left: Status & Exchanges */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Status Switcher */}
+          <div className="flex border border-[var(--border)]">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                statusFilter === "all"
+                  ? "bg-[var(--brand)] text-black"
+                  : "text-[var(--text-secondary)] hover:text-white"
+              }`}
+            >
+              All Signals
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("open")}
+              className={`border-l border-[var(--border)] px-3 py-1.5 text-xs font-bold transition-colors ${
+                statusFilter === "open"
+                  ? "bg-[var(--brand)] text-black"
+                  : "text-[var(--text-secondary)] hover:text-white"
+              }`}
+            >
+              Open Calls
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("resolved")}
+              className={`border-l border-[var(--border)] px-3 py-1.5 text-xs font-bold transition-colors ${
+                statusFilter === "resolved"
+                  ? "bg-[var(--brand)] text-black"
+                  : "text-[var(--text-secondary)] hover:text-white"
+              }`}
+            >
+              Resolved
+            </button>
+          </div>
+
+          {/* Exchange Filter */}
+          <div className="flex items-center gap-1">
+            <span className="px-1 text-[10px] font-bold text-[var(--text-muted)] uppercase">
+              Venue:
+            </span>
+            {(["ALL", "BYBIT", "MEXC", "BINANCE"] as const).map((ex) => (
+              <button
+                key={ex}
+                type="button"
+                onClick={() => setExchangeFilter(ex)}
+                className={`rounded-none px-2 py-1 text-[11px] font-bold transition-colors ${
+                  exchangeFilter === ex
+                    ? "border border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]"
+                    : "border border-[var(--border)] text-[var(--text-muted)] hover:text-white"
+                }`}
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+
+          {/* Direction Filter */}
+          <div className="flex items-center gap-1">
+            <span className="px-1 text-[10px] font-bold text-[var(--text-muted)] uppercase">
+              Bias:
+            </span>
+            {(["ALL", "LONG", "SHORT"] as const).map((b) => (
+              <button
+                key={b}
+                type="button"
+                onClick={() => setBiasFilter(b)}
+                className={`rounded-none px-2 py-1 text-[11px] font-bold transition-colors ${
+                  biasFilter === b
+                    ? b === "LONG"
+                      ? "border border-[var(--up)] bg-[var(--up)]/10 text-[var(--up)]"
+                      : b === "SHORT"
+                        ? "border border-[var(--down)] bg-[var(--down)]/10 text-[var(--down)]"
+                        : "border border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]"
+                    : "border border-[var(--border)] text-[var(--text-muted)] hover:text-white"
+                }`}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Search box */}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Filter ticker (e.g. $SOL, BTC, ETH)…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-52 rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] px-2.5 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--brand)]"
+          />
+        </div>
+      </div>
+
+      {/* All perp markets */}
+      {displayedMarkets && displayedMarkets.length > 0 && (() => {
+        const groups = {
+          all: displayedMarkets,
+          signal: displayedMarkets.filter((m) => signalByCoin.has(m.symbol.toUpperCase())),
+          meme: displayedMarkets.filter((m) => isMemePerp(m.symbol)),
+          major: displayedMarkets.filter((m) => isMajorPerp(m.symbol)),
+        }
+        const list = groups[marketGroup]
+        return (
+        <div className="border border-[var(--border)] bg-[var(--surface)]">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {([
+                ["all", "All"],
+                ["signal", "With signal"],
+                ["meme", "Meme coins"],
+                ["major", "Majors"],
+              ] as const).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setMarketGroup(id)}
+                  aria-pressed={marketGroup === id}
+                  className="px-2.5 py-1 text-[11px] font-bold"
+                  style={{
+                    color: marketGroup === id ? "#fff" : "var(--text-muted)",
+                    background: marketGroup === id ? "var(--brand)" : "transparent",
+                    boxShadow: marketGroup === id ? "none" : "inset 0 0 0 1px var(--border)",
+                  }}
+                >
+                  {label} ({groups[id].length})
+                </button>
+              ))}
+            </div>
+            <span className="hidden text-[10px] text-[var(--text-muted)] sm:inline">
+              Signals first, then by volume · click to open
+            </span>
+          </div>
+          <div className="grid gap-px bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
+            {(showAllMarkets || search || marketGroup !== "all" ? list : list.slice(0, 24)).map((m) => {
+              const sig = signalByCoin.get(m.symbol.toUpperCase())
+              return (
+                <button
+                  key={m.symbol}
+                  onClick={() => {
+                    setSelectedSymbol(m.symbol)
+                    window.scrollTo({ top: 0, behavior: "smooth" })
+                  }}
+                  className="flex items-center justify-between bg-[var(--surface)] px-3 py-2 text-left hover:bg-[var(--surface-sunken)]"
+                >
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                      {m.symbol}
+                      {sig && (
+                        <span
+                          className="border px-1 text-[9px] font-bold"
+                          style={{
+                            borderColor:
+                              sig.bias === "LONG" ? "var(--up)" : "var(--down)",
+                            color:
+                              sig.bias === "LONG" ? "var(--up)" : "var(--down)",
+                          }}
+                        >
+                          {sig.bias} {sig.confidence}/10
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-mono text-[10px] text-[var(--text-muted)]">
+                      {priceUsd(m.markPrice)}
+                    </div>
+                  </div>
+                  <span
+                    className="font-mono text-xs font-bold"
+                    style={{
+                      color: m.change24h >= 0 ? "var(--up)" : "var(--down)",
+                    }}
+                  >
+                    {m.change24h >= 0 ? "+" : ""}
+                    {m.change24h.toFixed(2)}%
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {!showAllMarkets && !search && marketGroup === "all" && list.length > 24 && (
+            <button
+              onClick={() => setShowAllMarkets(true)}
+              className="w-full border-t border-[var(--border)] py-2 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            >
+              Show all {list.length} markets
+            </button>
+          )}
+          {list.length === 0 && (
+            <div className="px-3 py-6 text-center text-[11px] text-[var(--text-muted)]">
+              {marketGroup === "signal"
+                ? "No open sakz-bot calls match a Hyperliquid market right now."
+                : "No markets in this group."}
+            </div>
+          )}
+        </div>
+        )
+      })()}
+
+      {/* Signals Content Grid */}
+      {loading && signals === null ? (
+        <PerpsSignalsSkeleton />
+      ) : displayedSignals && displayedSignals.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+          {displayedSignals.map((signal) => (
+            <PerpCard
+              key={signal.id}
+              signal={signal}
+              onSelect={setSelectedSignal}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-none border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
+          <div className="font-heading text-sm font-bold text-[var(--text-primary)]">
+            No perpetual signals found
+          </div>
+          <p className="mt-1 max-w-md text-xs text-[var(--text-muted)]">
+            {statusFilter === "open"
+              ? "There are currently no active open calls matching your filter criteria. Try toggling to 'Full History' or changing venue filters."
+              : "No historical perpetual signals found in database. Signals generated by sakz-bot will automatically mirror here after scan cycles."}
+          </p>
+        </div>
+      )}
+
+      {/* Regulatory / Safe Terminal Disclaimer */}
+      <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-3 text-[11px] text-[var(--text-muted)]">
+        <span className="font-bold text-[var(--text-secondary)]">
+          ClawDex Safe Intelligence Terminal:
+        </span>{" "}
+        {DISCLAIMER} Read-only terminal mirroring statistical perpetual signals.
+        ClawDex never custody funds or execute orders.
+      </div>
+
+      {/* Signal Detail & Order Modal */}
+      <SignalOrderModal
+        key={selectedSignal?.id ?? "closed"}
+        signal={selectedSignal}
+        onClose={() => setSelectedSignal(null)}
+      />
+    </div>
+  )
+}
+
+function PerpCard({
+  signal,
+  onSelect,
+}: {
+  signal: PerpSignal
+  onSelect: (signal: PerpSignal) => void
+}) {
+  const outcomeMeta = OUTCOME_META[signal.outcome] ?? OUTCOME_META.pending
+  const biasColor = signal.bias === "LONG" ? "var(--up)" : "var(--down)"
+
+  return (
+    <div
+      onClick={() => onSelect(signal)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onSelect(signal)
+        }
+      }}
+      className="group cursor-pointer rounded-none border border-[var(--border)] bg-[var(--surface)] p-4 transition-all hover:border-[var(--brand)]/80 hover:bg-[var(--surface-raised)]"
+    >
+      {/* Header: Symbol, Venue, Bias, Outcome */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)]/60 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="font-heading text-base font-extrabold text-[var(--text-primary)] group-hover:text-[var(--brand)]">
+            {signal.symbol}
+          </span>
+          <span className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            {signal.exchange}
+          </span>
+          <span
+            className="rounded-none border px-1.5 py-0.5 text-[10px] font-extrabold"
+            style={{ borderColor: biasColor, color: biasColor }}
+          >
+            {signal.bias}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {signal.entryConfirmed === 0 && (
+            <span
+              className="rounded-none border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400"
+              title="Price did not trade in entry zone before call concluded"
+            >
+              ⚠ Missed Entry
+            </span>
+          )}
+
+          {signal.slAfterTarget === 1 && (
+            <span className="rounded-none border border-[var(--border)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
+              SL after target
+            </span>
+          )}
+
+          <span
+            className="rounded-none border px-2 py-0.5 text-[10px] font-bold"
+            style={{
+              borderColor: outcomeMeta.color,
+              color: outcomeMeta.color,
+              background: outcomeMeta.tint,
+            }}
+          >
+            {outcomeMeta.label}
+          </span>
+        </div>
+      </div>
+
+      {/* Conviction / Confidence bar */}
+      <div className="mt-3">
+        <MiniBar label="Signal Conviction (0-10)" value={signal.confidence} />
+      </div>
+
+      {/* Price Target and Key Levels Matrix */}
+      <div className="mt-3">
+        <StatRow
+          size="sm"
+          items={[
+            {
+              label: "Tracked Entry",
+              value: priceUsd(signal.entryPrice),
+            },
+            {
+              label: "Entry Zone",
+              value: `${priceUsd(signal.entryLow)} - ${priceUsd(signal.entryHigh)}`,
+            },
+            {
+              label: "Stop Loss",
+              value: priceUsd(signal.stopLoss),
+              tone: "down",
+            },
+          ]}
+        />
+        <div className="mt-1.5">
+          <StatRow
+            size="sm"
+            items={[
+              {
+                label: "Target 1",
+                value: priceUsd(signal.t1),
+                tone:
+                  signal.bestTargetHit === "t1" ||
+                  signal.outcome === "t1_hit" ||
+                  signal.outcome === "t2_hit" ||
+                  signal.outcome === "t3_hit"
+                    ? "up"
+                    : undefined,
+              },
+              {
+                label: "Target 2",
+                value: priceUsd(signal.t2),
+                tone:
+                  signal.bestTargetHit === "t2" ||
+                  signal.outcome === "t2_hit" ||
+                  signal.outcome === "t3_hit"
+                    ? "up"
+                    : undefined,
+              },
+              {
+                label: "Target 3",
+                value: priceUsd(signal.t3),
+                tone:
+                  signal.bestTargetHit === "t3" || signal.outcome === "t3_hit"
+                    ? "up"
+                    : undefined,
+              },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* Timestamp & Timing */}
+      <div className="mt-3 flex items-center justify-between text-[10px] text-[var(--text-muted)]">
+        <span>Scanned {ago(signal.scanTime)} ago</span>
+        {signal.resolvedAt ? (
+          <span>Resolved {ago(signal.resolvedAt)} ago</span>
+        ) : (
+          <span className="text-[var(--brand)]">Tracking live</span>
+        )}
+      </div>
+
+      {/* Interactive Action Prompt */}
+      <div className="mt-3 flex items-center justify-between border-t border-[var(--border)]/60 pt-2.5">
+        <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--brand)] group-hover:underline">
+          View Details & Trade (Limit / Market / Spot) →
+        </span>
+        <span className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--text-muted)] uppercase">
+          Interactive
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function PerpsSignalsSkeleton() {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-none border border-[var(--border)] bg-[var(--surface)] p-4"
+        >
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <Skeleton className="mt-3 h-3 w-full" />
+          <Skeleton className="mt-3 h-10 w-full" />
+          <Skeleton className="mt-3 h-3 w-40" />
+        </div>
+      ))}
+    </div>
+  )
+}

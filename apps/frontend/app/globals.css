@@ -1,0 +1,541 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Registers --font-heading (set at runtime by next/font's `.variable` class
+   on <html>) as a Tailwind theme key so the `font-heading` utility used
+   throughout components/ui and components/ds actually generates a rule.
+   --font-sans doesn't need this: it's already a Tailwind default theme key. */
+@theme inline {
+  --font-heading: var(--font-heading);
+  --color-deep-blue: var(--deep-blue);
+  --color-arc-blue: var(--arc-blue);
+  --color-arc-blue-bright: var(--arc-blue-bright);
+  --color-arc-surface: var(--arc-surface);
+  --color-arc-cyan: var(--arc-cyan);
+  --animate-shiny-text: shiny-text 8s infinite;
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  @keyframes shiny-text {
+  0%, 90%, 100% {
+    background-position: calc(-100% - var(--shiny-width)) 0;
+    }
+  30%, 60% {
+    background-position: calc(100% + var(--shiny-width)) 0;
+    }
+  }
+  @keyframes marquee {
+  from {
+    transform: translateX(0);
+    }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+    }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+    }
+  }
+}
+
+:root {
+  /* Deep-blue foundation with luminous ice-blue accents, matching Riven. */
+  --deep-blue: #030a14;
+  --arc-surface: #0d1b2e;
+  --arc-blue: #168cff;
+  --arc-blue-bright: #a6e4ff;
+  --arc-cyan: #42c8ff;
+
+  --graphite-900: var(--deep-blue);
+  --graphite-800: #071528;
+  --graphite-700: var(--arc-surface);
+  --graphite-600: #152942;
+  --graphite-500: #23415f;
+  --graphite-400: #3a6288;
+  --ink-100: #e8ecf2;
+  --ink-300: #b3bdcc;
+  --ink-500: #8b95a8;
+  --ink-700: #5a6475;
+  --accent-green-500: #00c853;
+  --accent-green-600: #008c3a;
+  --accent-green-300: #66de98;
+  --mint-400: #2fe6a6; /* brand mark green — logo/illustration only, never UI chrome */
+  --green-500: #3fbf7f;
+  --amber-500: #f2b84b;
+  --red-500: #ef4444;
+
+  /* semantic surfaces */
+  --ground: var(--graphite-900);
+  --surface: var(--graphite-700);
+  --surface-sunken: var(--graphite-800);
+  --surface-raised: var(--graphite-600);
+  --surface-hover: var(--graphite-600);
+  --border: var(--graphite-500);
+  --border-strong: var(--graphite-400);
+
+  /* semantic text */
+  --text-primary: var(--ink-100);
+  --text-secondary: var(--ink-300);
+  --text-muted: var(--ink-500);
+  --text-disabled: var(--ink-700);
+  --text-on-brand: #ffffff;
+  --text-on-score: #08120c;
+
+  /* brand */
+  --brand: var(--arc-blue);
+  --brand-dim: #0755a5;
+  --brand-bright: var(--arc-blue-bright);
+  --brand-tint: rgba(22, 140, 255, 0.12);
+  --brand-tint-strong: rgba(22, 140, 255, 0.2);
+  --brand-mark: var(--arc-blue-bright);
+
+  /* score bands (reserved: brand teal never appears here) */
+  --score-healthy: var(--green-500);
+  --score-caution: var(--amber-500);
+  --score-risk: var(--red-500);
+  --score-healthy-tint: rgba(63, 191, 127, 0.14);
+  --score-caution-tint: rgba(242, 184, 75, 0.14);
+  --score-risk-tint: rgba(239, 68, 68, 0.14);
+  --score-unknown: var(--ink-500);
+  --score-unknown-tint: rgba(139, 149, 168, 0.12);
+
+  /* market direction */
+  --up: var(--green-500);
+  --down: var(--red-500);
+
+  /* focus */
+  --focus-ring: 0 0 0 2px var(--ground), 0 0 0 4px var(--brand-bright);
+
+  /* typography */
+  --font-display: "Archivo", "Archivo Black", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 800;
+  --text-score-hero: clamp(56px, 12vw, 88px);
+  --text-display-lg: 44px;
+  --text-display-md: 32px;
+  --text-display-sm: 24px;
+  --lh-display: 1.04;
+  --tracking-display: -0.02em;
+  --text-body-lg: 17px;
+  --text-body: 15px;
+  --text-body-sm: 13px;
+  --text-caption: 11px;
+  --lh-body: 1.5;
+  --lh-tight: 1.3;
+  --tracking-caption: 0.06em;
+  --text-num-lg: 20px;
+  --text-num: 14px;
+  --text-num-sm: 12px;
+  --font-feature-num: "tnum" 1, "zero" 1;
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --gutter: 16px;
+  --page-max: 1240px;
+  --tap-min: 44px;
+
+  /* shape — sharp by default; --radius-pill stays for genuine pill/stadium
+     shapes and circles (avatars, dots), not corner rounding */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-pill: 999px;
+  --border-width: 1px;
+  --shadow-none: none;
+  --shadow-raised:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --glow-brand:
+    0 0 0 1px rgba(22, 140, 255, 0.35), 0 0 24px rgba(22, 140, 255, 0.18);
+
+  /* motion */
+  --dur-fast: 90ms;
+  --dur: 150ms;
+  --dur-slow: 260ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-control:
+    background-color var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+
+  /* --- legacy aliases: this app's existing components (nav-shell, search,
+     token pages) were built against these names before the design system
+     was imported. Point them at the authoritative tokens above rather than
+     rewriting every call site — new code should use the tokens above
+     directly, not these aliases. */
+  --bg: var(--ground);
+  --bg2: var(--graphite-800);
+  --panel: var(--surface);
+  --panel2: var(--surface-raised);
+  --line: rgba(255, 255, 255, 0.07);
+  --line2: rgba(255, 255, 255, 0.12);
+  --txt: var(--text-primary);
+  --mut: var(--text-secondary);
+  --mut2: var(--text-muted);
+  --sol1: var(--brand-dim);
+  --sol2: var(--brand);
+  --cyan: var(--brand-bright);
+  --amber: var(--score-caution);
+  --red: var(--score-risk);
+  --green: var(--score-healthy);
+  --glow: 0 0 40px rgba(22, 140, 255, 0.35);
+  --r: 18px;
+
+  /* shadcn mappings to dark theme — aligned to the design system's tokens */
+  --background: var(--ground);
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--brand);
+  --primary-foreground: var(--text-on-brand);
+  --secondary: var(--surface-raised);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-raised);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--surface-hover);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--score-risk);
+  --input: var(--border);
+  --ring: var(--brand);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--txt);
+  overflow-x: hidden;
+  position: relative;
+}
+
+.scrollbar-hidden {
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Design-system base rules (tokens/base.css + tokens/motion.css) */
+.cdx-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: var(--font-feature-num);
+}
+
+::selection {
+  background: var(--brand-tint-strong);
+}
+
+@keyframes cdx-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes cdx-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ambient bg banner & glows */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  /* Fully opaque well within one viewport (~500-550px) rather than only at
+     100% (the full fixed-viewport height) — on short/sparse pages (empty
+     states, modals, the login screen) the wordmark was bleeding through
+     foreground content at typical viewport heights. Fixing the ramp here
+     covers every page at once instead of per-page workarounds. */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(3, 10, 20, 0.82) 0%,
+      var(--bg) 340px,
+      var(--bg) 100%
+    ),
+    radial-gradient(
+      800px 500px at 12% 0%,
+      rgba(22, 140, 255, 0.15),
+      transparent 60%
+    ),
+    radial-gradient(
+      800px 500px at 92% 5%,
+      rgba(66, 200, 255, 0.12),
+      transparent 60%
+    ),
+    radial-gradient(
+      600px 420px at 50% -120px,
+      rgba(166, 228, 255, 0.10),
+      transparent 70%
+    );
+  pointer-events: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.25;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(
+    1200px 800px at 50% 0%,
+    #000 30%,
+    transparent 75%
+  );
+}
+
+.grad-txt {
+  background: linear-gradient(
+    100deg,
+    var(--sol2),
+    var(--cyan) 40%,
+    var(--sol1)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mut);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sol2);
+  box-shadow: 0 0 10px var(--sol2);
+}
+
+.sc {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 15px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.sc.hi {
+  background: conic-gradient(var(--green) 78%, rgba(255, 255, 255, 0.08) 0);
+  color: var(--txt);
+}
+
+.sc.md {
+  background: conic-gradient(var(--amber) 55%, rgba(255, 255, 255, 0.08) 0);
+}
+
+.sc.lo {
+  background: conic-gradient(var(--red) 24%, rgba(255, 255, 255, 0.08) 0);
+}
+
+.sc.none {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--mut2);
+}
+
+.sc span {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--panel);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+}
+
+/* Custom terminal classes */
+.trow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.trow:hover {
+  border-color: var(--line2);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.trow.active {
+  border-color: var(--sol2);
+  background: linear-gradient(90deg, rgba(22, 140, 255, 0.12), transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Riven — black & blue terminal. Flat surfaces, no glows; colour is reserved
+   for meaning (score bands, price direction) and the brand blue.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --rv-bg: #000000;
+  --rv-radius: 14px;
+  --rv-radius-sm: 10px;
+  --rv-card: #05080e;
+  --rv-card-solid: #05080e;
+  --rv-card-hover: #0a1220;
+  --rv-row-hover: rgba(22, 140, 255, 0.06);
+  --rv-stroke: rgba(56, 120, 220, 0.16);
+  --rv-stroke-strong: rgba(80, 150, 255, 0.32);
+  --rv-ice: #9fd8ff;
+  --rv-blue: #1e7bff;
+  --rv-blue-2: #0b4ea8;
+  --rv-cyan: #3fb6ff;
+  --rv-ink: #e6eefb;
+  --rv-ink-2: #93a6c2;
+  --rv-ink-3: #5c6f8c;
+  --rv-healthy: #22c55e;
+  --rv-caution: #eab308;
+  --rv-risk: #ef4444;
+  --rv-unscored: #64748b;
+  --rv-up: #22c55e;
+  --rv-down: #ef4444;
+
+  /* Shared design-system tokens (used by the ported perps terminal and shadcn
+     primitives) remapped onto the black & blue palette. */
+  --ground: #000000;
+  --bg: #000000;
+  --surface: #05080e;
+  --surface-sunken: #020409;
+  --surface-raised: #0a1220;
+  --surface-hover: #0a1220;
+  --border: rgba(56, 120, 220, 0.18);
+  --border-strong: rgba(80, 150, 255, 0.32);
+  --brand: #1e7bff;
+  --brand-bright: #9fd8ff;
+  --text-primary: #e6eefb;
+  --text-secondary: #93a6c2;
+  --text-muted: #5c6f8c;
+  --up: #22c55e;
+  --down: #ef4444;
+}
+
+body {
+  background: var(--rv-bg) !important;
+}
+body::before {
+  background:
+    radial-gradient(900px 420px at 50% -160px, rgba(30, 123, 255, 0.14), transparent 70%),
+    var(--rv-bg) !important;
+}
+body::after {
+  opacity: 0.12 !important;
+}
+
+.rv-card {
+  background: var(--rv-card);
+  border: 1px solid var(--rv-stroke);
+  border-radius: var(--rv-radius);
+}
+
+.rv-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.rv-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+.rv-body {
+  font-family: var(--font-body);
+}
+
+.rv-brand-text {
+  color: var(--rv-ink);
+}
+.rv-brand-text b {
+  color: var(--rv-blue);
+  font-weight: inherit;
+}
+
+.rv-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--rv-cyan);
+  animation: rv-blink 1.6s steps(2, start) infinite;
+}
+
+@keyframes rv-blink {
+  to { opacity: 0.25; }
+}
+
+.rv-table th {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rv-ink-3);
+  white-space: nowrap;
+}
+
+.rv-input {
+  background: #000;
+  border: 1px solid var(--rv-stroke);
+  border-radius: 10px;
+  color: var(--rv-ink);
+  font-family: var(--font-mono);
+}
+.rv-input:focus {
+  outline: none;
+  border-color: var(--rv-blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-live-dot { animation: none; }
+}
