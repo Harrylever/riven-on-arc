@@ -1,3 +1,5 @@
+> **Superseded for Riven (Arc):** read the "current state" section at the top of `AGENTS.md` first. The stack is bun + Hono (not pnpm/NestJS), the chain is Arc, and the owner has allowed non-custodial buy/sell and paper perps behind flags. The rules below are the original Solana-era ones.
+
 # ClawDex agent rules
 
 ## Source of truth

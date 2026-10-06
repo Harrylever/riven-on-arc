@@ -86,3 +86,13 @@ export const LAUNCHPAD_SOURCES: LaunchpadSource[] = [
     venue: "BONDING_CURVE",
   },
 ];
+
+/**
+ * Creator-supplied strings (name, symbol, URI, links) are untrusted: Postgres
+ * rejects NUL bytes, so one `\0` in a token name would stall the indexer for
+ * every later launch. Strip control characters and cap the length.
+ */
+export function cleanText(s: string | null | undefined, max = 200): string {
+  // eslint-disable-next-line no-control-regex
+  return (s ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max);
+}

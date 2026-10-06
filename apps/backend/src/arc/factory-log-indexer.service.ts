@@ -15,6 +15,7 @@ import {
   LAUNCHPAD_SOURCES,
   USDC,
   type LaunchpadSource,
+  cleanText,
 } from "./config";
 
 const DEFAULT_CHUNK_BLOCKS = 9_999n; // public RPC rejects eth_getLogs ranges of 10k+
@@ -127,11 +128,11 @@ export function toLaunch(log: DecodedLaunchLog): Launch | null {
   return {
     token: token.toLowerCase(),
     creator: creator.toLowerCase(),
-    name: name ?? "",
-    symbol: symbol ?? "",
+    name: cleanText(name, 80),
+    symbol: cleanText(symbol, 32),
     poolRef: poolRef.toLowerCase(),
-    uri: uri ? uri : null,
-    links: [link1, link2, link3].filter((l): l is string => !!l && l.trim() !== ""),
+    uri: cleanText(uri, 500) || null,
+    links: [link1, link2, link3].map((l) => cleanText(l, 300)).filter((l) => l !== ""),
     blockNumber: log.blockNumber,
     transactionHash: log.transactionHash,
     logIndex: log.logIndex,

@@ -1,4 +1,50 @@
-# ClawDex — Agent & Developer Guide
+# Riven (Arc) — Agent & Developer Guide
+
+## ⚡ Read this first: current state (October 2026). This section overrides everything below it.
+
+This repo is **Riven**: ClawDex ported from Solana to **Arc mainnet** (chain 5042, USDC gas) for **Arc Microgrants (DoraHacks)**. Everything below the line "Legacy ClawDex (Solana) guide" is the original Solana-era guide. Its rules still apply only where this section doesn't override them.
+
+**Stack (actual):**
+- **Package manager:** bun workspaces (`bun.lock`). No pnpm and no Turborepo.
+- **Backend:** Bun + **Hono** (`apps/backend/src/app.ts`, jobs via croner). No NestJS.
+- **Frontend:** Next.js 16 (`params`/`searchParams` are Promises). **Prisma 7** with `@prisma/adapter-pg`, unchanged.
+- **Chain mode:** Arc by default in both apps. Legacy Solana jobs run only with `CHAIN_MODE=solana`.
+
+**Commands:**
+- Tests: `bun run --filter @clawdex/shared test`, `bun run --filter backend test`, `bun run --filter frontend test`.
+- Types: `bunx tsc --noEmit -p apps/<app>`.
+- Schema: `DATABASE_URL=... bun run --filter @clawdex/shared build` (prisma generate + tsc). Rebuild after any change in `packages/shared`, because the backend reads its `dist`.
+
+**Scoring:**
+- The single source of truth is `packages/shared/src/score/arc.ts` (methodology `arc-v5`). The 1–10 score is built from 5 sub-scores, plus caps, flag codes and `FAKE_FLAG_CODES`.
+- Fake-detection helpers (`isWash`, `impersonates`) are exported from shared. **Never re-implement them in the frontend.**
+- Flags from runs scored under an older methodology are not trusted until the token is rescored (`apps/frontend/lib/arc-data.ts`, `scoredReasons`).
+- Pool USDC comes from on-chain `StateView` liquidity × price (`usdcInRange`). It is never derived from summed swaps.
+- "LP removed" is judged on the launch position only (`launchLiquidityPulled`).
+
+**Owner decisions (2026-10-06), superseding "monitoring only" below:**
+- **Non-custodial buy/sell is allowed** behind `NEXT_PUBLIC_TRADING_ENABLED` (default on). The user signs every tx in their own wallet; Riven never holds keys, signs or broadcasts.
+  - Approvals are exact-amount and short-lived.
+  - `assertSafeTx` in `hooks/use-arc-wallet.ts` refuses unknown contract calls.
+  - `apps/backend/src/trade/` (autonomous TradeService) stays **frozen**.
+- **Perps is a paper-trading terminal**: Hyperliquid prices plus sakz-bot signals, behind `NEXT_PUBLIC_PERPS_ENABLED` (default on). Nothing is sent to an exchange.
+- **Flag wording is evidence, not accusation**: "flagged", "liquidity pulled", "creator sold out". Never "scam" or "fake".
+
+**Data rules:**
+- Creator-supplied strings must go through `cleanText` before storage (NUL bytes stall the indexer).
+- Local Postgres must be **UTF-8**.
+- A failed read must render an error state, never an empty "all clear".
+
+**Removed in the port:**
+- Solana pages (`/terminal`, `/kol`, `/landing`, `/login`), which now redirect home.
+- Legacy APIs (`/api/leaderboard`, `/api/token/*`, `/api/feed`, …).
+- `lib/deployer.ts` (fabricated wallet reputations).
+
+The live APIs are `/api/arc/*`, `/api/perp-signals` and `/api/perps/*`. Design tokens are documented in `docs/design-system.md`, and audit reports are in `docs/audit/`.
+
+---
+
+# Legacy ClawDex (Solana) guide
 
 One file for both: AI coding agents working in this repo (Claude Code, Cursor, etc. — many tools read `AGENTS.md` by convention) and the human developer reading it before writing code. This file is self-contained — no external doc access required. It supersedes any earlier version of this file.
 

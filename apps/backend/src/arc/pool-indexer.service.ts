@@ -15,6 +15,7 @@ import {
   POOL_MANAGER,
   POOL_MANAGER_DEPLOY_BLOCK,
   USDC,
+  cleanText,
 } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
 
@@ -226,8 +227,8 @@ export class PoolIndexerService {
       if (d?.status !== "success" || t?.status !== "success") return;
       const decimals = Number(d.result);
       out.set(a.toLowerCase(), {
-        name: n?.status === "success" ? String(n.result).slice(0, 80) : "",
-        symbol: s?.status === "success" ? String(s.result).slice(0, 32) : "?",
+        name: n?.status === "success" ? cleanText(String(n.result), 80) : "",
+        symbol: s?.status === "success" ? cleanText(String(s.result), 32) || "?" : "?",
         decimals,
         supply: formatUnits(t.result as bigint, decimals),
       });

@@ -86,3 +86,13 @@ describe("launchLiquidityPulled", () => {
     expect(launchLiquidityPulled([ev(null, "0xdev", 1e18), ev(null, "0xlp", 1e16), ev(null, "0xlp", -1e16)], null)).toBe(false);
   });
 });
+
+describe("cleanText", () => {
+  test("strips NUL and control characters that Postgres would reject", async () => {
+    const { cleanText } = await import("./config");
+    expect(cleanText("RUG\u0000COIN\n")).toBe("RUGCOIN");
+    expect(cleanText("旺旺 ū")).toBe("旺旺 ū");
+    expect(cleanText(null)).toBe("");
+    expect(cleanText("x".repeat(500), 32)).toHaveLength(32);
+  });
+});

@@ -1,52 +1,95 @@
-# ClawDex for Arc
+# Riven: every token on Arc, rug-checked
 
-ClawDex is being ported to Arc mainnet (chain ID `5042`) as a read-only launch-intelligence terminal. The goal is to score launches on Arc using deterministic on-chain signals, surface them in a terminal-like app, and provide a plain-English explanation for each launch without selling the score or trading on behalf of users.
+Riven indexes every token launched on **Arc mainnet** (Circle's L1, chain `5042`, with USDC as gas) and gives each one a **1–10 safety score** built from on-chain facts anyone can re-check:
 
-## Arc port status
+- **Contract:** mint, upgrade and pause powers, and fees.
+- **Liquidity:** who controls the launch LP, and the USDC actually in the pool.
+- **Holders:** concentration, snipers, and creator-funded wallets.
+- **Creator:** track record across every earlier launch.
+- **Activity:** real sells, versus volume trading in circles.
 
-This repo is still in the migration phase from the older Solana assumptions. The port work follows the Arc build plan in `CLAWDEX_ARC_BUILD_PLAN.md` and the repo-level `docs/PORT_NOTES.md` summary.
+Tokens caught faking it are flagged with the evidence, never just labelled.
+
+Built for **Arc Microgrants (DoraHacks)**.
+
+## What it does
+
+| Surface | What you get |
+|---|---|
+| **Screener** (`/`) | Every Arc token with a USDC pool on Uniswap v4: trending, new, gainers, market cap, and more. **Listed / Caught / Everything** views. *Caught* shows each flagged token with the on-chain reason. |
+| **Token page** | Score with a verdict word, five sub-scores, every red flag in plain English, the creator's past launches (ATH multiple, alive / dead / rugged), top holders, live trades, copycat-ticker warning, and links to check it all on the explorer. |
+| **Rug radar** (`/alerts`) | Alerts when launch liquidity is pulled, a creator sells out, a whale sells 5%+ of supply, or a score collapses. Watchlisted tokens notify in the browser. |
+| **Ask Riven** (`/agent`) | Answers like "is $TICKER safe?" or "what rugged today?", grounded in Riven's own data and citing sources. Rule-based by default; uses Claude when `ANTHROPIC_API_KEY` is set. |
+| **Portfolio** | Connect any injected wallet (Riven never sees keys) to see your Arc holdings scored. Optional non-custodial buy/sell through Uniswap v4: you sign every transaction, approvals are exact-amount and short-lived. |
+| **Perps** (`/perps`) | Paper-trading terminal on Hyperliquid prices with a TradingView chart, sakz-bot signals, one-click TP1–3 / SL setup and price alerts. Paper money only. |
+
+**What the data says (local index, Oct 2026):** most Arc launches are seeded with the token alone. A typical flagged pool shows about $2.5k of "liquidity" on DexScreener but holds **under $2 of USDC**, while tens of thousands of dollars of volume pass through it. Riven measures the USDC on-chain (`StateView` liquidity × price) and shows it.
+
+## How the score works
+
+Five sub-scores make up 100 points, which are published on a 1–10 scale:
+
+| Sub-score | Points |
+|---|---|
+| Contract | 25 |
+| Liquidity | 20 |
+| Holders | 25 |
+| Creator | 15 |
+| Activity | 15 |
+
+Hard caps stop a token looking healthy while someone can still take the money. "Healthy" also has to be earned: the token must be at least 6 hours old, with 25+ real holders, $1k+ USDC in the pool, and real sells.
+
+The full methodology, including what changed in **arc-v5** after an audit found false positives, is at `/methodology` and in [`packages/shared/src/score/arc.ts`](packages/shared/src/score/arc.ts).
 
 ## Architecture
 
 ```
 apps/
-  frontend/   Next.js — UI and public APIs for token search, feed and score display
-  backend/    worker/indexer — launch detection, scoring runs and monitoring tasks
+  frontend/   Next.js 16: UI and read APIs (/api/arc/*). Reads Postgres; builds unsigned swap txs.
+  backend/    Bun + Hono worker: Arc indexers (Argus/Tolly factories, Uniswap v4 pools, swaps,
+              transfers, LP events), DexScreener market sync, holder backfill, scoring, alerts.
 packages/
-  shared/     Prisma schema, chain-agnostic types and shared scoring utilities
-config/       Arc chain config and scoring thresholds for the port
+  shared/     Prisma 7 schema and client, and the arc-v5 scorer (single source of truth).
+docs/
+  audit/      Review-council and LLM-council reports from the October audit.
+  design-system.md
 ```
 
-## Arc config
+The data flow is Arc RPC → backend indexers → Postgres → scorer → `score_runs` and `alerts` → frontend. DexScreener is display-only: price, volume and market cap in the screener.
 
-Use the chain constants in `config/arc.ts` and tuning values in `config/scoring.ts` as the starting point for Arc work.
-
-## Current Arc backend slice
-
-- `GET /arc/health` reports the connected RPC's chain ID and current block.
-- `GET /arc/tokens/:address/inspect` reads ERC-20 metadata, the EIP-1967 implementation slot, `owner()` when available, and a limited bytecode-selector heuristic. It is investigative output, not a score and not proof that a contract is safe.
-- `GET /api/cron/index` is protected by `Authorization: Bearer $CRON_SECRET`. It scans bounded Memespad factory block ranges, persists raw logs idempotently and advances a database cursor only after persistence succeeds. The backend also schedules this scan every five minutes.
-- The Memespad factory event ABI could not be verified from available sources during this port, so raw logs are intentionally **not decoded as launches** and no token/score is fabricated from them. Arc log/cursor schema changes need to be migrated before running the index tick.
-- Set `CHAIN_MODE=arc` on the backend to run only the Arc indexer; otherwise the legacy Solana worker jobs remain enabled during the transition.
-
-## Setup
+## Run it locally
 
 ```bash
 bun install
-cp apps/frontend/.env.example apps/frontend/.env.local
+cp apps/frontend/.env.example apps/frontend/.env.local   # set DATABASE_URL (UTF-8 Postgres!)
 cp apps/backend/.env.example apps/backend/.env
-bun run --filter @clawdex/shared build
-bun run dev
+DATABASE_URL=... bun run --filter @clawdex/shared db:migrate:deploy
+bun run build:shared
+bun run dev:backend    # CHAIN_MODE defaults to Arc
+bun run dev:frontend
 ```
 
-## Important guardrails
+Create the database as **UTF-8**. Token names are arbitrary Unicode, and a WIN1252/LATIN1 database stalls the indexer on the first non-Latin name.
 
-- Do not implement trade execution or custody flows; this repo remains a monitoring and alerting product.
-- Keep the score grounded in on-chain facts that anyone can re-check.
-- Never hard-code unknown Arc verifier values without an explicit `TODO(verify)` comment and a fresh runtime check against the Arc RPC or an explorer source.
+## Tests
 
-## Product direction
+```bash
+bun run --filter @clawdex/shared test   # scorer, incl. arc-v5 regressions
+bun run --filter backend test           # indexers, pool USDC, LP-removal, alerts, jobs
+bun run --filter frontend test          # swap encoder, paper-perp accounting, screener params
+```
 
-- Terminal pages show Arc launch data and score bands.
-- Search accepts EVM addresses (`0x...`) instead of Solana base58 keys.
-- Score methodology stays deterministic and additive, with config values allowed to change as the Arc launchpads are verified.
+## Feature flags (frontend)
+
+| Variable | Default | Effect when `"false"` |
+|---|---|---|
+| `NEXT_PUBLIC_TRADING_ENABLED` | on | Read-only Riven: Buy/Sell/Convert hidden; `/api/arc/trade` returns 404 |
+| `NEXT_PUBLIC_PERPS_ENABLED` | on | `/perps` returns 404 and the nav link is hidden |
+| `NEXT_PUBLIC_DISPUTE_URL` | (none) | Where "Dispute a score" links; defaults to `/methodology#disputes` |
+
+## Guardrails
+
+- Riven never holds keys or funds, and never signs or broadcasts. The wallet refuses any contract call other than the router, Permit2, or ERC-20 approve/transfer.
+- The score is never sold: no paid boosts or badges. Flags use evidence wording ("liquidity pulled", "creator sold out"), never "scam".
+- Unscored beats wrong: a token gets no number until its contract, liquidity and holders are all measured.
+- Not financial advice. DYOR.

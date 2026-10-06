@@ -46,178 +46,154 @@
 }
 
 :root {
-  /* Deep-blue foundation with luminous ice-blue accents, matching Riven. */
-  --deep-blue: #030a14;
-  --arc-surface: #0d1b2e;
-  --arc-blue: #168cff;
-  --arc-blue-bright: #a6e4ff;
-  --arc-cyan: #42c8ff;
+  /* ═══ Riven design tokens — one system, three tiers ═══════════════════════
+     1. Primitives: raw values. Never used directly by components.
+     2. Semantic (--rv-*): what a colour MEANS. Components use these.
+     3. Aliases: older names (shadcn, the ported perps terminal) pointed at the
+        semantic tokens, so every surface renders the same palette.
+     Black & blue terminal: flat surfaces, no glows; colour is reserved for
+     meaning (score bands, price direction) and the brand blue. */
 
-  --graphite-900: var(--deep-blue);
-  --graphite-800: #071528;
-  --graphite-700: var(--arc-surface);
-  --graphite-600: #152942;
-  --graphite-500: #23415f;
-  --graphite-400: #3a6288;
-  --ink-100: #e8ecf2;
-  --ink-300: #b3bdcc;
-  --ink-500: #8b95a8;
-  --ink-700: #5a6475;
-  --accent-green-500: #00c853;
-  --accent-green-600: #008c3a;
-  --accent-green-300: #66de98;
-  --mint-400: #2fe6a6; /* brand mark green — logo/illustration only, never UI chrome */
-  --green-500: #3fbf7f;
-  --amber-500: #f2b84b;
+  /* 1 · primitives */
+  --black: #000000;
+  --navy-950: #020409;
+  --navy-900: #05080e;
+  --navy-800: #0a1220;
+  --navy-700: #101c30;
+  --blue-900: #0b4ea8;
+  --blue-500: #1e7bff;
+  --blue-400: #3fb6ff;
+  --blue-200: #9fd8ff;
+  --ink-50: #e6eefb;
+  --ink-300: #93a6c2;
+  --ink-500: #5c6f8c;
+  --slate-500: #64748b;
+  --green-500: #22c55e;
+  --amber-500: #eab308;
   --red-500: #ef4444;
 
-  /* semantic surfaces */
-  --ground: var(--graphite-900);
-  --surface: var(--graphite-700);
-  --surface-sunken: var(--graphite-800);
-  --surface-raised: var(--graphite-600);
-  --surface-hover: var(--graphite-600);
-  --border: var(--graphite-500);
-  --border-strong: var(--graphite-400);
+  /* 2 · semantic */
+  --rv-bg: var(--black);
+  --rv-card: var(--navy-900);
+  --rv-card-solid: var(--navy-900);
+  --rv-card-hover: var(--navy-800);
+  --rv-sunken: var(--navy-950);
+  --rv-row-hover: rgba(30, 123, 255, 0.06);
+  --rv-stroke: rgba(56, 120, 220, 0.16);
+  --rv-stroke-strong: rgba(80, 150, 255, 0.32);
+  --rv-blue: var(--blue-500);
+  --rv-blue-2: var(--blue-900);
+  --rv-cyan: var(--blue-400);
+  --rv-ice: var(--blue-200);
+  --rv-ink: var(--ink-50);
+  --rv-ink-2: var(--ink-300);
+  --rv-ink-3: var(--ink-500);
+  --rv-healthy: var(--green-500);
+  --rv-caution: var(--amber-500);
+  --rv-risk: var(--red-500);
+  --rv-unscored: var(--slate-500);
+  --rv-up: var(--green-500);
+  --rv-down: var(--red-500);
+  --rv-radius: 14px;
+  --rv-radius-sm: 10px;
 
-  /* semantic text */
-  --text-primary: var(--ink-100);
-  --text-secondary: var(--ink-300);
-  --text-muted: var(--ink-500);
-  --text-disabled: var(--ink-700);
+  /* 3 · aliases (older names → semantic) */
+  --ground: var(--rv-bg);
+  --bg: var(--rv-bg);
+  --bg2: var(--rv-sunken);
+  --surface: var(--rv-card);
+  --surface-sunken: var(--rv-sunken);
+  --surface-raised: var(--rv-card-hover);
+  --surface-hover: var(--rv-card-hover);
+  --panel: var(--rv-card);
+  --panel2: var(--rv-card-hover);
+  --border: var(--rv-stroke);
+  --border-strong: var(--rv-stroke-strong);
+  --line: var(--rv-stroke);
+  --line2: var(--rv-stroke-strong);
+  --text-primary: var(--rv-ink);
+  --text-secondary: var(--rv-ink-2);
+  --text-muted: var(--rv-ink-3);
+  --text-disabled: var(--ink-500);
   --text-on-brand: #ffffff;
   --text-on-score: #08120c;
+  --txt: var(--rv-ink);
+  --mut: var(--rv-ink-2);
+  --mut2: var(--rv-ink-3);
+  --brand: var(--rv-blue);
+  --brand-dim: var(--rv-blue-2);
+  --brand-bright: var(--rv-ice);
+  --brand-tint: rgba(30, 123, 255, 0.12);
+  --brand-tint-strong: rgba(30, 123, 255, 0.2);
+  --brand-mark: var(--rv-ice);
+  --cyan: var(--rv-ice);
+  --sol1: var(--rv-blue-2);
+  --sol2: var(--rv-blue);
+  /* Tailwind theme colours (see @theme above) */
+  --deep-blue: var(--rv-bg);
+  --arc-surface: var(--rv-card-hover);
+  --arc-blue: var(--rv-blue);
+  --arc-blue-bright: var(--rv-ice);
+  --arc-cyan: var(--rv-cyan);
+  --score-healthy: var(--rv-healthy);
+  --score-caution: var(--rv-caution);
+  --score-risk: var(--rv-risk);
+  --score-healthy-tint: rgba(34, 197, 94, 0.12);
+  --score-caution-tint: rgba(234, 179, 8, 0.12);
+  --score-risk-tint: rgba(239, 68, 68, 0.12);
+  --score-unknown: var(--rv-unscored);
+  --score-unknown-tint: rgba(100, 116, 139, 0.12);
+  --green: var(--rv-healthy);
+  --amber: var(--rv-caution);
+  --red: var(--rv-risk);
+  --up: var(--rv-up);
+  --down: var(--rv-down);
 
-  /* brand */
-  --brand: var(--arc-blue);
-  --brand-dim: #0755a5;
-  --brand-bright: var(--arc-blue-bright);
-  --brand-tint: rgba(22, 140, 255, 0.12);
-  --brand-tint-strong: rgba(22, 140, 255, 0.2);
-  --brand-mark: var(--arc-blue-bright);
-
-  /* score bands (reserved: brand teal never appears here) */
-  --score-healthy: var(--green-500);
-  --score-caution: var(--amber-500);
-  --score-risk: var(--red-500);
-  --score-healthy-tint: rgba(63, 191, 127, 0.14);
-  --score-caution-tint: rgba(242, 184, 75, 0.14);
-  --score-risk-tint: rgba(239, 68, 68, 0.14);
-  --score-unknown: var(--ink-500);
-  --score-unknown-tint: rgba(139, 149, 168, 0.12);
-
-  /* market direction */
-  --up: var(--green-500);
-  --down: var(--red-500);
-
-  /* focus */
-  --focus-ring: 0 0 0 2px var(--ground), 0 0 0 4px var(--brand-bright);
+  --focus-ring: 0 0 0 2px var(--rv-bg), 0 0 0 4px var(--rv-ice);
 
   /* typography */
   --font-display: "Archivo", "Archivo Black", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
-  --weight-regular: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
-  --weight-black: 800;
-  --text-score-hero: clamp(56px, 12vw, 88px);
-  --text-display-lg: 44px;
-  --text-display-md: 32px;
-  --text-display-sm: 24px;
-  --lh-display: 1.04;
-  --tracking-display: -0.02em;
-  --text-body-lg: 17px;
-  --text-body: 15px;
-  --text-body-sm: 13px;
-  --text-caption: 11px;
-  --lh-body: 1.5;
-  --lh-tight: 1.3;
-  --tracking-caption: 0.06em;
-  --text-num-lg: 20px;
-  --text-num: 14px;
-  --text-num-sm: 12px;
   --font-feature-num: "tnum" 1, "zero" 1;
 
-  /* spacing */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
-  --space-16: 64px;
+  /* spacing & shape */
   --gutter: 16px;
   --page-max: 1240px;
   --tap-min: 44px;
-
-  /* shape — sharp by default; --radius-pill stays for genuine pill/stadium
-     shapes and circles (avatars, dots), not corner rounding */
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
   --radius-pill: 999px;
-  --border-width: 1px;
-  --shadow-none: none;
-  --shadow-raised:
-    0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.55);
-  --glow-brand:
-    0 0 0 1px rgba(22, 140, 255, 0.35), 0 0 24px rgba(22, 140, 255, 0.18);
 
   /* motion */
   --dur-fast: 90ms;
   --dur: 150ms;
   --dur-slow: 260ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --transition-control:
     background-color var(--dur) var(--ease-out),
     border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
 
-  /* --- legacy aliases: this app's existing components (nav-shell, search,
-     token pages) were built against these names before the design system
-     was imported. Point them at the authoritative tokens above rather than
-     rewriting every call site — new code should use the tokens above
-     directly, not these aliases. */
-  --bg: var(--ground);
-  --bg2: var(--graphite-800);
-  --panel: var(--surface);
-  --panel2: var(--surface-raised);
-  --line: rgba(255, 255, 255, 0.07);
-  --line2: rgba(255, 255, 255, 0.12);
-  --txt: var(--text-primary);
-  --mut: var(--text-secondary);
-  --mut2: var(--text-muted);
-  --sol1: var(--brand-dim);
-  --sol2: var(--brand);
-  --cyan: var(--brand-bright);
-  --amber: var(--score-caution);
-  --red: var(--score-risk);
-  --green: var(--score-healthy);
-  --glow: 0 0 40px rgba(22, 140, 255, 0.35);
-  --r: 18px;
-
-  /* shadcn mappings to dark theme — aligned to the design system's tokens */
-  --background: var(--ground);
-  --foreground: var(--text-primary);
-  --card: var(--surface);
-  --card-foreground: var(--text-primary);
-  --popover: var(--surface-raised);
-  --popover-foreground: var(--text-primary);
-  --primary: var(--brand);
-  --primary-foreground: var(--text-on-brand);
-  --secondary: var(--surface-raised);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--surface-raised);
-  --muted-foreground: var(--text-muted);
-  --accent: var(--surface-hover);
-  --accent-foreground: var(--text-primary);
-  --destructive: var(--score-risk);
-  --input: var(--border);
-  --ring: var(--brand);
+  /* shadcn (components/ui) */
+  --background: var(--rv-bg);
+  --foreground: var(--rv-ink);
+  --card: var(--rv-card);
+  --card-foreground: var(--rv-ink);
+  --popover: var(--rv-card-hover);
+  --popover-foreground: var(--rv-ink);
+  --primary: var(--rv-blue);
+  --primary-foreground: #ffffff;
+  --secondary: var(--rv-card-hover);
+  --secondary-foreground: var(--rv-ink);
+  --muted: var(--rv-card-hover);
+  --muted-foreground: var(--rv-ink-3);
+  --accent: var(--rv-card-hover);
+  --accent-foreground: var(--rv-ink);
+  --destructive: var(--rv-risk);
+  --input: var(--rv-stroke);
+  --ring: var(--rv-blue);
 }
 
 body {
@@ -418,48 +394,6 @@ body::after {
    Riven — black & blue terminal. Flat surfaces, no glows; colour is reserved
    for meaning (score bands, price direction) and the brand blue.
    ───────────────────────────────────────────────────────────────────────── */
-:root {
-  --rv-bg: #000000;
-  --rv-radius: 14px;
-  --rv-radius-sm: 10px;
-  --rv-card: #05080e;
-  --rv-card-solid: #05080e;
-  --rv-card-hover: #0a1220;
-  --rv-row-hover: rgba(22, 140, 255, 0.06);
-  --rv-stroke: rgba(56, 120, 220, 0.16);
-  --rv-stroke-strong: rgba(80, 150, 255, 0.32);
-  --rv-ice: #9fd8ff;
-  --rv-blue: #1e7bff;
-  --rv-blue-2: #0b4ea8;
-  --rv-cyan: #3fb6ff;
-  --rv-ink: #e6eefb;
-  --rv-ink-2: #93a6c2;
-  --rv-ink-3: #5c6f8c;
-  --rv-healthy: #22c55e;
-  --rv-caution: #eab308;
-  --rv-risk: #ef4444;
-  --rv-unscored: #64748b;
-  --rv-up: #22c55e;
-  --rv-down: #ef4444;
-
-  /* Shared design-system tokens (used by the ported perps terminal and shadcn
-     primitives) remapped onto the black & blue palette. */
-  --ground: #000000;
-  --bg: #000000;
-  --surface: #05080e;
-  --surface-sunken: #020409;
-  --surface-raised: #0a1220;
-  --surface-hover: #0a1220;
-  --border: rgba(56, 120, 220, 0.18);
-  --border-strong: rgba(80, 150, 255, 0.32);
-  --brand: #1e7bff;
-  --brand-bright: #9fd8ff;
-  --text-primary: #e6eefb;
-  --text-secondary: #93a6c2;
-  --text-muted: #5c6f8c;
-  --up: #22c55e;
-  --down: #ef4444;
-}
 
 body {
   background: var(--rv-bg) !important;
