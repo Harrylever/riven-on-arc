@@ -100,7 +100,7 @@ export function PerpTerminal({
             className="rv-body flex-1 py-2.5 text-[13px] font-bold tracking-wide uppercase transition-colors sm:flex-none sm:px-8"
             style={{
               color: view === v ? "#fff" : "var(--text-muted)",
-              background: view === v ? "rgba(30,123,255,0.16)" : "transparent",
+              background: view === v ? "rgba(124, 196, 232, 0.16)" : "transparent",
               boxShadow: view === v ? "inset 0 -2px 0 var(--brand)" : "none",
             }}
           >

@@ -120,7 +120,7 @@ export function PerpWatch({
               style={{
                 background:
                   coin === market.symbol
-                    ? "rgba(30,123,255,0.16)"
+                    ? "rgba(124, 196, 232, 0.16)"
                     : "transparent",
               }}
             >

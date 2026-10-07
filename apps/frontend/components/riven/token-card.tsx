@@ -9,7 +9,7 @@ import { CopyBadge } from "./copycat"
 /** One token, one glance: who it is, what it's worth, and whether it's a setup. */
 export function TokenCard({ t, now }: { t: TokenSummary; now: number }) {
   const headline = t.fake
-    ? `Hidden as fake: ${t.fakeReasons[0]}`
+    ? `Flagged: ${t.fakeReasons[0]}`
     : (t.dangers[0] ?? t.verdict.replace(/^[^:]+:\s*/, ""))
   return (
     <div className="rv-card flex items-center pr-1 transition-colors hover:border-[var(--rv-stroke-strong)]">

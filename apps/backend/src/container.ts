@@ -15,6 +15,7 @@ import { FactoryLogIndexerService } from "./arc/factory-log-indexer.service";
 import { ArcActivityIndexerService } from "./arc/activity-indexer.service";
 import { ArcScoringService } from "./arc/scoring.service";
 import { ArcPipelineService } from "./arc/pipeline.service";
+import { CalloutsService } from "./arc/callouts.service";
 import { PoolIndexerService } from "./arc/pool-indexer.service";
 import { MarketSyncService } from "./arc/market-sync.service";
 import { HolderBackfillService } from "./arc/holder-backfill.service";
@@ -37,7 +38,9 @@ export function createServices() {
   const arcActivity = new ArcActivityIndexerService();
   const arcScoring = new ArcScoringService();
 
+  const callouts = new CalloutsService();
   return {
+    callouts,
     authorityChecker,
     holderConcentration,
     burnIngest,
@@ -61,6 +64,7 @@ export function createServices() {
       new MarketSyncService(),
       new HolderBackfillService(),
       arcScoring,
+      callouts,
     ),
   };
 }

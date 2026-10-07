@@ -114,7 +114,7 @@ export function PerpTradePanel({
                 className="flex items-center justify-between border px-2 py-1.5"
                 style={{
                   borderColor: on ? "var(--brand)" : "var(--border)",
-                  background: on ? "rgba(30,123,255,0.12)" : "transparent",
+                  background: on ? "rgba(124, 196, 232, 0.12)" : "transparent",
                 }}
               >
                 <span
@@ -372,7 +372,7 @@ function ConfirmSetup({
         onCancel()
       }}
       aria-labelledby="confirm-setup-title"
-      className="m-auto w-[min(440px,calc(100vw-24px))] border border-[var(--brand)] bg-[#05080e] p-0 text-[var(--text-primary)] backdrop:bg-black/75"
+      className="m-auto w-[min(440px,calc(100vw-24px))] border border-[var(--brand)] bg-[var(--rv-card)] p-0 text-[var(--text-primary)] backdrop:bg-black/75"
     >
       <div className="space-y-3 p-4 text-xs">
         <div>

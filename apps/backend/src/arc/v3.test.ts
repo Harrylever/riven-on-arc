@@ -96,3 +96,21 @@ describe("cleanText", () => {
     expect(cleanText("x".repeat(500), 32)).toHaveLength(32);
   });
 });
+
+describe("X callouts", () => {
+  test("extracts contract addresses and DexScreener Arc links", async () => {
+    const { extractRefs } = await import("./callouts.service");
+    const r = extractRefs("aping $ARCIA 0x18E691d9e0604682568d25941a9b7d55ff9cd77b lfg", [
+      "https://dexscreener.com/arc/0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    ]);
+    expect(r.addresses).toContain("0x18e691d9e0604682568d25941a9b7d55ff9cd77b");
+    expect(r.pairs).toEqual(["0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"]);
+  });
+  test("splits long KOL lists into queries under X's length limit", async () => {
+    const { buildQueries } = await import("./callouts.service");
+    const qs = buildQueries(Array.from({ length: 60 }, (_, i) => `kol_handle_${i}`));
+    expect(qs.length).toBeGreaterThan(1);
+    for (const q of qs) expect(q.length).toBeLessThanOrEqual(512);
+    expect(qs[0]).toContain("from:kol_handle_0");
+  });
+});

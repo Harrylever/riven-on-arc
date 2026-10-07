@@ -9,6 +9,9 @@ export type AgeFilter = "all" | "1h" | "6h" | "24h" | "7d"
 export type PadFilter = "all" | "ARGUS" | "TOLLY" | "OTHER"
 /** listed = flagged tokens hidden (default); caught = only flagged ones, with why; all = both. */
 export type ViewFilter = "listed" | "caught" | "all"
+/** Window for the volume / change columns and the trending sort. */
+export type Timeframe = "5m" | "1h" | "6h" | "24h"
+export const TIMEFRAMES: Timeframe[] = ["5m", "1h", "6h", "24h"]
 
 export interface ScreenerFilters {
   sort: SortKey
@@ -21,6 +24,7 @@ export interface ScreenerFilters {
   minVol: number
   minScore: number
   view: ViewFilter
+  tf: Timeframe
   page: number
 }
 
@@ -37,6 +41,7 @@ export const DEFAULT_FILTERS: ScreenerFilters = {
   minVol: 0,
   minScore: 0,
   view: "listed",
+  tf: "24h",
   page: 1,
 }
 
@@ -86,6 +91,7 @@ export function parseFilters(
       sp.fake === "1"
         ? "all"
         : pick(sp.view, ["listed", "caught", "all"] as const, "listed"),
+    tf: pick(sp.tf, TIMEFRAMES, "24h"),
     page: Math.max(1, Math.floor(n(sp.page)) || 1),
   }
 }

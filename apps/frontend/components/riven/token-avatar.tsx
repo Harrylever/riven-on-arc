@@ -28,7 +28,7 @@ export function TokenAvatar({
         // Creator-hosted images must not learn which page (or wallet) viewed them.
         referrerPolicy="no-referrer"
         onError={() => setBroken(true)}
-        className="shrink-0 rounded-[30%] object-cover ring-1 ring-[var(--rv-stroke-strong)]"
+        className="shrink-0 rounded-lg object-cover ring-1 ring-[var(--rv-stroke-strong)]"
         style={style}
       />
     )
@@ -36,7 +36,7 @@ export function TokenAvatar({
   return (
     <div
       aria-hidden
-      className="rv-display grid shrink-0 place-items-center rounded-[30%] font-extrabold text-white ring-1 ring-[var(--rv-stroke-strong)]"
+      className="rv-display grid shrink-0 place-items-center rounded-lg font-extrabold text-white ring-1 ring-[var(--rv-stroke-strong)]"
       style={{
         ...style,
         fontSize: size * 0.36,

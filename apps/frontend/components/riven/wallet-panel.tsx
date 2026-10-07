@@ -229,14 +229,14 @@ export function WalletPanel() {
                     <button
                       type="button"
                       onClick={() => setTrade({ token: h.token, side: "buy" })}
-                      className="rv-body rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-up)] ring-1 ring-[rgba(34,197,94,0.4)]"
+                      className="rv-body rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-up)] ring-1 ring-[rgba(74,222,128,0.4)]"
                     >
                       Buy
                     </button>
                     <button
                       type="button"
                       onClick={() => setTrade({ token: h.token, side: "sell" })}
-                      className="rv-body rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-down)] ring-1 ring-[rgba(239,68,68,0.4)]"
+                      className="rv-body rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-down)] ring-1 ring-[rgba(248,113,113,0.4)]"
                     >
                       Sell
                     </button>

@@ -75,6 +75,38 @@ export function createApp(s: Services) {
     }
   });
 
+  /**
+   * POST /arc/callouts { url, author, text, token, postedAt? } — add a KOL
+   * callout by hand (team only: Bearer CRON_SECRET). Useful when the X API
+   * isn't configured or missed a post.
+   */
+  app.post("/arc/callouts", async (c) => {
+    const expected = process.env.CRON_SECRET;
+    if (!expected || c.req.header("authorization") !== `Bearer ${expected}`) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+    let body: Record<string, unknown>;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
+    try {
+      const row = await s.callouts.addManual({
+        url: String(body.url ?? ""),
+        author: String(body.author ?? ""),
+        text: String(body.text ?? ""),
+        token: String(body.token ?? ""),
+        postedAt: typeof body.postedAt === "string" ? body.postedAt : undefined,
+      });
+      return c.json({ ok: true, id: row.id });
+    } catch (err) {
+      if (err instanceof TypeError) return c.json({ error: err.message }, 400);
+      console.error(`[arc] add callout failed: ${(err as Error).message}`);
+      return c.json({ error: "Couldn't save the callout" }, 503);
+    }
+  });
+
   app.get("/api/cron/index", async (c) => {
     const expected = process.env.CRON_SECRET;
     if (!expected || c.req.header("authorization") !== `Bearer ${expected}`) {

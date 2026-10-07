@@ -8,19 +8,19 @@ export const BAND_META: Record<
     label: "Looks healthy",
     short: "Healthy",
     color: "var(--rv-healthy)",
-    tint: "rgba(34, 197, 94, 0.10)",
+    tint: "rgba(74, 222, 128, 0.10)",
   },
   caution: {
     label: "Be careful",
     short: "Caution",
     color: "var(--rv-caution)",
-    tint: "rgba(234, 179, 8, 0.10)",
+    tint: "rgba(251, 191, 36, 0.10)",
   },
   risk: {
     label: "Risky",
     short: "Risky",
     color: "var(--rv-risk)",
-    tint: "rgba(239, 68, 68, 0.10)",
+    tint: "rgba(248, 113, 113, 0.10)",
   },
   unscored: {
     label: "Scoring…",

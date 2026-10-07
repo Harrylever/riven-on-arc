@@ -177,7 +177,7 @@ function WalletLookup() {
                           {h.token.symbol}
                         </span>
                         {h.token.fake && (
-                          <span className="rounded bg-[rgba(239,68,68,0.12)] px-1 text-[9px] font-bold text-[var(--rv-risk)] uppercase">
+                          <span className="rounded bg-[rgba(248,113,113,0.12)] px-1 text-[9px] font-bold text-[var(--rv-risk)] uppercase">
                             fake
                           </span>
                         )}

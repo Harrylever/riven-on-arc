@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -10,7 +9,8 @@
    throughout components/ui and components/ds actually generates a rule.
    --font-sans doesn't need this: it's already a Tailwind default theme key. */
 @theme inline {
-  --font-heading: var(--font-heading);
+  --font-heading: var(--font-inter);
+  --font-sans: var(--font-inter);
   --color-deep-blue: var(--deep-blue);
   --color-arc-blue: var(--arc-blue);
   --color-arc-blue-bright: var(--arc-blue-bright);
@@ -54,48 +54,50 @@
      Black & blue terminal: flat surfaces, no glows; colour is reserved for
      meaning (score bands, price direction) and the brand blue. */
 
-  /* 1 · primitives */
-  --black: #000000;
-  --navy-950: #020409;
-  --navy-900: #05080e;
-  --navy-800: #0a1220;
-  --navy-700: #101c30;
-  --blue-900: #0b4ea8;
-  --blue-500: #1e7bff;
-  --blue-400: #3fb6ff;
-  --blue-200: #9fd8ff;
-  --ink-50: #e6eefb;
-  --ink-300: #93a6c2;
-  --ink-500: #5c6f8c;
+  /* 1 · primitives — neutral zinc greys; one calm accent from the logo */
+  --zinc-950: #0a0a0c;
+  --zinc-925: #0f0f12;
+  --zinc-900: #141417;
+  --zinc-850: #1a1a1e;
+  --zinc-800: #222227;
+  --ink-50: #f4f4f5;
+  --ink-300: #a8a8b0;
+  --ink-500: #6e6e78;
+  --ice-300: #9fd3ee;
+  --ice-400: #7cc4e8;
+  --ice-600: #3f8fb8;
+  --ice-ink: #04121c;
+  --green-400: #4ade80;
+  --lime-400: #a3e635;
+  --amber-400: #fbbf24;
+  --red-400: #f87171;
   --slate-500: #64748b;
-  --green-500: #22c55e;
-  --amber-500: #eab308;
-  --red-500: #ef4444;
 
   /* 2 · semantic */
-  --rv-bg: var(--black);
-  --rv-card: var(--navy-900);
-  --rv-card-solid: var(--navy-900);
-  --rv-card-hover: var(--navy-800);
-  --rv-sunken: var(--navy-950);
-  --rv-row-hover: rgba(30, 123, 255, 0.06);
-  --rv-stroke: rgba(56, 120, 220, 0.16);
-  --rv-stroke-strong: rgba(80, 150, 255, 0.32);
-  --rv-blue: var(--blue-500);
-  --rv-blue-2: var(--blue-900);
-  --rv-cyan: var(--blue-400);
-  --rv-ice: var(--blue-200);
+  --rv-bg: var(--zinc-925);
+  --rv-card: var(--zinc-900);
+  --rv-card-solid: var(--zinc-900);
+  --rv-card-hover: var(--zinc-850);
+  --rv-sunken: var(--zinc-950);
+  --rv-row-hover: rgba(255, 255, 255, 0.03);
+  --rv-stroke: rgba(255, 255, 255, 0.08);
+  --rv-stroke-strong: rgba(255, 255, 255, 0.15);
+  --rv-blue: var(--ice-400);
+  --rv-blue-2: var(--ice-600);
+  --rv-on-blue: var(--ice-ink);
+  --rv-cyan: var(--ice-400);
+  --rv-ice: var(--ice-300);
   --rv-ink: var(--ink-50);
   --rv-ink-2: var(--ink-300);
   --rv-ink-3: var(--ink-500);
-  --rv-healthy: var(--green-500);
-  --rv-caution: var(--amber-500);
-  --rv-risk: var(--red-500);
+  --rv-healthy: var(--green-400);
+  --rv-caution: var(--amber-400);
+  --rv-risk: var(--red-400);
   --rv-unscored: var(--slate-500);
-  --rv-up: var(--green-500);
-  --rv-down: var(--red-500);
-  --rv-radius: 14px;
-  --rv-radius-sm: 10px;
+  --rv-up: var(--lime-400);
+  --rv-down: var(--red-400);
+  --rv-radius: 10px;
+  --rv-radius-sm: 6px;
 
   /* 3 · aliases (older names → semantic) */
   --ground: var(--rv-bg);
@@ -152,9 +154,9 @@
   --focus-ring: 0 0 0 2px var(--rv-bg), 0 0 0 4px var(--rv-ice);
 
   /* typography */
-  --font-display: "Archivo", "Archivo Black", system-ui, sans-serif;
-  --font-body: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+  --font-display: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-inter), "Inter", system-ui, sans-serif;
   --font-feature-num: "tnum" 1, "zero" 1;
 
   /* spacing & shape */
@@ -398,13 +400,9 @@ body::after {
 body {
   background: var(--rv-bg) !important;
 }
-body::before {
-  background:
-    radial-gradient(900px 420px at 50% -160px, rgba(30, 123, 255, 0.14), transparent 70%),
-    var(--rv-bg) !important;
-}
+body::before,
 body::after {
-  opacity: 0.12 !important;
+  display: none !important;
 }
 
 .rv-card {
@@ -415,7 +413,7 @@ body::after {
 
 .rv-display {
   font-family: var(--font-display);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 .rv-num {
@@ -451,15 +449,15 @@ body::after {
 .rv-table th {
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rv-ink-3);
   white-space: nowrap;
 }
 
 .rv-input {
-  background: #000;
+  background: var(--rv-sunken);
   border: 1px solid var(--rv-stroke);
   border-radius: 10px;
   color: var(--rv-ink);
@@ -468,6 +466,113 @@ body::after {
 .rv-input:focus {
   outline: none;
   border-color: var(--rv-blue);
+}
+
+/* Segmented control (timeframes, views): one filled chip, the rest quiet. */
+.rv-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--rv-sunken);
+  border: 1px solid var(--rv-stroke);
+}
+.rv-seg > button,
+.rv-seg > a {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rv-ink-2);
+  transition: background-color 120ms, color 120ms;
+}
+.rv-seg > [aria-pressed="true"],
+.rv-seg > [aria-checked="true"],
+.rv-seg > [aria-current="page"] {
+  background: var(--rv-blue);
+  color: var(--rv-on-blue);
+}
+.rv-seg > :not([aria-pressed="true"]):not([aria-checked="true"]):not([aria-current="page"]):hover {
+  color: var(--rv-ink);
+}
+
+/* Quiet chip (filters, launchpads) */
+.rv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rv-ink-2);
+  background: var(--rv-card);
+  border: 1px solid var(--rv-stroke);
+}
+.rv-chip[aria-pressed="true"] {
+  color: var(--rv-ink);
+  border-color: var(--rv-stroke-strong);
+  background: var(--rv-card-hover);
+}
+
+/* Primary button: calm accent, dark ink */
+.rv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rv-on-blue);
+  background: var(--rv-blue);
+  transition: filter 120ms;
+}
+.rv-btn:hover {
+  filter: brightness(1.1);
+}
+.rv-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rv-ink);
+  border: 1px solid var(--rv-stroke-strong);
+}
+.rv-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Tiny uppercase column / section labels */
+.rv-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rv-ink-3);
+}
+
+@keyframes rv-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.rv-marquee {
+  animation: rv-marquee 60s linear infinite;
+}
+.rv-marquee:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-marquee { animation: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

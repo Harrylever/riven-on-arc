@@ -9,6 +9,8 @@ const STATIC_ROUTES: Array<{
   changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]
 }> = [
   { path: "/", priority: 1, changeFrequency: "hourly" },
+  { path: "/trending", priority: 0.9, changeFrequency: "hourly" },
+  { path: "/markets", priority: 0.9, changeFrequency: "hourly" },
   { path: "/alerts", priority: 0.8, changeFrequency: "hourly" },
   { path: "/methodology", priority: 0.7, changeFrequency: "weekly" },
   { path: "/agent", priority: 0.6, changeFrequency: "daily" },

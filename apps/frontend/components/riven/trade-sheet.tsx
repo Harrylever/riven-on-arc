@@ -43,17 +43,20 @@ export function TradeSheet({
   token,
   wallet,
   initialSide = "buy",
+  initialAmount = "",
   onClose,
   onDone,
 }: {
   token: TradeToken
   wallet: Wallet
   initialSide?: "buy" | "sell"
+  /** Prefill, e.g. "10" for a 10 USDC flash buy. The user still reviews and signs. */
+  initialAmount?: string
   onClose: () => void
   onDone?: () => void
 }) {
   const [side, setSide] = useState<"buy" | "sell">(initialSide)
-  const [amount, setAmount] = useState("")
+  const [amount, setAmount] = useState(initialAmount)
   const [slippage, setSlippage] = useState(3)
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loading, setLoading] = useState(false)
@@ -145,7 +148,7 @@ export function TradeSheet({
         if (!running) onClose()
       }}
       aria-labelledby="trade-title"
-      className="m-auto w-[min(440px,calc(100vw-24px))] rounded-[var(--rv-radius)] border border-[var(--rv-stroke-strong)] bg-[#05080e] p-0 text-[var(--rv-ink)] backdrop:bg-black/75"
+      className="m-auto w-[min(440px,calc(100vw-24px))] rounded-[var(--rv-radius)] border border-[var(--rv-stroke-strong)] bg-[var(--rv-card)] p-0 text-[var(--rv-ink)] backdrop:bg-black/75"
     >
       <div className="flex flex-col gap-3 p-5">
         <div className="flex items-center justify-between">
@@ -267,7 +270,7 @@ export function TradeSheet({
         </div>
 
         {side === "buy" && risky && (
-          <label className="rv-body flex gap-2.5 rounded-lg border border-[rgba(239,68,68,0.4)] bg-[rgba(239,68,68,0.06)] p-3 text-[12px] leading-snug">
+          <label className="rv-body flex gap-2.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.06)] p-3 text-[12px] leading-snug">
             <input
               type="checkbox"
               checked={riskAck}
@@ -277,7 +280,7 @@ export function TradeSheet({
             <span>
               <b style={{ color: m.color }}>Anti-rug warning.</b>{" "}
               {token.fake
-                ? `Riven flags this token as fake: ${token.fakeReasons[0]}.`
+                ? `Riven flagged this token: ${token.fakeReasons[0]}.`
                 : token.band === "risk"
                   ? `Riven scores it ${token.score?.toFixed(1)}/10 — risky.`
                   : ""}{" "}

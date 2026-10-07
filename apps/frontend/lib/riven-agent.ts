@@ -50,7 +50,7 @@ async function explainToken(address: string): Promise<AgentReply> {
   ]
   if (t.fake)
     parts.push(
-      `Riven hides it from the screener as fake: ${t.fakeReasons.join("; ")}.`,
+      `Riven flagged it and hides it from the default list: ${t.fakeReasons.join("; ")}.`,
     )
   if (dangers.length) parts.push(dangers.slice(0, 4).join("\n"))
   if (warnings.length) parts.push(warnings.slice(0, 3).join("\n"))
@@ -83,7 +83,7 @@ async function explainTicker(ticker: string): Promise<AgentReply> {
         `${found.length} tokens on Arc use “${ticker}” — copycats are common. Pick the right contract:`,
         ...found
           .slice(0, 6)
-          .map((t) => `${line(t)}${t.fake ? " (hidden as fake)" : ""}`),
+          .map((t) => `${line(t)}${t.fake ? " (flagged)" : ""}`),
         DISCLAIMER,
       ].join("\n"),
       tokens: found.slice(0, 6),

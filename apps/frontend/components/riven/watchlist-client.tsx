@@ -47,7 +47,7 @@ export function WatchlistClient() {
       </h1>
       {failed && (
         <p
-          className="rv-body rounded-lg bg-[rgba(234,179,8,0.08)] px-3 py-2 text-sm text-[var(--rv-caution)]"
+          className="rv-body rounded-lg bg-[rgba(251,191,36,0.08)] px-3 py-2 text-sm text-[var(--rv-caution)]"
           role="alert"
         >
           Couldn&apos;t refresh scores —{" "}
@@ -71,7 +71,7 @@ export function WatchlistClient() {
             here live. Saved on this device only, no account needed.
           </p>
           <Link
-            href="/"
+            href="/trending"
             className="rv-body mt-1 rounded-full bg-[var(--rv-blue)] px-5 py-2.5 text-sm font-semibold text-white"
           >
             Browse launches

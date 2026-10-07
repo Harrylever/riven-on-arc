@@ -11,7 +11,7 @@ export function CopyBadge({ copies }: { copies: number }) {
   if (copies <= 0) return null
   return (
     <span
-      className="rv-body rounded bg-[rgba(234,179,8,0.14)] px-1.5 text-[10px] font-bold whitespace-nowrap text-[var(--rv-caution)] uppercase"
+      className="rv-body rounded bg-[rgba(251,191,36,0.14)] px-1.5 text-[10px] font-bold whitespace-nowrap text-[var(--rv-caution)] uppercase"
       title={`${copies} other token${copies === 1 ? "" : "s"} on Arc use this ticker`}
     >
       Copy ×{copies + 1}
@@ -74,7 +74,7 @@ export function CopycatWarning({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rv-body flex w-full items-center gap-2 rounded-[var(--rv-radius)] border border-[rgba(234,179,8,0.4)] bg-[rgba(234,179,8,0.07)] px-4 py-2.5 text-left text-[13px] text-[var(--rv-ink)]"
+        className="rv-body flex w-full items-center gap-2 rounded-[var(--rv-radius)] border border-[rgba(251,191,36,0.4)] bg-[rgba(251,191,36,0.07)] px-4 py-2.5 text-left text-[13px] text-[var(--rv-ink)]"
       >
         <span className="font-bold text-[var(--rv-caution)]">
           ⚠ Copycat warning:
@@ -95,7 +95,7 @@ export function CopycatWarning({
           ack()
         }}
         aria-labelledby="copycat-title"
-        className="m-auto w-[min(560px,calc(100vw-24px))] rounded-[var(--rv-radius)] border border-[rgba(234,179,8,0.45)] bg-[#05080e] p-0 text-[var(--rv-ink)] backdrop:bg-black/75"
+        className="m-auto w-[min(560px,calc(100vw-24px))] rounded-[var(--rv-radius)] border border-[rgba(251,191,36,0.45)] bg-[var(--rv-card)] p-0 text-[var(--rv-ink)] backdrop:bg-black/75"
       >
         <div className="p-5">
           <p className="rv-body text-[11px] font-bold tracking-[0.14em] text-[var(--rv-caution)] uppercase">
@@ -120,7 +120,7 @@ export function CopycatWarning({
                 className="flex items-center gap-3 px-3 py-2.5 text-[13px]"
                 style={{
                   background: c.current
-                    ? "rgba(30,123,255,0.1)"
+                    ? "rgba(124, 196, 232, 0.1)"
                     : "transparent",
                 }}
               >
@@ -143,7 +143,7 @@ export function CopycatWarning({
                   <div className="rv-num text-[11px] text-[var(--rv-ink-3)]">
                     {age(c.launchedAt, now)} old
                     {"liquidityUsd" in c ? ` · liq ${usd(c.liquidityUsd)}` : ""}
-                    {"fake" in c && c.fake ? " · hidden as fake" : ""}
+                    {"fake" in c && c.fake ? " · flagged" : ""}
                   </div>
                 </div>
                 {"score" in c && (

@@ -25,7 +25,7 @@ export default function OpengraphImage() {
         justifyContent: "center",
         padding: "80px",
         background: GROUND,
-        backgroundImage: `radial-gradient(800px 500px at 15% 0%, rgba(22,140,255,0.25), transparent 60%), radial-gradient(800px 500px at 90% 100%, rgba(66,200,255,0.2), transparent 60%)`,
+        backgroundImage: `radial-gradient(800px 500px at 15% 0%, rgba(124, 196, 232, 0.25), transparent 60%), radial-gradient(800px 500px at 90% 100%, rgba(66,200,255,0.2), transparent 60%)`,
       }}
     >
       <div

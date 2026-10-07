@@ -382,21 +382,22 @@ export async function getScreener(
   if (f.age !== "all")
     where.launchTime = { gte: new Date(Date.now() - AGE_MS[f.age]) }
 
+  // The timeframe picks which market columns rank "trending" and "gainers".
+  const sfx = { "5m": "5m", "1h": "1h", "6h": "6h", "24h": "24h" }[f.tf ?? "24h"]
+  const vol = `volume${sfx}`
+  const chg = `change${sfx}`
   const orderBy: object | object[] =
     f.sort === "new"
       ? { launchTime: "desc" }
       : f.sort === "gainers"
-        ? { arcMarket: { change24h: { sort: "desc", nulls: "last" } } }
+        ? { arcMarket: { [chg]: { sort: "desc", nulls: "last" } } }
         : f.sort === "losers"
-          ? { arcMarket: { change24h: { sort: "asc", nulls: "last" } } }
+          ? { arcMarket: { [chg]: { sort: "asc", nulls: "last" } } }
           : f.sort === "mcap"
             ? { arcMarket: { marketCap: { sort: "desc", nulls: "last" } } }
             : f.sort === "liquidity"
               ? { arcMarket: { liquidityUsd: { sort: "desc", nulls: "last" } } }
-              : [
-                  { arcMarket: { volume24h: { sort: "desc", nulls: "last" } } },
-                  { launchTime: "desc" },
-                ]
+              : [{ arcMarket: { [vol]: { sort: "desc", nulls: "last" } } }, { launchTime: "desc" }]
 
   let list = (await rows(where, orderBy, f.sort === "safest" ? 1500 : 600)).map(
     summarize,
@@ -457,6 +458,7 @@ export async function getStats() {
     healthy24h: scored.filter((r) => r.band === "healthy").length,
     caution24h: scored.filter((r) => r.band === "caution").length,
     risky24h: scored.filter((r) => r.band === "risk").length,
+    volume24h: s.reduce((sum, r) => sum + (r.volume.h24 ?? 0), 0),
     reasons24h: [...byCode.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([code, count]) => ({ code, count })),
@@ -766,4 +768,38 @@ export async function getTokenDetail(
     holderHistory: t.holderHistory,
     copyList: copyRows.map(summarize),
   }
+}
+
+export interface Callout {
+  id: string
+  author: string
+  authorName: string | null
+  text: string
+  url: string
+  postedAt: string
+  likes: number | null
+  reposts: number | null
+  token: TokenSummary
+}
+
+/** Latest KOL callouts on X, newest first, each with the token's live Riven summary. */
+export async function getCallouts(limit = 12): Promise<Callout[]> {
+  const db = getDb()
+  const rows = await db.arcCallout.findMany({
+    orderBy: { postedAt: "desc" },
+    take: limit,
+    include: { token: { include: INCLUDE } },
+  })
+  const summaries = await withCopies(rows.map((r) => summarize(r.token as TokenRow)))
+  return rows.map((r, i) => ({
+    id: r.id,
+    author: r.author,
+    authorName: r.authorName,
+    text: r.text,
+    url: r.url,
+    postedAt: r.postedAt.toISOString(),
+    likes: r.likes,
+    reposts: r.reposts,
+    token: summaries[i]!,
+  }))
 }

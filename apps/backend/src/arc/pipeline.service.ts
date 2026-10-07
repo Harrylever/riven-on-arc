@@ -4,6 +4,7 @@ import type { ArcScoringService } from "./scoring.service";
 import type { PoolIndexerService } from "./pool-indexer.service";
 import type { MarketSyncService } from "./market-sync.service";
 import type { HolderBackfillService } from "./holder-backfill.service";
+import type { CalloutsService } from "./callouts.service";
 
 /**
  * One Arc tick, in dependency order: launchpad launches → every USDC pool on
@@ -19,6 +20,7 @@ export class ArcPipelineService {
     private readonly market: MarketSyncService,
     private readonly backfill: HolderBackfillService,
     private readonly scoring: ArcScoringService,
+    private readonly callouts?: CalloutsService,
   ) {}
 
   async runOnce() {
@@ -36,6 +38,9 @@ export class ArcPipelineService {
     const market = await step("market sync", () => this.market.syncOnce());
     const backfill = await step("holder backfill", () => this.backfill.backfillOnce());
     const scoring = await step("scoring", () => this.scoring.scoreOnce());
-    return { launches, pools, activity, market, backfill, scoring };
+    const callouts = this.callouts
+      ? await step("X callouts", () => this.callouts!.indexOnce())
+      : { skipped: "not configured" };
+    return { launches, pools, activity, market, backfill, scoring, callouts };
   }
 }

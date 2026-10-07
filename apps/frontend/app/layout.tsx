@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { DM_Sans, Geist_Mono } from "next/font/google"
+import { Inter } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -13,11 +13,7 @@ import {
   SITE_TAGLINE,
 } from "@/lib/site"
 
-const dmSansHeading = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-heading",
-})
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-sans" })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" })
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -72,7 +68,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#030a14",
+  themeColor: "#0f0f12",
   colorScheme: "dark",
 }
 
@@ -84,8 +80,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         "h-full",
         "antialiased",
         "font-sans",
-        geistMono.variable,
-        dmSansHeading.variable,
+        inter.variable,
       )}
     >
       <body className="rv-body text-foreground flex min-h-full flex-col">

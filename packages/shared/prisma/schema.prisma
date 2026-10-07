@@ -67,6 +67,7 @@ model Token {
   watchlists      Watchlist[]
   alerts          Alert[]
   executionLogs   ExecutionLog[]
+  callouts        ArcCallout[]
 
   @@map("tokens")
 }
@@ -503,4 +504,28 @@ model ArcLpEvent {
 
   @@index([poolId])
   @@map("arc_lp_events")
+}
+
+/// A post on X (or another social platform) by a tracked KOL that names an
+/// Arc token — by contract address or a DexScreener Arc link. Shown as a
+/// "callout"; a KOL mention is a signal, never a safety rating.
+model ArcCallout {
+  id         String   @id // "<platform>:<post id>:<token id>"
+  platform   String // "x"
+  author     String // handle, without @
+  authorName String?  @map("author_name")
+  text       String
+  url        String
+  tokenId    String   @map("token_id")
+  token      Token    @relation(fields: [tokenId], references: [id])
+  postedAt   DateTime @map("posted_at")
+  likes      Int?
+  reposts    Int?
+  /// "x_api" (indexed from X) or "manual" (added by the team).
+  source     String   @default("x_api")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([postedAt])
+  @@index([tokenId])
+  @@map("arc_callouts")
 }

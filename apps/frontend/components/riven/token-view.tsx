@@ -66,10 +66,10 @@ export function TokenView({
   return (
     <div className="flex flex-col gap-3.5">
       <Link
-        href="/"
+        href="/trending"
         className="rv-body w-fit text-[13px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
       >
-        ← Screener
+        ← Trending
       </Link>
 
       {/* Identity + price */}
@@ -87,7 +87,7 @@ export function TokenView({
             </h1>
             {t.fake && (
               <span
-                className="rv-body rounded-md bg-[rgba(239,68,68,0.12)] px-2 py-0.5 text-[11px] font-bold text-[var(--rv-risk)] uppercase"
+                className="rv-body rounded-md bg-[rgba(248,113,113,0.12)] px-2 py-0.5 text-[11px] font-bold text-[var(--rv-risk)] uppercase"
                 title="Flagged by on-chain evidence — hidden from the default list"
               >
                 Flagged
@@ -159,7 +159,7 @@ export function TokenView({
               onClick={() => setTrade("buy")}
               className={`rv-body h-11 rounded-lg text-[15px] font-bold ${
                 t.fake || t.band === "risk"
-                  ? "text-[var(--rv-up)] ring-1 ring-[rgba(34,197,94,0.45)]"
+                  ? "text-[var(--rv-up)] ring-1 ring-[rgba(74,222,128,0.45)]"
                   : "bg-[var(--rv-up)] text-black"
               }`}
             >
@@ -503,7 +503,7 @@ function Shield({ t }: { t: TokenDetail }) {
               key={a.id}
               className="rv-body flex items-baseline gap-2 text-[12px]"
             >
-              <span className="rounded bg-[rgba(239,68,68,0.12)] px-1.5 text-[10px] font-bold text-[var(--rv-risk)] uppercase">
+              <span className="rounded bg-[rgba(248,113,113,0.12)] px-1.5 text-[10px] font-bold text-[var(--rv-risk)] uppercase">
                 {ALERT_LABEL[a.type] ?? a.type}
               </span>
               <span className="flex-1 text-[var(--rv-ink-2)]">{a.message}</span>
@@ -784,7 +784,7 @@ function Holders({ t }: { t: TokenDetail }) {
                 {shortAddr(h.address)}
               </a>
               {h.tag && (
-                <span className="rounded bg-[rgba(234,179,8,0.12)] px-1.5 text-[10px] font-semibold text-[var(--rv-caution)] uppercase">
+                <span className="rounded bg-[rgba(251,191,36,0.12)] px-1.5 text-[10px] font-semibold text-[var(--rv-caution)] uppercase">
                   {h.tag}
                 </span>
               )}
