@@ -12,6 +12,8 @@ import {
   arc,
   ARGUS_V4_HOOK,
   DEFAULT_LOOKBACK_BLOCKS,
+  DEX_FACTORIES,
+  NATIVE,
   POOL_MANAGER,
   POOL_MANAGER_DEPLOY_BLOCK,
   USDC,
@@ -24,7 +26,7 @@ const BACKFILL_CURSOR = "v4:pools:backfill";
 const CHUNK = 9_999n;
 const MAX_FORWARD_BLOCKS = 50_000n;
 /** History is walked backwards a little each tick so all of Arc gets covered over time. */
-const BACKFILL_BLOCKS_PER_RUN = BigInt(process.env.ARC_POOL_BACKFILL_BLOCKS ?? "60000");
+const BACKFILL_BLOCKS_PER_RUN = BigInt(process.env.ARC_POOL_BACKFILL_BLOCKS ?? "150000");
 
 const INITIALIZE = parseAbiItem(
   "event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)",
@@ -36,9 +38,40 @@ export interface PoolInit {
   hooks: string;
   blockNumber: bigint;
   txHash: string;
+  /** Unset = Uniswap v4; otherwise the DEX the pool belongs to. */
+  dex?: string;
+  quote?: string;
 }
 
-/** Keep only USDC-quoted pools; returns the non-USDC side as the token. */
+const isUsdc = (a: string) => a === USDC.toLowerCase() || a === NATIVE.toLowerCase();
+
+/**
+ * A v2/v3/Solidly/Algebra factory's pool-created log → the listed token(s).
+ * token0/token1 are always the first two indexed topics; the pool address is
+ * the address-sized word in the data (skipping small ints like tickSpacing).
+ */
+export function toDexPools(
+  log: { topics: readonly string[]; data: string; blockNumber: bigint | null; transactionHash: string | null },
+  dex: string,
+): PoolInit[] {
+  if (log.topics.length < 3 || log.blockNumber === null || !log.transactionHash) return [];
+  const t0 = `0x${log.topics[1]!.slice(26)}`.toLowerCase();
+  const t1 = `0x${log.topics[2]!.slice(26)}`.toLowerCase();
+  const words = (log.data.slice(2).match(/.{64}/g) ?? []).map((w) => BigInt(`0x${w}`));
+  const pool = words.find((w) => w > 1n << 120n && w < 1n << 160n);
+  if (pool === undefined) return [];
+  const poolId = `0x${pool.toString(16).padStart(40, "0")}`;
+  const base = { poolId, hooks: "", blockNumber: log.blockNumber, txHash: log.transactionHash, dex };
+  // USDC pair → the other side. Otherwise list both sides (DexScreener does too).
+  if (isUsdc(t0)) return [{ ...base, token: t1, quote: USDC.toLowerCase() }];
+  if (isUsdc(t1)) return [{ ...base, token: t0, quote: USDC.toLowerCase() }];
+  return [
+    { ...base, token: t0, quote: t1 },
+    { ...base, poolId: `${poolId}:${t1}`, token: t1, quote: t0 },
+  ];
+}
+
+/** Keep USDC-quoted pools (ERC-20 or native); returns the non-USDC side as the token. */
 export function toPoolInit(log: {
   args: { id?: string; currency0?: string; currency1?: string; hooks?: string };
   blockNumber: bigint | null;
@@ -46,11 +79,10 @@ export function toPoolInit(log: {
 }): PoolInit | null {
   const { id, currency0, currency1, hooks } = log.args;
   if (!id || !currency0 || !currency1 || log.blockNumber === null || !log.transactionHash) return null;
-  const usdc = USDC.toLowerCase();
   const c0 = currency0.toLowerCase();
   const c1 = currency1.toLowerCase();
-  const token = c0 === usdc ? c1 : c1 === usdc ? c0 : null;
-  if (!token || token === "0x0000000000000000000000000000000000000000") return null;
+  const token = isUsdc(c0) ? c1 : isUsdc(c1) ? c0 : null;
+  if (!token || isUsdc(token)) return null;
   return {
     poolId: id.toLowerCase(),
     token,
@@ -81,7 +113,31 @@ export class PoolIndexerService {
       });
   }
 
+  /** Uniswap v4 pools (PoolManager Initialize) plus every other DEX factory on Arc. */
   async indexPoolsOnce() {
+    const v4 = await this.indexSource(FORWARD_CURSOR, BACKFILL_CURSOR, POOL_MANAGER_DEPLOY_BLOCK, async (f, t) =>
+      (await this.client.getLogs({ address: POOL_MANAGER, event: INITIALIZE, fromBlock: f, toBlock: t }))
+        .map(toPoolInit)
+        .filter((p): p is PoolInit => p !== null),
+    );
+    const dexByFactory = new Map(DEX_FACTORIES.map((d) => [d.factory.toLowerCase(), d.dex]));
+    const others = await this.indexSource("dex:pools", "dex:pools:backfill", POOL_MANAGER_DEPLOY_BLOCK, async (f, t) =>
+      (await this.client.getLogs({ address: DEX_FACTORIES.map((d) => d.factory), fromBlock: f, toBlock: t })).flatMap(
+        (l) => toDexPools(l, dexByFactory.get(l.address.toLowerCase()) ?? "other"),
+      ),
+    );
+    return { ...v4, otherDexes: others };
+  }
+
+  private async indexSource(
+    forwardCursor: string,
+    backfillCursor: string,
+    floor: bigint,
+    fetch: (from: bigint, to: bigint) => Promise<PoolInit[]>,
+  ) {
+    const FORWARD_CURSOR = forwardCursor;
+    const BACKFILL_CURSOR = backfillCursor;
+    const POOL_MANAGER_DEPLOY_BLOCK = floor;
     const db = getDb();
     const head = await this.client.getBlockNumber();
     const [fwd, back] = await Promise.all([
@@ -96,7 +152,7 @@ export class PoolIndexerService {
 
     let forward = 0;
     if (fFrom <= head) {
-      forward = await this.ingestRange(fFrom, fTo, "complete-if-new");
+      forward = await this.ingestRange(fFrom, fTo, "complete-if-new", fetch);
       await db.arcIndexerCursor.upsert({
         where: { source: FORWARD_CURSOR },
         create: { source: FORWARD_CURSOR, lastBlock: fTo },
@@ -112,7 +168,7 @@ export class PoolIndexerService {
       backfillFrom = bTop - BACKFILL_BLOCKS_PER_RUN + 1n < POOL_MANAGER_DEPLOY_BLOCK
         ? POOL_MANAGER_DEPLOY_BLOCK
         : bTop - BACKFILL_BLOCKS_PER_RUN + 1n;
-      backfilled = await this.ingestRange(backfillFrom, bTop, "partial");
+      backfilled = await this.ingestRange(backfillFrom, bTop, "partial", fetch);
       await db.arcIndexerCursor.upsert({
         where: { source: BACKFILL_CURSOR },
         create: { source: BACKFILL_CURSOR, lastBlock: backfillFrom },
@@ -132,12 +188,14 @@ export class PoolIndexerService {
    * complete. Older tokens (and all backfilled ones) are "partial" until the
    * holder backfill job replays their transfers.
    */
-  private async ingestRange(from: bigint, to: bigint, mode: "complete-if-new" | "partial") {
+  private async ingestRange(
+    from: bigint,
+    to: bigint,
+    mode: "complete-if-new" | "partial",
+    fetch: (from: bigint, to: bigint) => Promise<PoolInit[]>,
+  ) {
     const db = getDb();
-    const logs = await scanBlockRange(from, to, CHUNK, (f, t) =>
-      this.client.getLogs({ address: POOL_MANAGER, event: INITIALIZE, fromBlock: f, toBlock: t }),
-    );
-    const inits = logs.map(toPoolInit).filter((p): p is PoolInit => p !== null);
+    const inits = await scanBlockRange(from, to, CHUNK, fetch);
     if (inits.length === 0) return 0;
 
     // Skip tokens/pools we already have.
@@ -205,7 +263,13 @@ export class PoolIndexerService {
       if (!tokenId) continue;
       await db.pool.upsert({
         where: { address: p.poolId },
-        create: { address: p.poolId, tokenId, venue: "UNISWAP_V4", quoteMint: USDC.toLowerCase() },
+        create: {
+          address: p.poolId,
+          tokenId,
+          venue: p.dex ? "OTHER" : "UNISWAP_V4",
+          quoteMint: p.quote ?? USDC.toLowerCase(),
+          ...(p.dex ? { launchInfo: { dex: p.dex } } : {}),
+        },
         update: {},
       });
     }

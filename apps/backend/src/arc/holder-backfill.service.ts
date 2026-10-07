@@ -61,6 +61,7 @@ export class HolderBackfillService {
 
     const to = cursor.lastBlock;
     const creation = await this.creationBlock(t.mint as Address, t.launchBlock ?? to);
+    if (creation > to) return { token: t.symbol, skipped: "activity indexer not caught up yet" };
     if (to - creation > MAX_SPAN) {
       await db.token.update({ where: { id: t.id }, data: { holderHistory: "too_long", creationBlock: creation } });
       return { token: t.symbol, skipped: "history too long" };

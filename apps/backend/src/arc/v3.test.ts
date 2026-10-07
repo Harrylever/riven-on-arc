@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { toPoolInit } from "./pool-indexer.service";
+import { toDexPools, toPoolInit } from "./pool-indexer.service";
 import { pickPairs } from "./market-sync.service";
 import { launchLiquidityPulled, riskAlerts, usdcInRange } from "./scoring.service";
 
@@ -16,6 +16,10 @@ describe("toPoolInit", () => {
       blockNumber: 10n,
       txHash: "0xabc",
     });
+  });
+  test("treats native USDC (currency 0x0) as USDC", () => {
+    const NATIVE = "0x0000000000000000000000000000000000000000";
+    expect(toPoolInit({ ...base, args: { id: "0xP", currency0: NATIVE, currency1: TOKEN, hooks: "0x" } })?.token).toBe(TOKEN);
   });
   test("drops pools without USDC", () => {
     expect(toPoolInit({ ...base, args: { id: "0x1", currency0: TOKEN, currency1: "0x0000000000000000000000000000000000000001" } })).toBeNull();
@@ -112,5 +116,27 @@ describe("X callouts", () => {
     expect(qs.length).toBeGreaterThan(1);
     for (const q of qs) expect(q.length).toBeLessThanOrEqual(512);
     expect(qs[0]).toContain("from:kol_handle_0");
+  });
+});
+
+describe("toDexPools", () => {
+  const word = (a: string) => a.slice(2).padStart(64, "0");
+  const topic = (a: string) => `0x${word(a)}`;
+  const POOL = "0x892ae3e86d393543b053eab6e5258c78d99b9f8f";
+  test("decodes a Uniswap v3 PoolCreated (tickSpacing, pool)", () => {
+    const log = {
+      topics: ["0x783cca1c", topic(TOKEN), topic(USDC), topic("0xbb8")],
+      data: `0x${word("0xc8")}${word(POOL)}`,
+      blockNumber: 5n,
+      transactionHash: "0xt",
+    };
+    expect(toDexPools(log, "uniswap-v3")).toEqual([
+      { poolId: POOL, token: TOKEN, quote: USDC, hooks: "", blockNumber: 5n, txHash: "0xt", dex: "uniswap-v3" },
+    ]);
+  });
+  test("lists both sides of a non-USDC pair", () => {
+    const OTHER = "0x1111111111111111111111111111111111111111";
+    const log = { topics: ["0x0d36", topic(TOKEN), topic(OTHER)], data: `0x${word(POOL)}${word("0x5")}`, blockNumber: 5n, transactionHash: "0xt" };
+    expect(toDexPools(log, "arctide").map((p) => p.token)).toEqual([TOKEN, OTHER]);
   });
 });

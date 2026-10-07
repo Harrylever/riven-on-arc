@@ -3,7 +3,15 @@ import type { ArcBand } from "@clawdex/shared"
 /** Screener filters ↔ URL query. Shared by the server page and the client UI. */
 
 export type SortKey =
-  "trending" | "new" | "gainers" | "losers" | "mcap" | "liquidity" | "safest"
+  | "trending"
+  | "new"
+  | "gainers"
+  | "losers"
+  | "mcap"
+  | "liquidity"
+  | "txns"
+  | "volume"
+  | "safest"
 export type BandFilter = "all" | ArcBand
 export type AgeFilter = "all" | "1h" | "6h" | "24h" | "7d"
 export type PadFilter = "all" | "ARGUS" | "TOLLY" | "OTHER"
@@ -28,7 +36,8 @@ export interface ScreenerFilters {
   page: number
 }
 
-export const PAGE_SIZE = 25
+/** Like DexScreener: 100 pairs a page, every token reachable by paging. */
+export const PAGE_SIZE = 100
 
 export const DEFAULT_FILTERS: ScreenerFilters = {
   sort: "trending",
@@ -40,16 +49,18 @@ export const DEFAULT_FILTERS: ScreenerFilters = {
   maxMcap: 0,
   minVol: 0,
   minScore: 0,
-  view: "listed",
-  tf: "24h",
+  view: "all",
+  tf: "6h",
   page: 1,
 }
 
 export const SORTS: Array<{ id: SortKey; label: string }> = [
   { id: "trending", label: "Trending" },
-  { id: "new", label: "New pairs" },
+  { id: "volume", label: "Top volume" },
   { id: "gainers", label: "Gainers" },
   { id: "losers", label: "Losers" },
+  { id: "new", label: "New pairs" },
+  { id: "txns", label: "Most traded" },
   { id: "mcap", label: "Market cap" },
   { id: "liquidity", label: "Liquidity" },
   { id: "safest", label: "Safest" },
@@ -90,8 +101,8 @@ export function parseFilters(
     view:
       sp.fake === "1"
         ? "all"
-        : pick(sp.view, ["listed", "caught", "all"] as const, "listed"),
-    tf: pick(sp.tf, TIMEFRAMES, "24h"),
+        : pick(sp.view, ["listed", "caught", "all"] as const, "all"),
+    tf: pick(sp.tf, TIMEFRAMES, "6h"),
     page: Math.max(1, Math.floor(n(sp.page)) || 1),
   }
 }

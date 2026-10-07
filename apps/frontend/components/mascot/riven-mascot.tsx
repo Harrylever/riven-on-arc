@@ -49,15 +49,24 @@ const TONE: Record<NonNullable<Holo["tone"]>, string> = {
 const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z)
 /** Bind-pose joint positions, measured from the mesh's cross-sections. */
 const JOINTS = {
-  lSh: V(-0.02, 0.02, -0.19),
+  // shoulders are ball joints: the arm (with its cap) turns about the cap's centre
+  lSh: V(-0.015, 0.086, -0.148),
   lEl: V(-0.012, -0.075, -0.22),
   lHand: V(0, -0.185, -0.215),
-  rSh: V(-0.02, 0.02, 0.17),
+  rSh: V(-0.013, 0.089, 0.132),
   rEl: V(-0.012, -0.075, 0.2),
   rHand: V(0, -0.185, 0.195),
   head: V(0, 0.1, -0.01),
+  // legs: hip, knee and ankle down the middle of each leg (front view)
+  lHip: V(0, -0.17, -0.105),
+  lKnee: V(0.005, -0.315, -0.105),
+  lFoot: V(0, -0.465, -0.105),
+  rHip: V(0, -0.17, 0.115),
+  rKnee: V(0.005, -0.315, 0.115),
+  rFoot: V(0, -0.465, 0.115),
 }
 const MID_Z = -0.01 // the mesh's left/right centre line
+const LEG_MID = 0.005 // the gap between the legs
 
 /**
  * Arm/body cut, per side, in 0.02 height bands from y = 0.06 down: the
@@ -73,17 +82,78 @@ const ARM_CUT = {
 const ARM_TOP = 0.07
 const ARM_BOTTOM = -0.238 // the glove ends here; below is all hips/legs
 
-/** Rigid part assignment: each vertex follows exactly one bone. */
-function partOf(y: number, zOut: number, left: boolean): "root" | "head" | "upper" | "fore" {
-  if (y <= ARM_TOP && y >= ARM_BOTTOM) {
-    const cuts = left ? ARM_CUT.l : ARM_CUT.r
-    const band = Math.min(cuts.length - 1, Math.max(0, Math.floor((0.06 - y) / 0.02 + 1e-6)))
-    if (zOut >= cuts[band]!) return y > -0.075 ? "upper" : "fore"
-  }
-  return y > 0.095 ? "head" : "root"
+function isArm(y: number, zOut: number, left: boolean) {
+  if (y > ARM_TOP || y < ARM_BOTTOM) return false
+  const cuts = left ? ARM_CUT.l : ARM_CUT.r
+  const band = Math.min(cuts.length - 1, Math.max(0, Math.floor((0.06 - y) / 0.02 + 1e-6)))
+  return zOut >= cuts[band]!
 }
 
-interface Arm {
+/** Smoothstep that also works with e0 > e1 (falling edge). */
+function smooth(e0: number, e1: number, x: number) {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)))
+  return t * t * (3 - 2 * t)
+}
+
+// bone indices
+const B = {
+  base: 0,
+  root: 1,
+  head: 2,
+  lDelt: 3,
+  lSh: 4,
+  lEl: 5,
+  lHand: 6,
+  rDelt: 7,
+  rSh: 8,
+  rEl: 9,
+  rHand: 10,
+  lHip: 11,
+  lKnee: 12,
+  lFoot: 13,
+  rHip: 14,
+  rKnee: 15,
+  rFoot: 16,
+} as const
+
+/**
+ * Skin weights. Robot parts stay solid, but every joint gets a short blend so
+ * it flexes instead of tearing: the shoulder pad rolls with the arm, elbows
+ * and knees bend smoothly, hips swing from the pelvis, feet stay flat.
+ */
+function weightsOf(y: number, z: number): Array<[number, number]> {
+  const left = z < MID_Z
+  const zOut = left ? MID_Z - z : z - MID_Z
+  const up = left ? B.lSh : B.rSh
+  // The round shoulder cap belongs to the arm (a ball joint), so it turns with
+  // the arm instead of shearing the chest. Measured inner edge of the caps.
+  if (y >= 0.035 && y <= 0.155 && zOut >= (left ? 0.105 : 0.115)) return [[up, 1]]
+  if (isArm(y, zOut, left)) {
+    const fore = left ? B.lEl : B.rEl
+    // elbow: blend over a short band around the joint
+    const wFore = smooth(-0.055, -0.1, y)
+    if (wFore >= 1) return [[fore, 1]]
+    if (wFore > 0) return [[up, 1 - wFore], [fore, wFore]]
+    return [[up, 1]]
+  }
+  // chest, neck and head: solid
+  if (y > 0.095) return [[B.head, 1]]
+  if (y < -0.125) {
+    const lLeg = z < LEG_MID
+    const hip = lLeg ? B.lHip : B.rHip
+    const knee = lLeg ? B.lKnee : B.rKnee
+    const foot = lLeg ? B.lFoot : B.rFoot
+    const wFoot = smooth(-0.44, -0.468, y)
+    if (wFoot > 0) return wFoot >= 1 ? [[foot, 1]] : [[knee, 1 - wFoot], [foot, wFoot]]
+    const wKnee = smooth(-0.29, -0.335, y)
+    if (wKnee > 0) return wKnee >= 1 ? [[knee, 1]] : [[hip, 1 - wKnee], [knee, wKnee]]
+    const wHip = smooth(-0.125, -0.2, y)
+    return wHip >= 1 ? [[hip, 1]] : [[B.root, 1 - wHip], [hip, wHip]]
+  }
+  return [[B.root, 1]]
+}
+
+interface Limb {
   sh: THREE.Bone
   el: THREE.Bone
   hand: THREE.Bone
@@ -98,11 +168,15 @@ interface Arm {
   target: THREE.Vector3
   shift: THREE.Vector3
 }
+type Arm = Limb & { delt: THREE.Bone }
 interface Rig {
   mesh: THREE.SkinnedMesh
+  root: THREE.Bone
   head: THREE.Bone
   l: Arm
   r: Arm
+  lLeg: Limb
+  rLeg: Limb
 }
 
 function buildRig(src: THREE.Mesh, material: THREE.Material): Rig {
@@ -111,21 +185,19 @@ function buildRig(src: THREE.Mesh, material: THREE.Material): Rig {
   const n = pos.count
   const idx = new Uint16Array(n * 4)
   const wts = new Float32Array(n * 4)
-  // bone indices: 0 root, 1 head, 2 lSh, 3 lEl, 4 lHand, 5 rSh, 6 rEl, 7 rHand
+  const main = new Uint8Array(n) // dominant bone, for the seam clean-up below
   for (let i = 0; i < n; i++) {
-    const y = pos.getY(i)
-    const z = pos.getZ(i)
-    const left = z < MID_Z
-    const part = partOf(y, left ? MID_Z - z : z - MID_Z, left)
-    const bone =
-      part === "root" ? 0 : part === "head" ? 1 : part === "upper" ? (left ? 2 : 5) : left ? 3 : 6
-    idx[i * 4] = bone
-    wts[i * 4] = 1
+    const w = weightsOf(pos.getY(i), pos.getZ(i))
+    w.forEach(([b, k], j) => {
+      idx[i * 4 + j] = b
+      wts[i * 4 + j] = k
+    })
+    main[i] = w.reduce((a, c) => (c[1] > a[1] ? c : a))[0]
   }
-  // The scan welds the glove to the thigh where they touch. Rigid parts would
-  // stretch those bridging triangles into long slivers, so drop them — they
-  // sit in the contact patch and are never seen.
-  const isArmBone = (b: number) => b >= 2
+  // The scan welds the arms to the body where they touch (glove to thigh,
+  // cap to chest). Those bridging triangles would stretch into slivers when
+  // the arm moves, so drop them — they sit inside the contact seams.
+  const armBone = (b: number) => b >= B.lDelt && b <= B.rHand
   const index = geo.index
   if (index) {
     const kept: number[] = []
@@ -133,15 +205,11 @@ function buildRig(src: THREE.Mesh, material: THREE.Material): Rig {
       const a = index.getX(i)
       const b = index.getX(i + 1)
       const c = index.getX(i + 2)
-      const ba = idx[a * 4]!
-      const bb = idx[b * 4]!
-      const bc = idx[c * 4]!
-      const arms = +isArmBone(ba) + +isArmBone(bb) + +isArmBone(bc)
-      // mixed arm/body, or spanning both arms' sides → bridging
-      const sides = new Set([ba, bb, bc].filter(isArmBone).map((x) => (x <= 4 ? "l" : "r")))
-      // (only low down: at the shoulder a small stretch hides the seam better than a hole)
-      const low = Math.max(pos.getY(a), pos.getY(b), pos.getY(c)) < -0.1
-      if (low && ((arms > 0 && arms < 3) || sides.size > 1)) continue
+      const tri = [main[a]!, main[b]!, main[c]!]
+      const arms = tri.filter(armBone).length
+      const sides = new Set(tri.filter(armBone).map((x) => (x <= B.lHand ? "l" : "r")))
+      // any triangle welding an arm to the body would stretch into a sliver
+      if ((arms > 0 && arms < 3) || sides.size > 1) continue
       kept.push(a, b, c)
     }
     geo.setIndex(kept)
@@ -149,28 +217,26 @@ function buildRig(src: THREE.Mesh, material: THREE.Material): Rig {
   geo.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(idx, 4))
   geo.setAttribute("skinWeight", new THREE.Float32BufferAttribute(wts, 4))
 
-  const root = new THREE.Bone()
+  const base = new THREE.Bone()
+  const root = new THREE.Bone() // upper body: torso, head, arms
+  base.add(root)
   const head = new THREE.Bone()
   head.position.copy(JOINTS.head)
   root.add(head)
-  const mkArm = (side: -1 | 1): Arm & { bones: THREE.Bone[] } => {
-    const S = side < 0 ? JOINTS.lSh : JOINTS.rSh
-    const E = side < 0 ? JOINTS.lEl : JOINTS.rEl
-    const H = side < 0 ? JOINTS.lHand : JOINTS.rHand
+  const chain = (parent: THREE.Bone, S: THREE.Vector3, E: THREE.Vector3, H: THREE.Vector3, side: -1 | 1) => {
     const sh = new THREE.Bone()
     const el = new THREE.Bone()
     const hand = new THREE.Bone()
     sh.position.copy(S)
     el.position.copy(E).sub(S)
     hand.position.copy(H).sub(E)
-    root.add(sh)
+    parent.add(sh)
     sh.add(el)
     el.add(hand)
-    return {
+    const limb: Limb = {
       sh,
       el,
       hand,
-      bones: [sh, el, hand],
       S0: S.clone(),
       S: S.clone(),
       L1: E.distanceTo(S),
@@ -182,15 +248,47 @@ function buildRig(src: THREE.Mesh, material: THREE.Material): Rig {
       target: H.clone(),
       shift: new THREE.Vector3(),
     }
+    return limb
   }
-  const l = mkArm(-1)
-  const r = mkArm(1)
+  const arm = (side: -1 | 1): Arm => {
+    const S = side < 0 ? JOINTS.lSh : JOINTS.rSh
+    const delt = new THREE.Bone()
+    delt.position.copy(S)
+    root.add(delt)
+    const limb = chain(root, S, side < 0 ? JOINTS.lEl : JOINTS.rEl, side < 0 ? JOINTS.lHand : JOINTS.rHand, side)
+    return { ...limb, delt }
+  }
+  const l = arm(-1)
+  const r = arm(1)
+  const lLeg = chain(base, JOINTS.lHip, JOINTS.lKnee, JOINTS.lFoot, -1)
+  const rLeg = chain(base, JOINTS.rHip, JOINTS.rKnee, JOINTS.rFoot, 1)
   const mesh = new THREE.SkinnedMesh(geo, material)
   mesh.frustumCulled = false
-  mesh.add(root)
-  root.updateMatrixWorld(true)
-  mesh.bind(new THREE.Skeleton([root, head, ...l.bones, ...r.bones]))
-  return { mesh, head, l, r }
+  mesh.add(base)
+  base.updateMatrixWorld(true)
+  // order must match B
+  mesh.bind(
+    new THREE.Skeleton([
+      base,
+      root,
+      head,
+      l.delt,
+      l.sh,
+      l.el,
+      l.hand,
+      r.delt,
+      r.sh,
+      r.el,
+      r.hand,
+      lLeg.sh,
+      lLeg.el,
+      lLeg.hand,
+      rLeg.sh,
+      rLeg.el,
+      rLeg.hand,
+    ]),
+  )
+  return { mesh, root, head, l, r, lLeg, rLeg }
 }
 
 const _q1 = new THREE.Quaternion()
@@ -201,9 +299,9 @@ const _u = new THREE.Vector3()
 const _f = new THREE.Vector3()
 const _e = new THREE.Vector3()
 
-/** Two-bone IK in model space: place the hand at `T`, elbow bending toward `pole`. */
-function solveArm(a: Arm, T: THREE.Vector3, pole: THREE.Vector3) {
-  // the shoulder joint can slide a little (robot shoulders do) for reach
+/** Two-bone IK in the parent's space: put the end at `T`, middle joint bending toward `pole`. */
+function solveLimb(a: Limb, T: THREE.Vector3, pole: THREE.Vector3) {
+  // the root joint can slide a little (robot shoulders do; hips ride the pelvis)
   a.S.copy(a.S0).add(a.shift)
   a.sh.position.copy(a.S)
   _d.copy(T).sub(a.S)
@@ -220,6 +318,88 @@ function solveArm(a: Arm, T: THREE.Vector3, pole: THREE.Vector3) {
   a.sh.quaternion.copy(_q1)
   _q2.setFromUnitVectors(a.restFore, _f)
   a.el.quaternion.copy(_q1).invert().multiply(_q2)
+  return _q2 // world-ish rotation of the lower segment
+}
+
+function solveArm(a: Arm, T: THREE.Vector3, pole: THREE.Vector3) {
+  // a ball joint stays in its socket: the shoulder never slides
+  a.shift.set(0, 0, 0)
+  solveLimb(a, T, pole)
+  a.delt.position.copy(a.S)
+}
+
+/** Legs: feet stay planted while the pelvis dips and sways; knees bend forward. */
+function solveLeg(leg: Limb, hipOffset: THREE.Vector3, pole: THREE.Vector3) {
+  leg.shift.copy(hipOffset)
+  const lower = solveLimb(leg, leg.restHand, pole)
+  // keep the sole flat on the floor whatever the shin does
+  leg.hand.quaternion.copy(lower).invert()
+}
+
+// ── eyes ──────────────────────────────────────────────────────────────────
+/**
+ * His eyes live only in the glow (emissive) texture, so they're redrawn here
+ * on a canvas: that's what lets him blink, look around and make faces.
+ * Centres/radii are from the original texture (2048px, halved to 1024); `up`
+ * and `side` are which way model-up and model-right run in texture space,
+ * worked out from the UV layout.
+ */
+const EYE_TEX = 1024
+const EYES = [
+  { x: 539, y: 388.5, r: 18.75, up: [2.655, -1], side: [-1, -1.571] },
+  { x: 386.5, y: 670, r: 19.75, up: [1.11, -1], side: [-1, -1.503] },
+].map((e) => {
+  const nu = Math.hypot(e.up[0]!, e.up[1]!)
+  const ns = Math.hypot(e.side[0]!, e.side[1]!)
+  return { ...e, ux: e.up[0]! / nu, uy: e.up[1]! / nu, sx: e.side[0]! / ns, sy: e.side[1]! / ns }
+})
+export type EyeShape = "dot" | "happy" | "squint" | "wide"
+
+function makeEyes() {
+  const c = document.createElement("canvas")
+  c.width = c.height = EYE_TEX
+  const g = c.getContext("2d")!
+  const tex = new THREE.CanvasTexture(c)
+  tex.flipY = false // glTF UV convention
+  tex.colorSpace = THREE.SRGBColorSpace
+  let last = ""
+  const draw = (open: number, shape: EyeShape, lx: number, ly: number) => {
+    const key = `${open.toFixed(2)}|${shape}|${lx.toFixed(2)}|${ly.toFixed(2)}`
+    if (key === last) return
+    last = key
+    g.setTransform(1, 0, 0, 1, 0, 0)
+    g.fillStyle = "#000"
+    g.fillRect(0, 0, EYE_TEX, EYE_TEX)
+    for (const e of EYES) {
+      const R = e.r * (shape === "wide" ? 1.18 : 1)
+      const cx = e.x + (e.sx * lx + e.ux * ly) * e.r * 0.55
+      const cy = e.y + (e.sy * lx + e.uy * ly) * e.r * 0.55
+      g.save()
+      g.translate(cx, cy)
+      g.rotate(Math.atan2(-e.ux, e.uy)) // local +y now runs along model-up
+      g.shadowColor = "#bfe6ff"
+      g.shadowBlur = R * 0.9
+      g.fillStyle = "#f2f8ff"
+      g.strokeStyle = "#f2f8ff"
+      if (shape === "happy") {
+        g.lineWidth = R * 0.62
+        g.lineCap = "round"
+        g.beginPath()
+        g.moveTo(-R * 0.82, -R * 0.15)
+        g.quadraticCurveTo(0, R * 1.15, R * 0.82, -R * 0.15)
+        g.stroke()
+      } else {
+        const h = Math.max(0.08, open * (shape === "squint" ? 0.42 : 1))
+        g.beginPath()
+        g.ellipse(0, shape === "squint" ? -R * 0.1 : 0, R, R * h, 0, 0, Math.PI * 2)
+        g.fill()
+      }
+      g.restore()
+    }
+    tex.needsUpdate = true
+  }
+  draw(1, "dot", 0, 0)
+  return { tex, draw }
 }
 
 // ── props ─────────────────────────────────────────────────────────────────
@@ -539,6 +719,8 @@ type Act =
   | "think"
   | "celebrate"
   | "point"
+  | "dance"
+  | "look"
 
 const DUR: Record<Exclude<Act, "idle">, number> = {
   scan: 12,
@@ -551,6 +733,8 @@ const DUR: Record<Exclude<Act, "idle">, number> = {
   think: 3.2,
   celebrate: 1.8,
   point: 2.0,
+  dance: 3.4,
+  look: 3.0,
 }
 
 /** Where the left wrist sits for the "watch" pose: forearm level across the chest. */
@@ -576,18 +760,19 @@ function Robot({
   lively: boolean
 }) {
   const { scene } = useGLTF(MODEL, DRACO)
-  const { rig, chrome } = useMemo(() => {
+  const { rig, chrome, eyes } = useMemo(() => {
     let src: THREE.Mesh | null = null
     scene.traverse((o) => {
       if (!src && (o as THREE.Mesh).isMesh) src = o as THREE.Mesh
     })
     const base = (src as unknown as THREE.Mesh).material as THREE.MeshStandardMaterial
+    const eyeTex = makeEyes()
     const material = new THREE.MeshPhysicalMaterial({
       map: base.map,
       normalMap: base.normalMap,
       metalnessMap: base.metalnessMap,
       roughnessMap: base.roughnessMap,
-      emissiveMap: base.emissiveMap,
+      emissiveMap: eyeTex.tex,
       emissive: new THREE.Color("#9fd8ff"),
       emissiveIntensity: 2.2,
       metalness: 1,
@@ -603,13 +788,16 @@ function Robot({
       clearcoat: 1,
       envMapIntensity: 2.8,
     })
-    return { rig: buildRig(src as unknown as THREE.Mesh, material), chrome: chromeMat }
+    return { rig: buildRig(src as unknown as THREE.Mesh, material), chrome: chromeMat, eyes: eyeTex }
   }, [scene])
   const emblemTex = useMemo(() => emblemTexture(), [])
 
   const body = useRef<THREE.Group>(null)
   const glass = useRef<THREE.Group>(null)
   const emitter = useRef<THREE.Group>(null)
+  const emblem = useRef<THREE.Group>(null)
+  // eyes: blink timing, quick glances, and a reaction after a tap
+  const eye = useRef({ nextBlink: 2.5, blinkT: -1, double: false, glanceT: 1.5, gx: 0, gy: 0, pokeT: -9 })
   const act = useRef<{ name: Act; t: number; dur: number; fired: Set<string> }>({
     name: "idle",
     t: 0,
@@ -639,6 +827,10 @@ function Robot({
       poleR: V(-0.12, -0.2, 0.45),
       lShift: new THREE.Vector3(),
       rShift: new THREE.Vector3(),
+      hip: new THREE.Vector3(),
+      hipOff: new THREE.Vector3(),
+      poleLegL: V(0.6, -0.3, JOINTS.lHip.z),
+      poleLegR: V(0.6, -0.3, JOINTS.rHip.z),
     }),
     [],
   )
@@ -662,10 +854,11 @@ function Robot({
     if (poke !== lastPoke.current) {
       lastPoke.current = poke
       sfx.chirp()
+      eye.current.pokeT = t
       if (a.name === "idle") {
         if (holos.length && Math.random() < 0.6) start("scan")
         else if (mood === "danger" || mood === "warn") start("shake")
-        else start((["wave", "celebrate", "spin", "point"] as const)[Math.floor(Math.random() * 4)]!)
+        else start((["wave", "celebrate", "dance", "point", "hop"] as const)[Math.floor(Math.random() * 5)]!)
       }
     }
 
@@ -685,19 +878,26 @@ function Robot({
       next.current -= dt
       if (next.current <= 0) {
         const r = Math.random()
-        if (holos.length && !holoOn && r < 0.38) start("scan")
-        else if (r < 0.52) start("inspect")
-        else if (r < 0.62) start("think")
-        else if (r < 0.7) start("wave")
-        else if (r < 0.77) start(mood === "danger" ? "shake" : "nod")
-        else if (r < 0.84) start(mood === "danger" || mood === "warn" ? "point" : "celebrate")
-        else if (r < 0.92) start("spin")
-        else start("hop")
+        if (holos.length && !holoOn && r < 0.3) start("scan")
+        else if (r < 0.42) start("inspect")
+        else if (r < 0.52) start("look")
+        else if (r < 0.6) start("think")
+        else if (r < 0.67) start("wave")
+        else if (r < 0.74) start(mood === "danger" ? "shake" : "dance")
+        else if (r < 0.8) start(mood === "danger" ? "shake" : "nod")
+        else if (r < 0.87) start(mood === "danger" || mood === "warn" ? "point" : "celebrate")
+        else if (r < 0.94) start("hop")
+        else start("spin")
         next.current = (lively ? 2.5 : 4) + Math.random() * (lively ? 3 : 4)
       }
     }
     if (a.name !== "idle") {
       a.t += dt
+      // Dev only: window.__rivenFreeze = 1.5 holds the current move at 1.5s.
+      if (process.env.NODE_ENV !== "production") {
+        const fz = (window as unknown as { __rivenFreeze?: number }).__rivenFreeze
+        if (typeof fz === "number") a.t = Math.min(fz, a.dur - 0.01)
+      }
       if (a.t >= a.dur) act.current = { name: "idle", t: 0, dur: 0, fired: new Set() }
     }
     const once = (key: string, at: number, fn: () => void) => {
@@ -713,7 +913,13 @@ function Robot({
     let pitch = calm ? 0 : -p.y * 0.08
     let roll = Math.sin(t * 0.9) * 0.015
     let lift = Math.sin(t * 1.6) * 0.01
-    let squash = 1 + Math.sin(t * 1.6) * 0.007
+    const squash = 1
+    // legs: knees flex with each "breath", weight shifts slowly side to side
+    let crouch = 0.004 * (1 + Math.sin(t * 1.6))
+    let sway = 0.009 * Math.sin(t * 0.47)
+    let eyeShape: EyeShape = "dot"
+    let lookX = calm ? 0 : -p.x * 0.7
+    let lookY = calm ? 0 : -p.y * 0.5
     let headYaw = calm ? 0 : p.x * 0.35
     let headPitch = calm ? 0 : p.y * 0.18
     const k = a.dur ? Math.min(1, a.t / a.dur) : 0
@@ -740,9 +946,10 @@ function Robot({
         // 1. Omnitrix-style: left forearm SNAPS up level across the chest, and stays up
         const lUp = snap((s - 0.25) / 0.35) * (1 - ease((s - 10.6) / 0.8))
         tmp.lT.lerp(WATCH, lUp)
-        tmp.lShift.set(0.03 * lUp, 0.01 * lUp, 0.03 * lUp)
+        tmp.lShift.set(0.015 * lUp, 0.008 * lUp, 0.015 * lUp)
         poleL = V(0.0, -0.12, -0.6)
-        if (s < 0.25) squash = 1 - 0.03 * bump(s / 0.25) // anticipation dip
+        if (s < 0.3) crouch = 0.03 * bump(s / 0.3) // anticipation dip at the knees
+        lookY = s < 2.4 ? -0.6 * lUp : lookY // eyes on the watch
         headPitch = 0.28 * lUp * (s < 2.4 ? 1 : 0.3) // look down at the watch
         headYaw = -0.12 * lUp * (s < 2.4 ? 1 : 0)
         // 2. right hand comes over the top and slaps the watch
@@ -750,7 +957,7 @@ function Robot({
         const slap = s > 1.0 && s < 1.25 ? bump((s - 1.0) / 0.25) : 0
         tmp.v.copy(WATCH).add(V(0.015, 0.04 - 0.028 * slap, 0.035))
         tmp.rT.lerp(tmp.v, reach)
-        tmp.rShift.set(0.03 * reach, 0.01 * reach, -0.03 * reach)
+        tmp.rShift.set(0.015 * reach, 0.008 * reach, -0.015 * reach)
         poleR = V(-0.05, 0.05, 0.6)
         once("press", 1.12, () => {
           sfx.press()
@@ -773,12 +980,15 @@ function Robot({
         // 4. …and holds it up to read the holograms, sweeping from one to the next
         if (read > 0.001) {
           tmp.rT.lerp(V(0.14, 0.135, 0.06), read)
-          tmp.rShift.set(0.035 * read, 0.025 * read, -0.02 * read)
+          tmp.rShift.set(0.02 * read, 0.015 * read, -0.012 * read)
           poleR = V(-0.05, -0.25, 0.55)
           const sweep = Math.sin((s - 4.0) * 0.9)
           yaw += sweep * 0.42 * read
           headYaw += sweep * 0.25 * read
           headPitch = 0.04
+          eyeShape = "squint"
+          lookX = -sweep * 0.8
+          lookY = 0.1
         }
         glassShow = s > 2.75 && s < 10.25 ? 1 : 0
         glassUp = read
@@ -806,7 +1016,9 @@ function Robot({
           pitch = 0.3 * bump(ph - 2)
           headPitch = 0.45 * bump(ph - 2)
           yaw += Math.sin((ph - 2) * Math.PI * 2) * 0.35
+          eyeShape = "happy"
         }
+        lookY = ph < 2 ? -0.5 : lookY
         once("chk", 0.6, () => sfx.compute(300))
         break
       }
@@ -814,8 +1026,11 @@ function Robot({
         // hand to chin, head tilted, a little "hmm" of computing
         const up = ease(k / 0.25) * (1 - ease((k - 0.8) / 0.2))
         tmp.rT.lerp(V(0.14, 0.13, 0.05), up)
-        tmp.rShift.set(0.03 * up, 0.02 * up, -0.03 * up)
+        tmp.rShift.set(0.015 * up, 0.01 * up, -0.015 * up)
         poleR = V(0.0, -0.3, 0.5)
+        eyeShape = up > 0.5 ? "squint" : "dot"
+        lookX = 0.6 * up
+        lookY = 0.7 * up
         headPitch = -0.12 * up
         headYaw = 0.18 * up
         roll = 0.08 * up
@@ -824,11 +1039,14 @@ function Robot({
       }
       case "celebrate": {
         const up = bump(k)
-        tmp.lT.lerp(V(0.03, 0.2, -0.27), up)
-        tmp.rT.lerp(V(0.03, 0.2, 0.25), up)
+        tmp.lT.lerp(V(0.04, 0.3, -0.25), up)
+        tmp.rT.lerp(V(0.04, 0.3, 0.23), up)
         poleL = V(-0.1, 0, -0.6)
         poleR = V(-0.1, 0, 0.6)
-        lift += up * 0.08 * Math.abs(Math.sin(k * Math.PI * 3))
+        const b = Math.abs(Math.sin(k * Math.PI * 3))
+        lift += up * 0.06 * b
+        crouch = 0.03 * up * (1 - b)
+        eyeShape = "happy"
         once("yay", 0.2, () => sfx.chirp())
         break
       }
@@ -839,6 +1057,9 @@ function Robot({
         poleR = V(-0.1, -0.3, 0.6)
         headYaw = 0
         headPitch = 0
+        lookX = 0
+        lookY = 0
+        eyeShape = up > 0.5 ? "wide" : "dot"
         once("blip", 0.3, () => sfx.press())
         break
       }
@@ -847,23 +1068,58 @@ function Robot({
         tmp.rT.lerp(V(0.05, 0.25 + 0.01 * Math.sin(t * 12), 0.26 + 0.045 * Math.sin(t * 9)), up)
         poleR = V(-0.1, -0.1, 0.6)
         headYaw = 0.15 * up
+        eyeShape = up > 0.3 ? "happy" : "dot"
+        sway += 0.012 * up * Math.sin(t * 4.5)
         break
       }
       case "spin":
         yaw += ease(k) * Math.PI * 2
         lift += bump(k) * 0.05
         break
-      case "hop":
-        lift += bump(k) * 0.14
-        squash = k < 0.12 ? 0.93 : k > 0.88 ? 0.95 : 1.04
-        tmp.lT.y += 0.04 * bump(k)
-        tmp.lT.z -= 0.03 * bump(k)
-        tmp.rT.y += 0.04 * bump(k)
-        tmp.rT.z += 0.03 * bump(k)
+      case "hop": {
+        // knees load up, spring, then soak up the landing
+        const air = (k - 0.2) / 0.6
+        lift += bump(air) * 0.14
+        crouch = k < 0.2 ? 0.05 * bump(k / 0.2) : k > 0.8 ? 0.045 * bump((k - 0.8) / 0.2) : 0
+        tmp.lT.y += 0.04 * bump(air)
+        tmp.lT.z -= 0.03 * bump(air)
+        tmp.rT.y += 0.04 * bump(air)
+        tmp.rT.z += 0.03 * bump(air)
+        eyeShape = air > 0 && air < 1 ? "wide" : "dot"
+        once("boing", 0.18, () => sfx.servo(0.25))
         break
+      }
+      case "dance": {
+        // a little bop: knees on the beat, hips swaying, arms pumping
+        const on = ease(k / 0.12) * (1 - ease((k - 0.88) / 0.12))
+        const beat = t * 9
+        crouch = on * 0.022 * (1 + Math.sin(beat))
+        sway += on * 0.022 * Math.sin(beat / 2)
+        tmp.lT.lerp(V(0.08, -0.02 + 0.05 * Math.max(0, Math.sin(beat / 2)), -0.24), on)
+        tmp.rT.lerp(V(0.08, -0.02 + 0.05 * Math.max(0, -Math.sin(beat / 2)), 0.22), on)
+        poleL = V(-0.2, -0.2, -0.5)
+        poleR = V(-0.2, -0.2, 0.5)
+        headPitch += on * 0.08 * Math.sin(beat)
+        headYaw = on * 0.2 * Math.sin(beat / 2)
+        eyeShape = "happy"
+        once("bop", 0.3, () => sfx.chirp())
+        break
+      }
+      case "look": {
+        // glance left, then right, eyes leading the head
+        const ph = k * 2
+        const side = ph < 1 ? 1 : -1
+        const w = bump(ph < 1 ? ph : ph - 1)
+        headYaw = 0.6 * side * w
+        lookX = -0.9 * side * Math.min(1, w * 1.6)
+        lookY = 0.1
+        sway += 0.008 * side * w
+        break
+      }
       case "shake":
         headYaw = Math.sin(k * Math.PI * 6) * 0.45 * (1 - k)
         tmp.rT.lerp(V(0.13, 0.04, 0.16), bump(k) * 0.8)
+        eyeShape = "squint"
         break
       case "nod":
         headPitch += Math.sin(k * Math.PI * 4) * 0.18 * (1 - k)
@@ -872,10 +1128,52 @@ function Robot({
     if (calm) {
       // still pose: watch arm up, holograms out
       tmp.lT.copy(WATCH)
-      tmp.lShift.set(0.03, 0.01, 0.03)
+      tmp.lShift.set(0.015, 0.008, 0.015)
       poleL = V(0.0, -0.12, -0.6)
       glowTarget = 1
+      crouch = 0.004
+      sway = 0
     }
+
+    // ── eyes: blink, glance, react ──
+    const e = eye.current
+    let open = 1
+    if (!calm) {
+      e.nextBlink -= dt
+      if (e.nextBlink <= 0 && e.blinkT < 0) {
+        e.blinkT = 0
+        e.double = Math.random() < 0.2
+        e.nextBlink = 2 + Math.random() * 3.5
+      }
+      if (e.blinkT >= 0) {
+        e.blinkT += dt
+        const len = 0.16
+        open = 1 - bump(e.blinkT / len)
+        if (e.blinkT > len) {
+          if (e.double) {
+            e.double = false
+            e.blinkT = 0
+          } else e.blinkT = -1
+        }
+      }
+      // little glances so he never stares like a statue
+      e.glanceT -= dt
+      if (e.glanceT <= 0) {
+        e.glanceT = 1.2 + Math.random() * 2.8
+        const off = Math.random() < 0.35
+        e.gx = off ? (Math.random() - 0.5) * 0.9 : 0
+        e.gy = off ? (Math.random() - 0.5) * 0.5 : 0
+      }
+      if (a.name === "idle") {
+        lookX += e.gx
+        lookY += e.gy
+      }
+      const since = t - e.pokeT
+      if (since < 0.45) eyeShape = "wide"
+      else if (since < 1.6) eyeShape = "happy"
+    }
+    const q = (v: number, step: number) => Math.round(v / step) * step
+    eyes.draw(q(open, 0.1), eyeShape, q(Math.max(-1, Math.min(1, lookX)), 0.05), q(Math.max(-1, Math.min(1, lookY)), 0.05))
 
     // ease hand targets and shoulder slides so every move is smooth
     const kf = 1 - Math.exp(-dt * 12)
@@ -883,8 +1181,25 @@ function Robot({
     rig.r.target.lerp(tmp.rT, kf)
     rig.l.shift.lerp(tmp.lShift, kf)
     rig.r.shift.lerp(tmp.rShift, kf)
+    // upper body rides the pelvis; legs keep the feet planted under it
+    const bodyK = Math.min(1, dt * 10)
+    rig.root.position.y += (-crouch - rig.root.position.y) * bodyK
+    rig.root.position.z += (sway - rig.root.position.z) * Math.min(1, dt * 4)
+    rig.root.rotation.x = rig.root.position.z * 1.6 // lean into the weight shift
     solveArm(rig.l, rig.l.target, poleL)
     solveArm(rig.r, rig.r.target, poleR)
+    for (const [leg, pole] of [
+      [rig.lLeg, tmp.poleLegL],
+      [rig.rLeg, tmp.poleLegR],
+    ] as const) {
+      tmp.hip.copy(leg.S0).applyQuaternion(rig.root.quaternion).add(rig.root.position)
+      tmp.hipOff.copy(tmp.hip).sub(leg.S0)
+      solveLeg(leg, tmp.hipOff, pole)
+    }
+    if (emblem.current) {
+      emblem.current.position.copy(rig.root.position)
+      emblem.current.quaternion.copy(rig.root.quaternion)
+    }
     rig.head.rotation.y += (headYaw - rig.head.rotation.y) * Math.min(1, dt * 6)
     rig.head.rotation.z += (-headPitch - rig.head.rotation.z) * Math.min(1, dt * 6)
 
@@ -936,10 +1251,12 @@ function Robot({
       <group rotation={[0, -Math.PI / 2, 0]}>
         <primitive object={rig.mesh} />
         {/* chest emblem rides the torso */}
-        <mesh position={[0.109, 0.015, MID_Z]} rotation={[0, Math.PI / 2, 0]}>
-          <circleGeometry args={[0.036, 48]} />
-          <meshBasicMaterial map={emblemTex} transparent toneMapped={false} />
-        </mesh>
+        <group ref={emblem}>
+          <mesh position={[0.109, 0.015, MID_Z]} rotation={[0, Math.PI / 2, 0]}>
+            <circleGeometry args={[0.036, 48]} />
+            <meshBasicMaterial map={emblemTex} transparent toneMapped={false} />
+          </mesh>
+        </group>
         <group ref={emitter} visible={false}>
           <Emitter glow={glow} />
         </group>

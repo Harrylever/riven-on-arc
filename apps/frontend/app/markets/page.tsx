@@ -19,8 +19,8 @@ export default async function MarketsPage() {
     })
   const [fresh, volume, safest, caught] = await Promise.all([
     q({ sort: "new", view: "all" }),
-    q({ sort: "trending", view: "all" }),
-    q({ sort: "safest" }),
+    q({ sort: "volume", view: "all" }),
+    q({ sort: "safest", view: "listed" }),
     q({ sort: "new", view: "caught" }),
   ])
   const panels: Panel[] = [

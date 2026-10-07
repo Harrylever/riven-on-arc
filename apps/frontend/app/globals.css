@@ -596,16 +596,3 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   [style*="rv-holo-flicker"] { animation: none !important; }
 }
-
-/* thinking-orbs on the home hero: bloom in on landing, then drift */
-@keyframes rv-orb-in {
-  from { opacity: 0; transform: scale(0.4) translateY(12px); filter: blur(6px); }
-  to { opacity: 1; transform: none; filter: none; }
-}
-@keyframes rv-orb-drift {
-  from { translate: 0 0; }
-  to { translate: 14px -18px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  [style*="rv-orb-in"] { animation: none !important; }
-}

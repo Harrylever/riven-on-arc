@@ -12,13 +12,15 @@ import {
   filtersToQuery,
   type AgeFilter,
   type BandFilter,
+  type SortKey,
   type PadFilter,
   type ScreenerFilters,
   type Timeframe,
   type ViewFilter,
 } from "@/lib/screener-params"
 import { REASON_LABEL } from "@/lib/reasons"
-import { BAND_META, age, change, changeColor, compact, usd } from "@/lib/riven-format"
+import { age, change, changeColor, compact, usd } from "@/lib/riven-format"
+import type { getMarketTotals } from "@/lib/arc-data"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
@@ -28,32 +30,49 @@ const REFRESH_MS = 20_000
 /** Where "Dispute a score" goes: NEXT_PUBLIC_DISPUTE_URL, else the methodology page. */
 const DISPUTE_URL = process.env.NEXT_PUBLIC_DISPUTE_URL || "/methodology#disputes"
 
-const BANDS: BandFilter[] = ["all", "healthy", "caution", "risk"]
-const VIEWS: Array<{ id: ViewFilter; label: string; hint: string }> = [
-  { id: "listed", label: "Listed", hint: "Flagged tokens hidden" },
-  { id: "caught", label: "Caught", hint: "Only flagged tokens, with the evidence" },
-  { id: "all", label: "Everything", hint: "Listed and flagged together" },
+type Totals = Awaited<ReturnType<typeof getMarketTotals>>
+
+const VIEWS: Array<[ViewFilter, string]> = [
+  ["all", "All tokens"],
+  ["listed", "Hide flagged"],
+  ["caught", "Only flagged"],
 ]
 const PADS: Array<[PadFilter, string]> = [
-  ["all", "All launchpads"],
+  ["all", "Any source"],
   ["ARGUS", "Argus"],
   ["TOLLY", "Tolly"],
-  ["OTHER", "Uniswap v4"],
+  ["OTHER", "DEX pools"],
 ]
+const BANDS: Array<[BandFilter, string]> = [
+  ["all", "Any score"],
+  ["healthy", "Healthy 7+"],
+  ["caution", "Caution"],
+  ["risk", "Risky"],
+  ["unscored", "Not scored"],
+]
+const AGES: Array<[AgeFilter, string]> = [
+  ["all", "Any age"],
+  ["1h", "< 1 hour"],
+  ["6h", "< 6 hours"],
+  ["24h", "< 24 hours"],
+  ["7d", "< 7 days"],
+]
+/** Rank-by shortcuts next to Trending — DexScreener's top bar. */
+const RANKS = SORTS.filter((s) => s.id !== "trending")
 
-const pick = (t: TokenSummary, tf: Timeframe) => {
-  const k = ({ "5m": "m5", "1h": "h1", "6h": "h6", "24h": "h24" } as const)[tf]
-  return { vol: t.volume[k], chg: t.change[k] }
-}
+const TF_KEY = { "5m": "m5", "1h": "h1", "6h": "h6", "24h": "h24" } as const
+const pick = (t: TokenSummary, tf: Timeframe) => ({ vol: t.volume[TF_KEY[tf]], chg: t.change[TF_KEY[tf]] })
+const padLabel = (p: string) => (p === "OTHER" ? "DEX" : p.charAt(0) + p.slice(1).toLowerCase())
 
 export function Screener({
-  title = "Trending",
+  title = "Every token on Arc",
   filters,
   tokens,
   total,
   page,
   pages,
   serverNow,
+  totals,
 }: {
   title?: string
   filters: ScreenerFilters
@@ -62,6 +81,7 @@ export function Screener({
   page: number
   pages: number
   serverNow: number
+  totals?: Totals | null
 }) {
   const router = useRouter()
   const path = usePathname()
@@ -87,82 +107,73 @@ export function Screener({
       document.getElementById("screener-top")?.scrollIntoView({ behavior: "smooth", block: "start" })
     })
 
-  const activeCount = (Object.keys(DEFAULT_FILTERS) as Array<keyof ScreenerFilters>).filter(
-    (k) => !["sort", "band", "page", "view", "tf", "pad", "age"].includes(k) && filters[k] !== DEFAULT_FILTERS[k],
+  const activeCount = (["minLiq", "minMcap", "maxMcap", "minVol", "minScore"] as const).filter(
+    (k) => filters[k] !== DEFAULT_FILTERS[k],
   ).length
-  const showWhy = filters.view !== "listed"
+  const showWhy = filters.view === "caught"
 
   return (
     <section id="screener-top" aria-label="Arc token screener" className="flex scroll-mt-28 flex-col gap-3">
-      {/* Title + timeframe + view */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 className="text-[22px] font-bold tracking-tight text-[var(--rv-ink)]">{title}</h1>
-        <div className="rv-seg" role="group" aria-label="Timeframe">
+      {/* Chain totals, like DexScreener's header strip */}
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
+        <h1 className="mr-auto text-[22px] font-bold tracking-tight text-[var(--rv-ink)]">{title}</h1>
+        {totals && (
+          <dl className="flex flex-wrap gap-x-5 gap-y-1 text-[12px]">
+            <Total label="24h volume" value={usd(totals.volume24h)} />
+            <Total label="24h txns" value={compact(totals.txns24h)} />
+            <Total label="Tokens" value={compact(totals.tokens)} />
+            <Total label="Trading now" value={compact(totals.trading)} />
+          </dl>
+        )}
+      </div>
+
+      {/* Trending + timeframe, then rank-by shortcuts */}
+      <div className="scrollbar-hidden -mx-4 flex items-center gap-1.5 overflow-x-auto px-4">
+        <div className="rv-seg shrink-0" role="group" aria-label="Trending timeframe">
+          <button
+            type="button"
+            aria-pressed={filters.sort === "trending"}
+            onClick={() => go({ sort: "trending" })}
+            className="flex items-center gap-1"
+          >
+            <svg viewBox="0 0 24 24" width={13} height={13} fill="currentColor" aria-hidden>
+              <path d="M13.5 2s.9 3.2-1.6 6.1C9.6 10.8 8 12.4 8 15a4 4 0 0 0 8 0c0-1.3-.5-2.4-1.2-3.4 2.8 1 4.2 3.6 4.2 6.1A7 7 0 0 1 5 17.6c0-4.8 3.4-7.4 5.4-9.6C12.6 5.6 13.5 2 13.5 2z" />
+            </svg>
+            Trending
+          </button>
           {TIMEFRAMES.map((tf) => (
-            <button key={tf} type="button" aria-pressed={filters.tf === tf} onClick={() => go({ tf })}>
+            <button
+              key={tf}
+              type="button"
+              aria-pressed={filters.tf === tf}
+              onClick={() =>
+                go({ tf, ...(filters.sort === "gainers" || filters.sort === "losers" ? {} : { sort: "trending" as const }) })
+              }
+              className="uppercase"
+            >
               {tf}
             </button>
           ))}
         </div>
-        <div className="rv-seg" role="radiogroup" aria-label="Which tokens">
-          {VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              role="radio"
-              aria-checked={filters.view === v.id}
-              title={v.hint}
-              onClick={() => go({ view: v.id })}
-              style={v.id === "caught" && filters.view !== "caught" ? { color: "var(--rv-risk)" } : undefined}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
-        <span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-[var(--rv-ink-3)]" aria-live="polite">
-          <span className={pending ? "size-1.5 rounded-full bg-[var(--rv-caution)]" : "rv-live-dot"} />
-          {pending ? "Updating" : `${total} tokens · live`}
-        </span>
-      </div>
-
-      {/* Sort + launchpad + band + filters */}
-      <div className="scrollbar-hidden -mx-4 flex items-center gap-1.5 overflow-x-auto px-4">
-        {SORTS.map((s) => (
-          <button key={s.id} type="button" aria-pressed={s.id === filters.sort} onClick={() => go({ sort: s.id })} className="rv-chip shrink-0">
+        {RANKS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            aria-pressed={s.id === filters.sort}
+            onClick={() => go({ sort: s.id })}
+            className="rv-chip shrink-0"
+          >
             {s.label}
           </button>
         ))}
-        <span className="mx-1 h-5 w-px shrink-0 bg-[var(--rv-stroke)]" aria-hidden />
-        {PADS.map(([id, label]) => (
-          <button key={id} type="button" aria-pressed={filters.pad === id} onClick={() => go({ pad: id })} className="rv-chip shrink-0">
-            {label}
-          </button>
-        ))}
-        <span className="mx-1 h-5 w-px shrink-0 bg-[var(--rv-stroke)]" aria-hidden />
-        {BANDS.map((b) => (
-          <button
-            key={b}
-            type="button"
-            aria-pressed={b === filters.band}
-            onClick={() => go({ band: b })}
-            className="rv-chip shrink-0"
-            style={b !== "all" ? { color: BAND_META[b].color } : undefined}
-          >
-            {b === "all" ? "Any score" : BAND_META[b].short}
-          </button>
-        ))}
-        <select
-          aria-label="Age"
-          value={filters.age}
-          onChange={(e) => go({ age: e.target.value as AgeFilter })}
-          className="rv-chip shrink-0 outline-none"
-        >
-          <option value="all">Any age</option>
-          <option value="1h">&lt; 1 hour</option>
-          <option value="6h">&lt; 6 hours</option>
-          <option value="24h">&lt; 24 hours</option>
-          <option value="7d">&lt; 7 days</option>
-        </select>
+      </div>
+
+      {/* Filters: users narrow the full list down to what they want */}
+      <div className="scrollbar-hidden -mx-4 flex items-center gap-1.5 overflow-x-auto px-4">
+        <Select label="Which tokens" value={filters.view} onChange={(v) => go({ view: v as ViewFilter })} options={VIEWS} />
+        <Select label="Riven score" value={filters.band} onChange={(v) => go({ band: v as BandFilter })} options={BANDS} />
+        <Select label="Source" value={filters.pad} onChange={(v) => go({ pad: v as PadFilter })} options={PADS} />
+        <Select label="Age" value={filters.age} onChange={(v) => go({ age: v as AgeFilter })} options={AGES} />
         <button
           type="button"
           onClick={() => setPanel((p) => !p)}
@@ -170,8 +181,15 @@ export function Screener({
           aria-pressed={activeCount > 0}
           className="rv-chip shrink-0"
         >
+          <svg viewBox="0 0 24 24" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+            <path d="M4 6h16M7 12h10M10 18h4" />
+          </svg>
           Filters{activeCount > 0 ? ` · ${activeCount}` : ""}
         </button>
+        <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-2 text-[11.5px] text-[var(--rv-ink-3)]" aria-live="polite">
+          <span className={pending ? "size-1.5 rounded-full bg-[var(--rv-caution)]" : "rv-live-dot"} />
+          {pending ? "Updating" : `${compact(total)} tokens · live`}
+        </span>
       </div>
 
       {panel && (
@@ -187,39 +205,76 @@ export function Screener({
       {tokens.length === 0 ? (
         <div className="rv-card px-6 py-14 text-center">
           <p className="text-[16px] font-semibold text-[var(--rv-ink)]">No tokens match</p>
-          <p className="mt-1 text-[13px] text-[var(--rv-ink-2)]">
-            {filters.view === "caught"
-              ? "Nothing flagged under these filters — loosen one to see more."
-              : filters.view === "listed"
-                ? "Loosen a filter, or switch to “Everything” to include flagged tokens."
-                : "Loosen a filter."}
-          </p>
+          <p className="mt-1 text-[13px] text-[var(--rv-ink-2)]">Loosen a filter to see more.</p>
           <button type="button" onClick={() => go({ ...DEFAULT_FILTERS })} className="rv-btn mt-4">
             Reset filters
           </button>
         </div>
       ) : (
         <>
-          <DesktopTable tokens={tokens} now={now} offset={(page - 1) * PAGE_SIZE} tf={filters.tf} showWhy={showWhy} />
-          <MobileList tokens={tokens} now={now} tf={filters.tf} showWhy={showWhy} />
+          <DesktopTable
+            tokens={tokens}
+            now={now}
+            offset={(page - 1) * PAGE_SIZE}
+            filters={filters}
+            onSort={(sort, tf) => go({ sort, ...(tf ? { tf } : {}) })}
+            showWhy={showWhy}
+          />
+          <MobileList tokens={tokens} now={now} offset={(page - 1) * PAGE_SIZE} tf={filters.tf} showWhy={showWhy} />
           <Pagination page={page} pages={pages} onPage={goPage} />
         </>
       )}
 
-      {filters.view === "listed" && (
-        <p className="text-[12px] leading-relaxed text-[var(--rv-ink-3)]">
-          Hidden here: tokens flagged for fake volume, serial launchers, creators who sold out, pulled liquidity, dead tokens and
-          impersonation.{" "}
-          <button type="button" onClick={() => go({ view: "caught" })} className="font-semibold text-[var(--rv-risk)] hover:underline">
-            See them with the evidence
-          </button>
-          {" · "}
-          <a href={DISPUTE_URL} className="font-semibold text-[var(--rv-ice)] hover:underline">
-            Dispute a score
-          </a>
-        </p>
-      )}
+      <p className="text-[12px] leading-relaxed text-[var(--rv-ink-3)]">
+        Every Arc token with a pool is listed. A red edge means Riven flagged it from on-chain evidence — fake volume, serial
+        launchers, creators who sold out, pulled liquidity, impersonation.{" "}
+        <button type="button" onClick={() => go({ view: "caught" })} className="font-semibold text-[var(--rv-risk)] hover:underline">
+          See only flagged, with the evidence
+        </button>
+        {" · "}
+        <a href={DISPUTE_URL} className="font-semibold text-[var(--rv-ice)] hover:underline">
+          Dispute a score
+        </a>
+        {" · "}Market data: DexScreener. Not financial advice.
+      </p>
     </section>
+  )
+}
+
+function Total({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <dt className="rv-label">{label}</dt>
+      <dd className="rv-num font-bold text-[var(--rv-ink)]">{value}</dd>
+    </div>
+  )
+}
+
+function Select<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string
+  value: T
+  onChange: (v: T) => void
+  options: Array<[T, string]>
+}) {
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value as T)}
+      className="rv-chip shrink-0 cursor-pointer outline-none"
+      style={value !== options[0]![0] ? { color: "var(--rv-ink)", borderColor: "var(--rv-stroke-strong)" } : undefined}
+    >
+      {options.map(([v, l]) => (
+        <option key={v} value={v}>
+          {l}
+        </option>
+      ))}
+    </select>
   )
 }
 
@@ -248,11 +303,15 @@ function FilterPanel({ filters, onApply }: { filters: ScreenerFilters; onApply: 
       {field("minLiq", "Min liquidity $", "0")}
       {field("minMcap", "Min market cap $", "0")}
       {field("maxMcap", "Max market cap $", "any")}
-      {field("minVol", "Min volume $", "0")}
+      {field("minVol", "Min 24h volume $", "0")}
       {field("minScore", "Min score /10", "0")}
       <div className="col-span-2 flex justify-end gap-2 sm:col-span-5">
-        <button type="button" onClick={() => onApply({ ...DEFAULT_FILTERS, sort: filters.sort, tf: filters.tf })} className="rv-btn-ghost">
-          Reset
+        <button
+          type="button"
+          onClick={() => onApply({ minLiq: 0, minMcap: 0, maxMcap: 0, minVol: 0, minScore: 0 })}
+          className="rv-btn-ghost"
+        >
+          Clear
         </button>
         <button type="submit" className="rv-btn">
           Apply
@@ -264,7 +323,9 @@ function FilterPanel({ filters, onApply }: { filters: ScreenerFilters; onApply: 
 
 function Pagination({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
   if (pages <= 1) return null
-  const nums = [...new Set([1, page - 1, page, page + 1, pages])].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b)
+  const nums = [...new Set([1, page - 2, page - 1, page, page + 1, page + 2, pages])]
+    .filter((n) => n >= 1 && n <= pages)
+    .sort((a, b) => a - b)
   return (
     <nav className="flex flex-wrap items-center justify-center gap-1.5 py-1" aria-label="Pages">
       <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)} className="rv-chip disabled:opacity-30">
@@ -284,6 +345,249 @@ function Pagination({ page, pages, onPage }: { page: number; pages: number; onPa
         Next →
       </button>
     </nav>
+  )
+}
+
+/** Flagged rows get a red edge, like a warning stripe. */
+function rowStyle(t: TokenSummary) {
+  return t.fake ? { boxShadow: "inset 2px 0 0 var(--rv-risk)" } : undefined
+}
+
+function Pct({ v }: { v: number | null }) {
+  return (
+    <span className="rv-num" style={{ color: v === null ? "var(--rv-ink-3)" : changeColor(v) }}>
+      {v === null ? "—" : change(v)}
+    </span>
+  )
+}
+
+function SortHead({
+  children,
+  s,
+  t,
+  left,
+  title,
+  filters,
+  onSort,
+}: {
+  children: React.ReactNode
+  s?: SortKey
+  t?: Timeframe
+  left?: boolean
+  title?: string
+  filters: ScreenerFilters
+  onSort: (s: SortKey, tf?: Timeframe) => void
+}) {
+  const active = s !== undefined && filters.sort === s && (t === undefined || filters.tf === t)
+  return (
+    <th className={`rv-label px-2 py-2.5 whitespace-nowrap ${left ? "text-left" : "text-right"}`} title={title}>
+      {s ? (
+        <button
+          type="button"
+          onClick={() => onSort(s, t)}
+          className={`uppercase hover:text-[var(--rv-ink)] ${active ? "text-[var(--rv-blue)]" : ""}`}
+        >
+          {children}
+          {active ? " ▾" : ""}
+        </button>
+      ) : (
+        children
+      )}
+    </th>
+  )
+}
+
+function DesktopTable({
+  tokens,
+  now,
+  offset,
+  filters,
+  onSort,
+  showWhy,
+}: {
+  tokens: TokenSummary[]
+  now: number
+  offset: number
+  filters: ScreenerFilters
+  onSort: (s: SortKey, tf?: Timeframe) => void
+  showWhy: boolean
+}) {
+  const router = useRouter()
+  const h = { filters, onSort }
+  return (
+    <div className="rv-card hidden overflow-x-auto md:block">
+      <table className="w-full min-w-[1180px] border-collapse text-[13px]">
+        <thead>
+          <tr className="border-b border-[var(--rv-stroke)]">
+            <th className="rv-label w-12 py-2.5 pl-4 text-left">#</th>
+            <SortHead left {...h}>
+              Token
+            </SortHead>
+            <SortHead {...h}>Price</SortHead>
+            <SortHead s="new" {...h}>
+              Age
+            </SortHead>
+            <SortHead s="txns" title="Buys + sells, 24h" {...h}>
+              Txns
+            </SortHead>
+            <SortHead s="volume" title="24h volume" {...h}>
+              Volume
+            </SortHead>
+            <SortHead s="gainers" t="5m" {...h}>
+              5m
+            </SortHead>
+            <SortHead s="gainers" t="1h" {...h}>
+              1h
+            </SortHead>
+            <SortHead s="gainers" t="6h" {...h}>
+              6h
+            </SortHead>
+            <SortHead s="gainers" t="24h" {...h}>
+              24h
+            </SortHead>
+            <SortHead s="liquidity" {...h}>
+              Liquidity
+            </SortHead>
+            <SortHead s="mcap" {...h}>
+              Mcap
+            </SortHead>
+            <SortHead s="safest" title="Riven safety score, 1–10" {...h}>
+              Riven
+            </SortHead>
+            <th className="w-9" />
+          </tr>
+        </thead>
+        <tbody>
+          {tokens.map((t, i) => {
+            const txns = t.buys24h === null ? null : (t.buys24h ?? 0) + (t.sells24h ?? 0)
+            return (
+              <tr
+                key={t.address}
+                onClick={() => router.push(`/token/${t.address}`)}
+                className="cursor-pointer border-b border-[var(--rv-stroke)] transition-colors last:border-0 hover:bg-[var(--rv-row-hover)]"
+                style={rowStyle(t)}
+                title={t.fake ? t.fakeReasons[0] : undefined}
+              >
+                <td className="rv-num py-2 pl-4 text-[12px] text-[var(--rv-ink-3)]">#{offset + i + 1}</td>
+                <td className="px-2 py-2">
+                  <Link href={`/token/${t.address}`} className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
+                    <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={28} />
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-1.5">
+                        <span className="rounded bg-white/[0.06] px-1 py-px text-[9.5px] font-bold text-[var(--rv-ink-3)] uppercase">
+                          {padLabel(t.launchpad)}
+                        </span>
+                        <span className="max-w-[130px] truncate text-[13.5px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
+                        <span className="text-[12px] text-[var(--rv-ink-3)]">/USDC</span>
+                        <span className="max-w-[150px] truncate text-[12px] text-[var(--rv-ink-3)]">{t.name}</span>
+                        {t.fake && <FlagChip />}
+                        <CopyBadge copies={t.copies} />
+                      </span>
+                      {showWhy && (
+                        <span className="block max-w-[520px]">
+                          <Why t={t} />
+                        </span>
+                      )}
+                    </span>
+                  </Link>
+                </td>
+                <td className="rv-num px-2 py-2 text-right font-semibold text-[var(--rv-ink)]">
+                  {t.priceUsd === null ? "—" : usd(t.priceUsd, { precise: true })}
+                </td>
+                <td className="rv-num px-2 py-2 text-right text-[var(--rv-ink-2)]">{age(t.launchedAt, now)}</td>
+                <td
+                  className="rv-num px-2 py-2 text-right text-[var(--rv-ink-2)]"
+                  title={t.buys24h === null ? undefined : `${t.buys24h} buys / ${t.sells24h} sells`}
+                >
+                  {txns === null ? <span className="text-[var(--rv-ink-3)]">—</span> : compact(txns)}
+                </td>
+                <td className="rv-num px-2 py-2 text-right text-[var(--rv-ink)]">{t.volume.h24 === null ? "—" : usd(t.volume.h24)}</td>
+                <td className="px-2 py-2 text-right">
+                  <Pct v={t.change.m5} />
+                </td>
+                <td className="px-2 py-2 text-right">
+                  <Pct v={t.change.h1} />
+                </td>
+                <td className="px-2 py-2 text-right">
+                  <Pct v={t.change.h6} />
+                </td>
+                <td className="px-2 py-2 text-right">
+                  <Pct v={t.change.h24} />
+                </td>
+                <td className="px-2 py-2 text-right">
+                  <div className="rv-num text-[var(--rv-ink-2)]">{t.liquidityUsd === null ? "—" : usd(t.liquidityUsd)}</div>
+                  {t.usdcInPool !== null && t.usdcInPool < 1000 && (
+                    <div className="rv-num text-[10.5px] text-[var(--rv-caution)]" title="Real USDC in the pool — what sellers can exit into">
+                      {usd(t.usdcInPool)} real
+                    </div>
+                  )}
+                </td>
+                <td className="rv-num px-2 py-2 text-right text-[var(--rv-ink)]">{t.marketCap === null ? "—" : usd(t.marketCap)}</td>
+                <td className="px-2 py-2 text-right">
+                  <ScoreBadge score={t.score} band={t.band} size="sm" />
+                </td>
+                <td className="pr-2" onClick={(e) => e.stopPropagation()}>
+                  <WatchButton address={t.address} />
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function MobileList({
+  tokens,
+  now,
+  offset,
+  tf,
+  showWhy,
+}: {
+  tokens: TokenSummary[]
+  now: number
+  offset: number
+  tf: Timeframe
+  showWhy: boolean
+}) {
+  return (
+    <ol className="rv-card divide-y divide-[var(--rv-stroke)] overflow-hidden md:hidden">
+      {tokens.map((t, i) => {
+        const { chg } = pick(t, tf)
+        return (
+          <li key={t.address} style={rowStyle(t)}>
+            <Link href={`/token/${t.address}`} className="flex items-center gap-2.5 px-3 py-2.5 active:bg-[var(--rv-row-hover)]">
+              <span className="rv-num w-6 shrink-0 text-[10.5px] text-[var(--rv-ink-3)]">{offset + i + 1}</span>
+              <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={34} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1">
+                  <span className="truncate text-[14px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
+                  <span className="text-[11px] text-[var(--rv-ink-3)]">/USDC</span>
+                  {t.fake && <FlagChip />}
+                </div>
+                <div className="rv-num mt-0.5 flex flex-wrap gap-x-2 text-[10.5px] text-[var(--rv-ink-3)]">
+                  <span>{age(t.launchedAt, now)}</span>
+                  <span>Liq {t.liquidityUsd === null ? "—" : usd(t.liquidityUsd)}</span>
+                  <span>Vol {t.volume.h24 === null ? "—" : usd(t.volume.h24)}</span>
+                  <span>Mcap {t.marketCap === null ? "—" : usd(t.marketCap)}</span>
+                </div>
+                {showWhy && <Why t={t} />}
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="rv-num text-[13px] font-bold text-[var(--rv-ink)]">
+                  {t.priceUsd === null ? "—" : usd(t.priceUsd, { precise: true })}
+                </div>
+                <div className="rv-num text-[11.5px] font-semibold" style={{ color: changeColor(chg) }}>
+                  {change(chg)}
+                </div>
+              </div>
+              <ScoreBadge score={t.score} band={t.band} size="sm" />
+            </Link>
+          </li>
+        )
+      })}
+    </ol>
   )
 }
 
@@ -332,150 +636,3 @@ export function Meta({ t, now }: { t: TokenSummary; now: number }) {
   )
 }
 
-/** Faint row tint by direction, like a heat map; flagged rows get a red edge. */
-function rowStyle(t: TokenSummary, chg: number | null) {
-  const tint =
-    chg === null || Math.abs(chg) < 1 ? "transparent" : chg > 0 ? "rgba(163,230,53,0.035)" : "rgba(248,113,113,0.035)"
-  return { background: tint, boxShadow: t.fake ? "inset 2px 0 0 var(--rv-risk)" : undefined }
-}
-
-function DesktopTable({
-  tokens,
-  now,
-  offset,
-  tf,
-  showWhy,
-}: {
-  tokens: TokenSummary[]
-  now: number
-  offset: number
-  tf: Timeframe
-  showWhy: boolean
-}) {
-  const router = useRouter()
-  return (
-    <div className="rv-card hidden overflow-x-auto md:block">
-      <table className="w-full min-w-[980px] border-collapse text-[13px]">
-        <thead>
-          <tr className="border-b border-[var(--rv-stroke)] text-left">
-            <th className="rv-label w-10 py-2.5 pl-4">#</th>
-            <th className="rv-label px-2 py-2.5">Token</th>
-            <th className="rv-label px-2 py-2.5 text-right">Price</th>
-            <th className="rv-label px-2 py-2.5 text-right">Market cap</th>
-            <th className="rv-label px-2 py-2.5 text-right">Vol {tf}</th>
-            <th className="rv-label px-2 py-2.5 text-right">Liquidity</th>
-            <th className="rv-label px-2 py-2.5 text-right">Txns 24h</th>
-            <th className="rv-label px-3 py-2.5 text-right">Riven score</th>
-            <th className="w-10" />
-          </tr>
-        </thead>
-        <tbody>
-          {tokens.map((t, i) => {
-            const { vol, chg } = pick(t, tf)
-            return (
-              <tr
-                key={t.address}
-                onClick={() => router.push(`/token/${t.address}`)}
-                className="cursor-pointer border-b border-[var(--rv-stroke)] transition-colors last:border-0 hover:bg-[var(--rv-row-hover)]"
-                style={rowStyle(t, chg)}
-              >
-                <td className="rv-num py-3 pl-4 align-top text-[12px] text-[var(--rv-ink-3)]">{offset + i + 1}</td>
-                <td className="px-2 py-2.5">
-                  <Link href={`/token/${t.address}`} className="flex items-start gap-3" onClick={(e) => e.stopPropagation()}>
-                    <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={40} />
-                    <span className="min-w-0">
-                      <span className="flex items-baseline gap-1.5">
-                        <span className="max-w-[160px] truncate text-[14px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
-                        <span className="max-w-[200px] truncate text-[12px] text-[var(--rv-ink-3)]">{t.name}</span>
-                      </span>
-                      <Meta t={t} now={now} />
-                      {showWhy && (
-                        <span className="block max-w-[440px]">
-                          <Why t={t} />
-                        </span>
-                      )}
-                    </span>
-                  </Link>
-                </td>
-                <td className="rv-num px-2 py-3 text-right align-top text-[var(--rv-ink-2)]">{usd(t.priceUsd, { precise: true })}</td>
-                <td className="px-2 py-2.5 text-right align-top">
-                  <div className="rv-num text-[14px] font-bold text-[var(--rv-ink)]">{usd(t.marketCap)}</div>
-                  <div className="rv-num text-[11.5px] font-semibold" style={{ color: changeColor(chg) }}>
-                    {change(chg)}
-                  </div>
-                </td>
-                <td className="rv-num px-2 py-3 text-right align-top font-semibold text-[var(--rv-ink)]">{usd(vol)}</td>
-                <td className="px-2 py-2.5 text-right align-top">
-                  <div className="rv-num text-[var(--rv-ink-2)]">{usd(t.liquidityUsd)}</div>
-                  {t.usdcInPool !== null && (
-                    <div
-                      className="rv-num text-[11px]"
-                      style={{ color: t.usdcInPool < 1000 ? "var(--rv-caution)" : "var(--rv-ink-3)" }}
-                      title="Real USDC in the pool — what sellers can exit into"
-                    >
-                      {usd(t.usdcInPool)} USDC
-                    </div>
-                  )}
-                </td>
-                <td className="rv-num px-2 py-3 text-right align-top text-[12px]">
-                  {t.buys24h === null ? (
-                    <span className="text-[var(--rv-ink-3)]">—</span>
-                  ) : (
-                    <>
-                      <span className="text-[var(--rv-up)]">{compact(t.buys24h)}</span>
-                      <span className="text-[var(--rv-ink-3)]"> / </span>
-                      <span className="text-[var(--rv-down)]">{compact(t.sells24h)}</span>
-                    </>
-                  )}
-                </td>
-                <td className="px-3 py-2.5 text-right align-top">
-                  <ScoreBadge score={t.score} band={t.band} size="sm" word />
-                </td>
-                <td className="pr-2 align-top" onClick={(e) => e.stopPropagation()}>
-                  <WatchButton address={t.address} />
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function MobileList({ tokens, now, tf, showWhy }: { tokens: TokenSummary[]; now: number; tf: Timeframe; showWhy: boolean }) {
-  return (
-    <ol className="rv-card divide-y divide-[var(--rv-stroke)] overflow-hidden md:hidden">
-      {tokens.map((t) => {
-        const { chg } = pick(t, tf)
-        return (
-          <li key={t.address} className="flex items-start" style={rowStyle(t, chg)}>
-            <Link href={`/token/${t.address}`} className="flex min-w-0 flex-1 items-start gap-3 px-3 py-3 active:bg-[var(--rv-row-hover)]">
-              <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={44} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="truncate text-[15px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
-                  <span className="truncate text-[12px] text-[var(--rv-ink-3)]">{t.name}</span>
-                </div>
-                <Meta t={t} now={now} />
-                {showWhy && <Why t={t} />}
-              </div>
-              <div className="shrink-0 text-right">
-                <div className="rv-num text-[14px] font-bold text-[var(--rv-ink)]">{usd(t.marketCap)}</div>
-                <div className="rv-num text-[11.5px] font-semibold" style={{ color: changeColor(chg) }}>
-                  {change(chg)}
-                </div>
-                <div className="mt-1">
-                  <ScoreBadge score={t.score} band={t.band} size="sm" />
-                </div>
-              </div>
-            </Link>
-            <div className="pt-3 pr-1">
-              <WatchButton address={t.address} />
-            </div>
-          </li>
-        )
-      })}
-    </ol>
-  )
-}

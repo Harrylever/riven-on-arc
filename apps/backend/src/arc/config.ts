@@ -21,6 +21,21 @@ export const arc = defineChain({
 });
 
 export const USDC: Address = "0x3600000000000000000000000000000000000000";
+/** USDC is Arc's gas token too: v4 pools can quote it natively as currency 0x0. */
+export const NATIVE: Address = "0x0000000000000000000000000000000000000000";
+
+/**
+ * Other DEX factories on Arc, found from DexScreener's Arc pairs (pool.factory(),
+ * 2026-10-07). Their pool-creation events all index token0/token1 as the first
+ * two topics (Uniswap v2/v3, Solidly/Aerodrome, Algebra), so one decoder covers them.
+ */
+export const DEX_FACTORIES: Array<{ dex: string; factory: Address }> = [
+  { dex: "uniswap-v3", factory: "0xf0db7b58379503491d857dB50AC9ece64c653918" },
+  { dex: "arctide", factory: "0x6AFd30Cb35D8B70Cfd84C9AcA92ddc2Dda2879Cb" },
+  { dex: "aero", factory: "0xb89Df768aF2CFE637ceB352c587Fe8edAf491d03" },
+  { dex: "lunya", factory: "0x711492DF23F320745de6fD7f0ab9564FDBfeA016" },
+  { dex: "other", factory: "0xC481038C013FE96F38CE7A2dC417b2B1B78b16A4" },
+];
 
 // Uniswap v4 on Arc. Verified 2026-10-06 from a real Argus launch tx: PoolManager emits
 // Initialize/ModifyLiquidity/Swap, PositionManager is "Uniswap v4 Positions NFT", and

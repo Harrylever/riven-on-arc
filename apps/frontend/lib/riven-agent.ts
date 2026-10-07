@@ -147,7 +147,7 @@ export async function answer(question: string): Promise<AgentReply> {
   if (/safe|healthy|low[- ]?risk|best|legit/.test(lower)) {
     const list = (
       await getScreener(
-        { ...DEFAULT_FILTERS, sort: "safest", band: "healthy" },
+        { ...DEFAULT_FILTERS, view: "listed", sort: "safest", band: "healthy" },
         6,
       )
     ).tokens
@@ -172,6 +172,8 @@ export async function answer(question: string): Promise<AgentReply> {
       await getScreener(
         {
           ...DEFAULT_FILTERS,
+          view: "listed",
+          tf: "24h",
           sort: /gainer|pump/.test(lower) ? "gainers" : "trending",
         },
         6,
@@ -188,7 +190,7 @@ export async function answer(question: string): Promise<AgentReply> {
   }
 
   if (/new|launch|just/.test(lower)) {
-    const list = (await getScreener({ ...DEFAULT_FILTERS, sort: "new" }, 6))
+    const list = (await getScreener({ ...DEFAULT_FILTERS, view: "listed", sort: "new" }, 6))
       .tokens
     return {
       text: [

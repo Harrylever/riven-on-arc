@@ -383,25 +383,57 @@ export async function getScreener(
     where.launchTime = { gte: new Date(Date.now() - AGE_MS[f.age]) }
 
   // The timeframe picks which market columns rank "trending" and "gainers".
-  const sfx = { "5m": "5m", "1h": "1h", "6h": "6h", "24h": "24h" }[f.tf ?? "24h"]
+  const sfx = { "5m": "5m", "1h": "1h", "6h": "6h", "24h": "24h" }[f.tf ?? "6h"]
   const vol = `volume${sfx}`
   const chg = `change${sfx}`
-  const orderBy: object | object[] =
+  const m = (field: string, sort: "asc" | "desc" = "desc") => ({
+    arcMarket: { [field]: { sort, nulls: "last" } },
+  })
+  // DexScreener-style: every token is listed; the ones trading now rank first,
+  // tokens with no market yet follow, newest first.
+  const orderBy: object[] =
     f.sort === "new"
-      ? { launchTime: "desc" }
+      ? [{ launchTime: "desc" }]
       : f.sort === "gainers"
-        ? { arcMarket: { [chg]: { sort: "desc", nulls: "last" } } }
+        ? [m(chg), m("volume24h")]
         : f.sort === "losers"
-          ? { arcMarket: { [chg]: { sort: "asc", nulls: "last" } } }
+          ? [m(chg, "asc"), m("volume24h")]
           : f.sort === "mcap"
-            ? { arcMarket: { marketCap: { sort: "desc", nulls: "last" } } }
+            ? [m("marketCap"), m("volume24h")]
             : f.sort === "liquidity"
-              ? { arcMarket: { liquidityUsd: { sort: "desc", nulls: "last" } } }
-              : [{ arcMarket: { [vol]: { sort: "desc", nulls: "last" } } }, { launchTime: "desc" }]
+              ? [m("liquidityUsd"), m("volume24h")]
+              : f.sort === "txns"
+                ? [m("buys24h"), m("sells24h"), m("volume24h")]
+                : f.sort === "volume"
+                  ? [m("volume24h"), m("liquidityUsd")]
+                  : [m(vol), m("volume24h"), m("liquidityUsd"), { launchTime: "desc" }]
+  if (f.sort === "gainers" || f.sort === "losers") {
+    // only tokens that actually traded in the window can gain or lose
+    where.arcMarket = { ...(where.arcMarket as object), [chg]: { not: null } }
+  }
 
-  let list = (await rows(where, orderBy, f.sort === "safest" ? 1500 : 600)).map(
-    summarize,
-  )
+  // Fast path (the default view): the database pages over every token.
+  const needsScore = f.view !== "all" || f.band !== "all" || f.minScore > 0 || f.sort === "safest"
+  if (!needsScore) {
+    const db = getDb()
+    const fullWhere = { pools: { some: {} }, ...where }
+    const total = await db.token.count({ where: fullWhere })
+    const pages = Math.max(1, Math.ceil(total / pageSize))
+    const page = Math.min(f.page ?? 1, pages)
+    const found = await db.token.findMany({
+      where: fullWhere,
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: INCLUDE,
+    })
+    const tokens = await withCopies(found.map(summarize))
+    return { tokens, total, page, pages }
+  }
+
+  // Score-based views need the computed verdict, so filter in memory over the
+  // most relevant slice.
+  let list = (await rows(where, orderBy, 4000)).map(summarize)
   if (f.view === "listed") list = list.filter((t) => !t.fake)
   else if (f.view === "caught") list = list.filter((t) => t.fake)
   if (f.band !== "all") list = list.filter((t) => t.band === f.band)
@@ -420,6 +452,23 @@ export async function getScreener(
     list.slice((page - 1) * pageSize, page * pageSize),
   )
   return { tokens, total: list.length, page, pages }
+}
+
+/** Chain-wide totals for the screener header, DexScreener-style. */
+export async function getMarketTotals() {
+  const db = getDb()
+  const [agg, tokens, trading] = await Promise.all([
+    db.arcMarket.aggregate({ _sum: { volume24h: true, buys24h: true, sells24h: true, liquidityUsd: true } }),
+    db.token.count({ where: { pools: { some: {} } } }),
+    db.arcMarket.count({ where: { volume24h: { gt: 0 } } }),
+  ])
+  return {
+    volume24h: Number(agg._sum.volume24h ?? 0),
+    txns24h: (agg._sum.buys24h ?? 0) + (agg._sum.sells24h ?? 0),
+    liquidity: Number(agg._sum.liquidityUsd ?? 0),
+    tokens,
+    trading,
+  }
 }
 
 /** Just the indexer cursor — what the header's "ARC LIVE" badge needs. */

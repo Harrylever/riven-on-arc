@@ -13,7 +13,7 @@ import {
   TopCarousel,
 } from "@/components/riven/home-sections"
 import { MascotStage } from "@/components/mascot/mascot-stage"
-import { OrbField } from "@/components/riven/orb-field"
+import { BigOrb } from "@/components/riven/orb-field"
 import type { Holo } from "@/components/mascot/mascot"
 
 export const dynamic = "force-dynamic"
@@ -117,7 +117,6 @@ export default async function Home() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,15,18,0.55)_0%,var(--rv-bg)_72%)]"
           aria-hidden
         />
-        <OrbField />
 
         <div className="relative mx-auto grid max-w-6xl items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
@@ -154,6 +153,10 @@ export default async function Home() {
             </div>
           </div>
           <div className="relative order-first h-[300px] sm:h-[380px] lg:order-none lg:h-[520px]">
+            {/* Riven's "thinking" orb, cycling through every state behind him */}
+            <div className="pointer-events-none absolute inset-0 grid place-items-center" aria-hidden>
+              <BigOrb size={560} showLabel className="w-[min(560px,108%)] opacity-90" />
+            </div>
             <div
               className="pointer-events-none absolute inset-x-10 bottom-6 h-24 rounded-[100%] bg-[radial-gradient(ellipse,rgba(124,196,232,0.25),transparent_70%)] blur-xl"
               aria-hidden

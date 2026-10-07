@@ -2,9 +2,9 @@ import { getDb } from "@clawdex/shared";
 import { USDC } from "./config";
 
 const DEXSCREENER = "https://api.dexscreener.com/tokens/v1/arc/";
-/** DexScreener allows 300 req/min on this endpoint; stay far below it. */
+/** DexScreener allows 300 req/min on this endpoint; 40 sequential calls per tick stays well below it. */
 const BATCH = 30;
-const CALLS_PER_RUN = Number(process.env.ARC_MARKET_CALLS_PER_RUN ?? "10");
+const CALLS_PER_RUN = Number(process.env.ARC_MARKET_CALLS_PER_RUN ?? "40");
 
 interface DexPair {
   pairAddress?: string;
@@ -49,31 +49,42 @@ export class MarketSyncService {
   async syncOnce() {
     const db = getDb();
     const freshSince = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    // Priority: fresh launches, then tokens with real liquidity, then the stalest rest.
-    const [fresh, liquid, stale] = await Promise.all([
+    const cap = BATCH * CALLS_PER_RUN;
+    const ago = (ms: number) => new Date(Date.now() - ms);
+    // Priority: tokens that trade (kept fresh, like a screener), fresh launches,
+    // tokens never looked up yet (so every Arc token gets listed), then the stalest rest.
+    const [active, fresh, unseen, stale] = await Promise.all([
       db.token.findMany({
-        where: { launchTime: { gte: freshSince } },
-        select: { id: true, mint: true },
-        orderBy: { launchTime: "desc" },
-        take: 120,
-      }),
-      db.token.findMany({
-        where: { arcMarket: { liquidityUsd: { gte: 500 } } },
+        where: {
+          arcMarket: {
+            OR: [{ liquidityUsd: { gte: 100 } }, { volume24h: { gt: 0 } }],
+            updatedAt: { lt: ago(90 * 1000) },
+          },
+        },
         select: { id: true, mint: true },
         orderBy: { arcMarket: { updatedAt: "asc" } },
-        take: 120,
+        take: Math.round(cap * 0.4),
       }),
       db.token.findMany({
-        where: { OR: [{ arcMarket: null }, { arcMarket: { updatedAt: { lt: new Date(Date.now() - 30 * 60 * 1000) } } }] },
+        where: { launchTime: { gte: freshSince }, OR: [{ arcMarket: null }, { arcMarket: { updatedAt: { lt: ago(3 * 60 * 1000) } } }] },
         select: { id: true, mint: true },
         orderBy: { launchTime: "desc" },
-        take: 120,
+        take: Math.round(cap * 0.2),
+      }),
+      db.token.findMany({
+        where: { arcMarket: null },
+        select: { id: true, mint: true },
+        orderBy: { launchTime: "desc" },
+        take: Math.round(cap * 0.4),
+      }),
+      db.token.findMany({
+        where: { arcMarket: { updatedAt: { lt: ago(6 * 60 * 60 * 1000) } } },
+        select: { id: true, mint: true },
+        orderBy: { arcMarket: { updatedAt: "asc" } },
+        take: Math.round(cap * 0.2),
       }),
     ]);
-    const queue = [...new Map([...fresh, ...liquid, ...stale].map((t) => [t.mint, t])).values()].slice(
-      0,
-      BATCH * CALLS_PER_RUN,
-    );
+    const queue = [...new Map([...active, ...fresh, ...unseen, ...stale].map((t) => [t.mint, t])).values()].slice(0, cap);
 
     let updated = 0;
     let listed = 0;

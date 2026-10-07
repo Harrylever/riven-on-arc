@@ -26,6 +26,8 @@ const ACT_LINES: Record<string, string[]> = {
   think: ["Hmm… let me think about that one.", "Computing…"],
   celebrate: ["Woo! Clean on-chain!", "That's what I like to see."],
   point: ["You — check the score before you buy.", "Read the red flags first!"],
+  dance: ["Green candles make me dance.", "♪ beep boop ♪"],
+  look: ["Watching the chain…", "Anything new launching? Let me look."],
 }
 
 const pick = (xs: string[]) => xs[Math.floor(Math.random() * xs.length)]!

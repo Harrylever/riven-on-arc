@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { getScreener } from "@/lib/arc-data"
+import { getMarketTotals, getScreener } from "@/lib/arc-data"
 import { parseFilters } from "@/lib/screener-params"
 import { Screener } from "@/components/riven/screener"
 
@@ -7,15 +7,16 @@ export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "Trending on Arc",
-  description: "Every Arc token with a USDC pool, ranked live, each with a 1–10 Riven safety score.",
+  description: "Every token on Arc, ranked live like DexScreener, each with a 1–10 Riven safety score.",
   alternates: { canonical: "/trending" },
 }
 
 export default async function TrendingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const filters = parseFilters(await searchParams)
   let result: Awaited<ReturnType<typeof getScreener>> | null = null
+  let totals: Awaited<ReturnType<typeof getMarketTotals>> | null = null
   try {
-    result = await getScreener(filters)
+    ;[result, totals] = await Promise.all([getScreener(filters), getMarketTotals().catch(() => null)])
   } catch (err) {
     console.error(`[trending] ${(err as Error).message}`)
   }
@@ -30,6 +31,6 @@ export default async function TrendingPage({ searchParams }: { searchParams: Pro
   // eslint-disable-next-line react-hooks/purity -- per-request server render
   const now = Date.now()
   return (
-    <Screener filters={filters} tokens={result.tokens} total={result.total} page={result.page} pages={result.pages} serverNow={now} />
+    <Screener filters={filters} tokens={result.tokens} total={result.total} page={result.page} pages={result.pages} serverNow={now} totals={totals} />
   )
 }

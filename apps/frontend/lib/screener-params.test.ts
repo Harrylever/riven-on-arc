@@ -34,7 +34,7 @@ describe("screener params", () => {
     expect(f.page).toBe(1)
     expect(f.minScore).toBe(10)
     expect(f.sort).toBe("trending")
-    expect(f.view).toBe("listed")
+    expect(f.view).toBe("all") // DexScreener-style default: every token listed
   })
   test("old ?fake=1 links still show everything", () => {
     expect(parseFilters({ fake: "1" }).view).toBe("all")

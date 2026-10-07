@@ -43,6 +43,17 @@ function isRangeLimitError(error: unknown): boolean {
   );
 }
 
+/** The public RPC throttles bursts ("rate limit exceeded" / "exceeds defined limit"). */
+export function isRateLimitError(error: unknown): boolean {
+  const detail =
+    error instanceof Error
+      ? `${error.message} ${"details" in error ? String(error.details) : ""}`
+      : String(error);
+  return /rate limit|exceeds defined limit|too many requests|429/i.test(detail);
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export async function scanBlockRange<T>(
   fromBlock: bigint,
   toBlock: bigint,
@@ -59,6 +70,7 @@ export async function scanBlockRange<T>(
   const results: T[] = [];
   let cursor = fromBlock;
   let chunkSize = preferredChunkSize;
+  let throttled = 0;
 
   while (cursor <= toBlock) {
     const end =
@@ -67,7 +79,15 @@ export async function scanBlockRange<T>(
     try {
       results.push(...(await fetchRange(cursor, end)));
       cursor = end + 1n;
+      throttled = 0;
     } catch (error) {
+      if (isRateLimitError(error) && throttled < 6) {
+        // back off, and ask for less at a time
+        throttled++;
+        await sleep(1_000 * 2 ** throttled);
+        if (chunkSize > 1_000n) chunkSize = chunkSize / 2n;
+        continue;
+      }
       if (!isRangeLimitError(error) || chunkSize === 1n) throw error;
       chunkSize = chunkSize / 2n || 1n;
     }
