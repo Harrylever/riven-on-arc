@@ -8,7 +8,7 @@ import * as sfx from "@/lib/bot-sfx"
 /** What he says while doing each of his moves. */
 const ACT_LINES: Record<string, string[]> = {
   scan: [
-    "Pulling up the numbers…",
+    "Riven… GO! Pulling up the numbers.",
     "Hologram up. Let me take a closer look.",
     "Scanning the chain…",
   ],
@@ -23,6 +23,9 @@ const ACT_LINES: Record<string, string[]> = {
   hop: ["Boing.", "On it!"],
   shake: ["Nope. Read the red flags.", "I wouldn't. Check why first."],
   nod: ["Looking good so far.", "Clean on-chain."],
+  think: ["Hmm… let me think about that one.", "Computing…"],
+  celebrate: ["Woo! Clean on-chain!", "That's what I like to see."],
+  point: ["You — check the score before you buy.", "Read the red flags first!"],
 }
 
 const pick = (xs: string[]) => xs[Math.floor(Math.random() * xs.length)]!
@@ -42,6 +45,7 @@ export function MascotStage({
   bubbleSide = "left",
   greet,
   holoSize,
+  lively,
 }: {
   mood?: Mood
   holos?: Holo[]
@@ -54,6 +58,8 @@ export function MascotStage({
   greet?: string
   /** Hologram card size (bigger = more readable). */
   holoSize?: number
+  /** Emote more often (home page). */
+  lively?: boolean
 }) {
   const [say, setSay] = useState<string | null>(greet ?? null)
   const [poke, setPoke] = useState(0)
@@ -121,6 +127,7 @@ export function MascotStage({
         framing={framing}
         zoom={zoom}
         holoSize={holoSize}
+        lively={lively}
         onAct={onAct}
         poke={poke}
       />

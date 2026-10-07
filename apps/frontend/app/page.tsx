@@ -13,6 +13,7 @@ import {
   TopCarousel,
 } from "@/components/riven/home-sections"
 import { MascotStage } from "@/components/mascot/mascot-stage"
+import { OrbField } from "@/components/riven/orb-field"
 import type { Holo } from "@/components/mascot/mascot"
 
 export const dynamic = "force-dynamic"
@@ -116,6 +117,7 @@ export default async function Home() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,15,18,0.55)_0%,var(--rv-bg)_72%)]"
           aria-hidden
         />
+        <OrbField />
 
         <div className="relative mx-auto grid max-w-6xl items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
@@ -161,6 +163,7 @@ export default async function Home() {
               holos={holos}
               lines={lines}
               greet="Hey, I'm Riven. I rug-check every token on Arc."
+              lively
               bubbleSide="left"
             />
           </div>

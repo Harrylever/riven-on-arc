@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic"
 import type { RivenMascotProps } from "./riven-mascot"
+import { RivenOrb } from "@/components/riven/orb-field"
 
 export type { Holo, Mood } from "./riven-mascot"
 
@@ -10,7 +11,7 @@ const Lazy = dynamic(() => import("./riven-mascot"), {
   ssr: false,
   loading: () => (
     <div className="grid size-full place-items-center">
-      <span className="size-10 animate-pulse rounded-full bg-[rgba(124,196,232,0.15)]" />
+      <RivenOrb state="working" size={64} label="Loading Riven" />
     </div>
   ),
 })

@@ -6,6 +6,7 @@ import type { TokenSummary } from "@/lib/arc-data"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { MascotStage } from "@/components/mascot/mascot-stage"
+import { RivenOrb } from "./orb-field"
 
 interface Msg {
   role: "user" | "riven"
@@ -145,7 +146,8 @@ export function AgentChat() {
           </div>
         ))}
         {busy && (
-          <p className="rv-num text-[12px] text-[var(--rv-ink-3)]">
+          <p className="rv-num flex items-center gap-2 text-[12px] text-[var(--rv-ink-3)]">
+            <RivenOrb state="searching" size={20} label="Riven is reading Arc" />
             riven&gt; reading Arc…
           </p>
         )}

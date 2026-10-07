@@ -140,7 +140,7 @@ export function servo(dur = 0.35) {
   src.start(t)
 }
 
-/** Telescope focusing: a slow, wobbling scan tone. */
+/** Magnifier scan: a slow, wobbling sweep tone. */
 export function scan(dur = 2.2) {
   const o = out()
   if (!o) return
