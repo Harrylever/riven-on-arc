@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useRef } from "react"
+import { Carousel } from "@/components/riven/carousel"
 import type { PerpSignal } from "@/components/perps/perps-panel"
 import { CoinIcon, coinArtUrl } from "@/components/perps/coin-icon"
 import { ago, priceUsd } from "@/lib/format"
@@ -42,57 +42,6 @@ function CoinArt({ coin, long }: { coin: string; long: boolean }) {
   )
 }
 
-/**
- * Glides the row sideways on its own — slowly — and pauses while someone is
- * touching, hovering or focusing it, so it never fights the user.
- */
-function useAutoSlide(ref: React.RefObject<HTMLDivElement | null>, pxPerSec = 22) {
-  useEffect(() => {
-    const el = ref.current
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
-    let raf = 0
-    let last = performance.now()
-    let pausedUntil = 0
-    let carry = 0
-    const pause = (ms: number) => () => (pausedUntil = performance.now() + ms)
-    const onEnter = pause(60_000)
-    const onLeave = () => (pausedUntil = performance.now() + 1500)
-    const onTouch = pause(5000)
-    el.addEventListener("pointerenter", onEnter)
-    el.addEventListener("pointerleave", onLeave)
-    el.addEventListener("touchstart", onTouch, { passive: true })
-    el.addEventListener("wheel", onTouch, { passive: true })
-    el.addEventListener("focusin", onEnter)
-    el.addEventListener("focusout", onLeave)
-    const step = (now: number) => {
-      const dt = Math.min(64, now - last)
-      last = now
-      if (now > pausedUntil && el.scrollWidth > el.clientWidth + 4) {
-        carry += (pxPerSec * dt) / 1000
-        const whole = Math.floor(carry)
-        if (whole >= 1) {
-          carry -= whole
-          if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 2) {
-            el.scrollTo({ left: 0, behavior: "smooth" }) // back to the start, then glide again
-            pausedUntil = now + 2500
-          } else el.scrollLeft += whole
-        }
-      }
-      raf = requestAnimationFrame(step)
-    }
-    raf = requestAnimationFrame(step)
-    return () => {
-      cancelAnimationFrame(raf)
-      el.removeEventListener("pointerenter", onEnter)
-      el.removeEventListener("pointerleave", onLeave)
-      el.removeEventListener("touchstart", onTouch)
-      el.removeEventListener("wheel", onTouch)
-      el.removeEventListener("focusin", onEnter)
-      el.removeEventListener("focusout", onLeave)
-    }
-  }, [ref, pxPerSec])
-}
-
 /** sakz-bot's calls as a gliding row of cards; each opens that pair's page. */
 export function SignalCarousel({
   signals,
@@ -102,8 +51,6 @@ export function SignalCarousel({
   /** Live mark price per base coin (Hyperliquid). */
   marks: Map<string, number>
 }) {
-  const row = useRef<HTMLDivElement>(null)
-  useAutoSlide(row)
   if (signals.length === 0) {
     return (
       <div className="rv-card px-4 py-6 text-center text-[13px] text-[var(--rv-ink-2)]">
@@ -112,7 +59,7 @@ export function SignalCarousel({
     )
   }
   return (
-    <div ref={row} className="scrollbar-hidden -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+    <Carousel label="Live scanner calls">
       {signals.map((s) => {
         const coin = signalCoinKey(s.symbol)
         const long = s.bias === "LONG"
@@ -197,6 +144,6 @@ export function SignalCarousel({
           </Link>
         )
       })}
-    </div>
+    </Carousel>
   )
 }

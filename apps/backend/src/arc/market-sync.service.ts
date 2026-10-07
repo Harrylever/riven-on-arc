@@ -1,6 +1,6 @@
 import { getDb } from "@clawdex/shared";
 import { createPublicClient, http, parseAbi, type Address, type PublicClient } from "viem";
-import { arc, cleanText, USDC } from "./config";
+import { arc, cleanText, USDC, arcTransport } from "./config";
 
 /** Arc launchpads publish the token's icon on the token itself: logo() → "ipfs://…". */
 const LOGO_ABI = parseAbi(["function logo() view returns (string)"]);
@@ -61,7 +61,7 @@ export class MarketSyncService {
       client ??
       createPublicClient({
         chain: arc,
-        transport: http(process.env.ARC_RPC_URL ?? "https://rpc.mainnet.arc.io", { timeout: 20_000, retryCount: 2 }),
+        transport: arcTransport(),
       });
   }
 

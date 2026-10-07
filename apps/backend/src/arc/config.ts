@@ -1,4 +1,4 @@
-import { defineChain, parseAbiItem, type AbiEvent, type Address } from "viem";
+import { defineChain, fallback, http, parseAbiItem, type AbiEvent, type Address } from "viem";
 
 export const ARC_CHAIN_ID = 5042;
 
@@ -19,6 +19,33 @@ export const arc = defineChain({
     multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" },
   },
 });
+
+/**
+ * Arc RPCs, best first. Measured 2026-10-07 on 6 × 10k-block Swap-log queries:
+ * Blockdaemon served 5/6 (60k logs in 7.5s), QuickNode 3/6, Circle's default
+ * endpoint rate-limited all of them, dRPC's free plan caps ranges at <10k blocks.
+ * ARC_RPC_URLS (comma-separated; e.g. a paid Alchemy key) go in front.
+ */
+const DEFAULT_RPCS = [
+  "https://rpc.blockdaemon.mainnet.arc.io",
+  "https://rpc.quicknode.mainnet.arc.io",
+  "https://rpc.mainnet.arc.io",
+  "https://rpc.drpc.mainnet.arc.io",
+];
+export function arcRpcUrls(): string[] {
+  const own = (process.env.ARC_RPC_URLS ?? process.env.ARC_RPC_URL ?? "")
+    .split(",")
+    .map((u) => u.trim())
+    .filter(Boolean);
+  return [...own, ...DEFAULT_RPCS.filter((u) => !own.includes(u))];
+}
+/** One transport for every Arc client: a busy or rate-limited RPC hands off to the next. */
+export function arcTransport(opts: { timeout?: number } = {}) {
+  return fallback(
+    arcRpcUrls().map((u) => http(u, { timeout: opts.timeout ?? 20_000, retryCount: 1, retryDelay: 800 })),
+    { retryCount: 2 },
+  );
+}
 
 export const USDC: Address = "0x3600000000000000000000000000000000000000";
 /** USDC is Arc's gas token too: v4 pools can quote it natively as currency 0x0. */

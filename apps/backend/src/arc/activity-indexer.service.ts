@@ -13,13 +13,12 @@ import {
   LAUNCHPAD_SOURCES,
   POOL_MANAGER,
   POSITION_MANAGER,
-  USDC,
-} from "./config";
+  USDC, arcTransport } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
 
 const CURSOR = "arc:activity";
 const CHUNK_BLOCKS = 9_999n;
-const MAX_BLOCKS_PER_RUN = 20_000n;
+const MAX_BLOCKS_PER_RUN = BigInt(process.env.ARC_ACTIVITY_BLOCKS_PER_RUN ?? "60000");
 /** Upper bound on events committed per pass (see the cut below). */
 const MAX_EVENTS_PER_RUN = 15_000;
 /** rpc.mainnet.arc.io rejects filters with more than 20 addresses or topic values. */
@@ -100,10 +99,7 @@ export class ArcActivityIndexerService {
       client ??
       createPublicClient({
         chain: arc,
-        transport: http(
-          process.env.ARC_RPC_URL ?? "https://rpc.mainnet.arc.io",
-          { timeout: 20_000, retryCount: 3, retryDelay: 1_500 },
-        ),
+        transport: arcTransport(),
       });
   }
 

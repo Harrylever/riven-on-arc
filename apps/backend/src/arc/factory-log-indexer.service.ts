@@ -15,8 +15,7 @@ import {
   LAUNCHPAD_SOURCES,
   USDC,
   type LaunchpadSource,
-  cleanText,
-} from "./config";
+  cleanText, arcTransport } from "./config";
 
 const DEFAULT_CHUNK_BLOCKS = 9_999n; // public RPC rejects eth_getLogs ranges of 10k+
 const DEFAULT_MAX_BLOCKS_PER_RUN = 50_000n;
@@ -38,7 +37,7 @@ function isRangeLimitError(error: unknown): boolean {
   }
   // Arc's public RPC also says "range too large" when a filter has >20 addresses —
   // callers batch addresses to 20 so this only ever means a real range/result cap.
-  return /range too large|block range|too many results|query returned more than|max results|max allowed range|exceeded the size limit/i.test(
+  return /range too large|block range|ranges over \d+ blocks|too many results|query returned more than|max results|max allowed range|exceeded the size limit/i.test(
     detail,
   );
 }
@@ -81,10 +80,10 @@ export async function scanBlockRange<T>(
       cursor = end + 1n;
       throttled = 0;
     } catch (error) {
-      if (isRateLimitError(error) && throttled < 6) {
+      if (isRateLimitError(error) && throttled < 4) {
         // back off, and ask for less at a time
         throttled++;
-        await sleep(1_000 * 2 ** throttled);
+        await sleep(Math.min(8_000, 1_000 * 2 ** throttled)); // the fallback RPCs already retried; keep waits short
         if (chunkSize > 1_000n) chunkSize = chunkSize / 2n;
         continue;
       }
@@ -169,10 +168,7 @@ export class FactoryLogIndexerService {
       client ??
       createPublicClient({
         chain: arc,
-        transport: http(
-          process.env.ARC_RPC_URL ?? "https://rpc.mainnet.arc.io",
-          { timeout: 20_000, retryCount: 3, retryDelay: 1_500 },
-        ),
+        transport: arcTransport(),
       });
     this.preferredChunkSize = parsePositiveBigInt(
       process.env.LOG_CHUNK_BLOCKS,

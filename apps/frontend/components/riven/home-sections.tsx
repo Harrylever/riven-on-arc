@@ -11,6 +11,7 @@ import {
   usd,
 } from "@/lib/riven-format"
 import { FlashBuy } from "./flash-buy"
+import { Carousel } from "./carousel"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { Why } from "./screener"
@@ -44,12 +45,12 @@ export function SectionTitle({
 /** Big token cards, most-traded first — the "what's moving on Arc" carousel. */
 export function TopCarousel({ tokens }: { tokens: TokenSummary[] }) {
   return (
-    <div className="scrollbar-hidden -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1">
+    <Carousel label="Most traded on Arc">
       {tokens.map((t, i) => (
         <Link
           key={t.address}
           href={`/token/${t.address}`}
-          className="group relative flex w-[210px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)] transition-colors hover:border-[var(--rv-stroke-strong)]"
+          className="group relative flex w-[210px] shrink-0 flex-col overflow-hidden rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)] transition-colors hover:border-[var(--rv-stroke-strong)]"
         >
           <div className="relative aspect-[4/3] w-full overflow-hidden bg-[var(--rv-sunken)]">
             {t.image ? (
@@ -108,7 +109,7 @@ export function TopCarousel({ tokens }: { tokens: TokenSummary[] }) {
           </div>
         </Link>
       ))}
-    </div>
+    </Carousel>
   )
 }
 
@@ -133,11 +134,11 @@ export function CalloutsRow({
     )
   }
   return (
-    <div className="scrollbar-hidden -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1">
+    <Carousel label="KOL callouts" speed={16}>
       {callouts.map((c) => (
         <article
           key={c.id}
-          className="flex w-[280px] shrink-0 snap-start flex-col gap-2.5 rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-3"
+          className="flex w-[280px] shrink-0 flex-col gap-2.5 rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-3"
         >
           <header className="flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-full bg-white/[0.06] text-[11px] font-bold text-[var(--rv-ink)] uppercase">
@@ -205,7 +206,7 @@ export function CalloutsRow({
           </div>
         </article>
       ))}
-    </div>
+    </Carousel>
   )
 }
 

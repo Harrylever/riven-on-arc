@@ -854,3 +854,33 @@ export async function getCallouts(limit = 12, tokenAddress?: string): Promise<Ca
     token: summaries[i]!,
   }))
 }
+
+/**
+ * Arc in numbers for the home page — things only Arc makes possible to measure
+ * this way: every pool is quoted in USDC (Arc's gas token), so "real dollars a
+ * seller can exit into" is one on-chain read per pool.
+ */
+export async function getArcPulse() {
+  const db = getDb()
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const [byType, markets, liveCalls, rescans] = await Promise.all([
+    db.alert.groupBy({ by: ["type"], where: { createdAt: { gte: since } }, _count: true }),
+    db.arcMarket.findMany({ where: { volume24h: { gt: 0 } }, select: { socials: true } }),
+    db.perpSignal.count({ where: { outcome: "pending" } }).catch(() => 0),
+    db.scoreRun.count({ where: { calculatedAt: { gte: since } } }),
+  ])
+  const count = (t: string) => byType.find((x) => x.type === t)?._count ?? 0
+  const realUsdc = markets.reduce((sum, m) => {
+    const v = (m.socials as { usdcInPool?: number | null } | null)?.usdcInPool
+    return sum + (typeof v === "number" && Number.isFinite(v) ? v : 0)
+  }, 0)
+  return {
+    liquidityPulls24h: count("RUG_PULL"),
+    creatorSells24h: count("CREATOR_DUMP"),
+    whaleSells24h: count("WHALE_DUMP"),
+    realUsdcInTradingPools: realUsdc,
+    tradingPools: markets.length,
+    livePerpCalls: liveCalls,
+    scoresComputed24h: rescans,
+  }
+}

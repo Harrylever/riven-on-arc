@@ -25,8 +25,7 @@ import {
   POOL_MANAGER,
   POSITION_MANAGER,
   STATE_VIEW,
-  USDC,
-} from "./config";
+  USDC, arcTransport } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
 
 const ACTIVITY_CURSOR = "arc:activity";
@@ -213,10 +212,7 @@ export class ArcScoringService {
       client ??
       createPublicClient({
         chain: arc,
-        transport: http(
-          process.env.ARC_RPC_URL ?? "https://rpc.mainnet.arc.io",
-          { timeout: 20_000, retryCount: 3, retryDelay: 1_500 },
-        ),
+        transport: arcTransport(),
       });
   }
 
@@ -249,8 +245,33 @@ export class ArcScoringService {
         include,
       }),
     ]);
-    const candidates = [...new Map([...requestedRows, ...freshRows, ...liquidRows].map((t) => [t.id, t])).values()];
+    // Only tokens whose holder history is complete up to the activity cursor
+    // can get a score; the rest would come back "unscored" and burn the slots
+    // every pass, starving tokens that are ready. So also pull ready ones directly.
+    const activityCursor = await db.arcIndexerCursor.findUnique({ where: { source: ACTIVITY_CURSOR } });
+    const readyRows = activityCursor
+      ? await db.token.findMany({
+          where: {
+            pools: { some: {} },
+            OR: [{ holderHistory: null }, { holderHistory: "complete" }],
+            launchBlock: { lte: activityCursor.lastBlock },
+            scoreRuns: { none: { calculatedAt: { gte: new Date(now - RESCORE_OLD_MS) } } },
+          },
+          orderBy: [{ arcMarket: { liquidityUsd: { sort: "desc", nulls: "last" } } }, { launchTime: "desc" }],
+          take: 200,
+          include,
+        })
+      : [];
+    const candidates = [
+      ...new Map([...requestedRows, ...liquidRows, ...readyRows, ...freshRows].map((t) => [t.id, t])).values(),
+    ];
+    const ready = (t: (typeof candidates)[number]) =>
+      (t.holderHistory === null || t.holderHistory === "complete") &&
+      activityCursor !== null &&
+      t.launchBlock !== null &&
+      activityCursor.lastBlock >= t.launchBlock
     const due = candidates
+      .filter(ready)
       .filter((t) => {
         const last = t.scoreRuns[0]?.calculatedAt.getTime();
         if (t.rescoreRequestedAt && (last === undefined || t.rescoreRequestedAt.getTime() > last)) return true;

@@ -17,8 +17,7 @@ import {
   POOL_MANAGER,
   POOL_MANAGER_DEPLOY_BLOCK,
   USDC,
-  cleanText,
-} from "./config";
+  cleanText, arcTransport } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
 
 const FORWARD_CURSOR = "v4:pools";
@@ -105,11 +104,7 @@ export class PoolIndexerService {
       client ??
       createPublicClient({
         chain: arc,
-        transport: http(process.env.ARC_RPC_URL ?? "https://rpc.mainnet.arc.io", {
-          timeout: 20_000,
-          retryCount: 3,
-          retryDelay: 1_500,
-        }),
+        transport: arcTransport(),
       });
   }
 

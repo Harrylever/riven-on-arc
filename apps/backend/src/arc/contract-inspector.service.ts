@@ -6,7 +6,7 @@ import {
   type Address,
   type PublicClient,
 } from "viem";
-import { ARC_CHAIN_ID, arc } from "./config";
+import { ARC_CHAIN_ID, arc, arcTransport } from "./config";
 
 const ERC20_ABI = [
   {
@@ -82,10 +82,7 @@ export class ContractInspectorService {
       client ??
       createPublicClient({
         chain: arc,
-        transport: http(
-          process.env.ARC_RPC_URL ?? "https://rpc.mainnet.arc.io",
-          { timeout: 15_000, retryCount: 2 },
-        ),
+        transport: arcTransport(),
       });
   }
 

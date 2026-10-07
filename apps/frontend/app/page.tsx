@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { getAlerts, getCallouts, getScreener, getStats } from "@/lib/arc-data"
+import { getAlerts, getArcPulse, getCallouts, getScreener, getStats } from "@/lib/arc-data"
 import { DEFAULT_FILTERS } from "@/lib/screener-params"
 import { REASON_LABEL } from "@/lib/reasons"
 import { compact, usd } from "@/lib/riven-format"
@@ -31,7 +31,7 @@ const settle = <T,>(p: Promise<T>, fallback: T) =>
   })
 
 export default async function Home() {
-  const [stats, top, caught, alerts, callouts] = await Promise.all([
+  const [stats, top, caught, alerts, callouts, pulse] = await Promise.all([
     settle(getStats(), null),
     settle(getScreener({ ...DEFAULT_FILTERS, view: "all" }, 12), null),
     settle(
@@ -40,6 +40,7 @@ export default async function Home() {
     ),
     settle(getAlerts({ limit: 6 }), []),
     settle(getCallouts(12), []),
+    settle(getArcPulse(), null),
   ])
   // eslint-disable-next-line react-hooks/purity -- per-request server render
   const now = Date.now()
@@ -195,6 +196,53 @@ export default async function Home() {
         </dl>
       </section>
 
+      {/* Built for Arc: what USDC-native gas lets Riven measure */}
+      {pulse && (
+        <section aria-label="Arc pulse">
+          <SectionTitle title="Arc pulse · last 24h" live />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <PulseCard
+              value={usd(pulse.realUsdcInTradingPools)}
+              label="Real USDC in trading pools"
+              hint={`Across ${compact(pulse.tradingPools)} pools — what sellers can actually exit into`}
+              color="var(--rv-blue)"
+            />
+            <PulseCard
+              value={String(pulse.liquidityPulls24h)}
+              label="Liquidity pulls caught"
+              hint="Launch liquidity removed from the pool"
+              color="var(--rv-risk)"
+            />
+            <PulseCard
+              value={String(pulse.creatorSells24h + pulse.whaleSells24h)}
+              label="Creator & whale sells caught"
+              hint={`${pulse.creatorSells24h} creators sold out · ${pulse.whaleSells24h} whales sold 5%+`}
+              color="var(--rv-caution)"
+            />
+            <PulseCard
+              value={String(pulse.livePerpCalls)}
+              label="Live perp calls"
+              hint="Margined in Arc USDC (paper) · self-calibrating scanner"
+              color="var(--rv-healthy)"
+              href="/perps"
+            />
+          </div>
+          <div className="mt-3 grid gap-2 text-[12.5px] text-[var(--rv-ink-2)] sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["USDC is gas", "Every Arc fee and pool is in dollars — so Riven's checks read in plain dollars too."],
+              ["Real dollars, not paper liquidity", "Riven reads each pool's actual USDC on-chain, not the token valued at its own price."],
+              ["⚡ 10 USDC flash buy", "Non-custodial: you sign every swap in your own wallet. Riven never holds keys."],
+              ["Perps with Arc USDC", "Your Arc USDC balance becomes your perps margin — practise on 100+ markets."],
+            ].map(([t, d]) => (
+              <div key={t} className="rv-card px-3 py-2.5">
+                <p className="font-semibold text-[var(--rv-ink)]">{t}</p>
+                <p className="mt-0.5 leading-snug">{d}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {top && top.tokens.length > 0 && (
         <section>
           <SectionTitle
@@ -248,6 +296,37 @@ export default async function Home() {
         </section>
       </div>
     </div>
+  )
+}
+
+function PulseCard({
+  value,
+  label,
+  hint,
+  color,
+  href,
+}: {
+  value: string
+  label: string
+  hint: string
+  color: string
+  href?: string
+}) {
+  const body = (
+    <>
+      <p className="rv-num text-[26px] leading-none font-bold" style={{ color }}>
+        {value}
+      </p>
+      <p className="mt-1.5 text-[13px] font-semibold text-[var(--rv-ink)]">{label}</p>
+      <p className="mt-0.5 text-[11.5px] leading-snug text-[var(--rv-ink-3)]">{hint}</p>
+    </>
+  )
+  return href ? (
+    <Link href={href} className="rv-card block p-4 hover:border-[var(--rv-stroke-strong)]">
+      {body}
+    </Link>
+  ) : (
+    <div className="rv-card p-4">{body}</div>
   )
 }
 

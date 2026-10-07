@@ -7,14 +7,15 @@ import {
   type Hex,
   type PublicClient,
 } from "viem";
-import { arc, POOL_MANAGER, POSITION_MANAGER } from "./config";
+import { arc, POOL_MANAGER, POSITION_MANAGER, arcTransport } from "./config";
 import { interpretSwap } from "./activity-indexer.service";
 import { scanBlockRange } from "./factory-log-indexer.service";
 
 const ACTIVITY_CURSOR = "arc:activity";
-const CHUNK = 9_999n;
-/** ~29 days of Arc blocks. Longer histories stay "too_long" rather than stall the pipeline. */
-const MAX_SPAN = BigInt(process.env.ARC_BACKFILL_MAX_BLOCKS ?? "2500000");
+/** Token-filtered transfer queries are light: Blockdaemon serves big ranges (halved automatically when an RPC refuses). */
+const CHUNK = BigInt(process.env.ARC_BACKFILL_CHUNK_BLOCKS ?? "50000");
+/** ~6 weeks of Arc blocks (mainnet launched 2026-09-16, so all of it for now). Longer histories stay "too_long". */
+const MAX_SPAN = BigInt(process.env.ARC_BACKFILL_MAX_BLOCKS ?? "7000000");
 const MIN_LIQUIDITY_USD = Number(process.env.ARC_BACKFILL_MIN_LIQUIDITY ?? "1000");
 /** Tokens replayed per pipeline tick, deepest liquidity first. */
 const TOKENS_PER_RUN = Number(process.env.ARC_BACKFILL_TOKENS_PER_RUN ?? "4");
@@ -42,11 +43,7 @@ export class HolderBackfillService {
       client ??
       createPublicClient({
         chain: arc,
-        transport: http(process.env.ARC_RPC_URL ?? "https://rpc.mainnet.arc.io", {
-          timeout: 20_000,
-          retryCount: 3,
-          retryDelay: 1_500,
-        }),
+        transport: arcTransport(),
       });
   }
 
@@ -75,7 +72,9 @@ export class HolderBackfillService {
         const msg = (err as Error).message;
         // Network blips retry next tick; a history the RPC can't serve (too many
         // logs) is set aside so it doesn't block every token behind it.
-        if (!/ENOTFOUND|ECONNRESET|timed out|timeout|fetch failed/i.test(msg)) {
+        // (every RPC failing the same getLogs = a history too big to serve, e.g. WETH/EURC)
+        const transient = /ENOTFOUND|ECONNRESET|ECONNREFUSED|fetch failed/i.test(msg) && !/eth_getLogs/.test(msg);
+        if (!transient) {
           await db.token.update({ where: { id: t.id }, data: { holderHistory: "unavailable" } });
         }
         done.push({ token: t.symbol, error: msg.slice(0, 120) });
