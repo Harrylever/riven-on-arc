@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { SUB_SCORE_LABEL, type SubScoreKey } from "@clawdex/shared/score"
-import type { CreatorRecord, TokenDetail } from "@/lib/arc-data"
+import type { Callout, CreatorRecord, TokenDetail } from "@/lib/arc-data"
 import {
   BAND_META,
   age,
@@ -15,7 +15,10 @@ import {
   times,
   usd,
 } from "@/lib/riven-format"
-import { ScoreBadge, ScoreMeter } from "./score-badge"
+import { ScoreMeter } from "./score-badge"
+import { CalloutsRow } from "./home-sections"
+import { MascotStage } from "@/components/mascot/mascot-stage"
+import type { Holo, Mood } from "@/components/mascot/mascot"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
 import { CopyBadge, CopycatWarning } from "./copycat"
@@ -48,151 +51,242 @@ const ALERT_LABEL: Record<string, string> = {
 /** `serverNow` keeps relative times identical between the server render and hydration. */
 export function TokenView({
   t,
+  callouts = [],
   serverNow,
 }: {
   t: TokenDetail
+  callouts?: Callout[]
   serverNow: number
 }) {
   const m = BAND_META[t.band]
   const now = serverNow
-  const wallet = useArcWallet()
-  const [trade, setTrade] = useState<"buy" | "sell" | null>(null)
   const tradable =
     TRADING_ENABLED && (!!t.pairAddress || t.launchpad !== "Tolly")
   const dangers = t.flags.filter((f) => f.level === "danger")
   const warnings = t.flags.filter((f) => f.level === "warning")
   const goods = t.flags.filter((f) => f.level === "good")
+  const [tab, setTab] = useState<"trades" | "holders" | "creator" | "callouts">(
+    "trades",
+  )
+
+  const mood: Mood =
+    t.fake || t.band === "risk"
+      ? "danger"
+      : t.band === "caution"
+        ? "warn"
+        : t.band === "healthy"
+          ? "happy"
+          : "idle"
+  const holos: Holo[] = [
+    {
+      title: "Riven score",
+      value: t.score === null ? "scoring…" : `${t.score.toFixed(1)}/10`,
+      note: t.fake ? t.fakeReasons[0] : t.verdict,
+      bars: t.subScores
+        ? ORDER.map(
+            (k) => t.subScores![k].points / Math.max(1, t.subScores![k].max),
+          )
+        : undefined,
+      tone:
+        t.band === "healthy"
+          ? "green"
+          : t.band === "caution"
+            ? "amber"
+            : t.band === "risk"
+              ? "red"
+              : "blue",
+    },
+    ...(t.priceSeries.length > 2
+      ? [
+          {
+            title: `${t.symbol} price · 24h`,
+            value: change(t.change.h24),
+            note: `Now ${usd(t.priceUsd, { precise: true })} · vol ${usd(t.volume.h24)}`,
+            series: t.priceSeries.map((s) => s.p),
+            tone: ((t.change.h24 ?? 0) >= 0 ? "green" : "red") as Holo["tone"],
+          },
+        ]
+      : []),
+    ...(t.usdcInPool !== null
+      ? [
+          {
+            title: "Real USDC in pool",
+            value: usd(t.usdcInPool),
+            note:
+              t.usdcInPool < 1000
+                ? "All sellers can exit into — that's thin."
+                : "What sellers can exit into.",
+            tone: (t.usdcInPool < 1000 ? "amber" : "blue") as Holo["tone"],
+          },
+        ]
+      : []),
+  ]
+  const lines = [
+    t.fake ? `Flagged: ${t.fakeReasons[0]}` : t.verdict,
+    ...dangers.slice(0, 2).map((f) => f.text),
+    ...(goods[0] ? [`Good sign: ${goods[0].text.toLowerCase()}.`] : []),
+    "Tap me — I'll pull up the numbers.",
+  ]
 
   return (
-    <div className="flex flex-col gap-3.5">
-      <Link
-        href="/trending"
-        className="rv-body w-fit text-[13px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
-      >
-        ← Trending
-      </Link>
-
-      {/* Identity + price */}
-      <section className="flex flex-wrap items-center gap-3.5">
+    <div className="flex flex-col gap-4">
+      {/* Header */}
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <Link
+          href="/trending"
+          className="text-[12px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+          aria-label="Back to trending"
+        >
+          ←
+        </Link>
         <TokenAvatar
           image={t.image}
           symbol={t.symbol}
           address={t.address}
-          size={56}
+          size={52}
         />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="rv-display truncate text-[26px] leading-tight font-extrabold text-[var(--rv-ink)] sm:text-[30px]">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h1 className="text-[24px] font-bold tracking-tight text-[var(--rv-ink)]">
               {t.symbol}
             </h1>
+            <span className="truncate text-[14px] text-[var(--rv-ink-3)]">
+              {t.name}
+            </span>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11.5px] text-[var(--rv-ink-3)]">
+            <span className="rounded bg-white/[0.05] px-1.5 py-px font-semibold text-[var(--rv-ink-2)]">
+              {t.launchpad}
+            </span>
+            <span className="rv-num">{age(t.launchedAt, now)} old</span>
             {t.fake && (
-              <span
-                className="rv-body rounded-md bg-[rgba(248,113,113,0.12)] px-2 py-0.5 text-[11px] font-bold text-[var(--rv-risk)] uppercase"
-                title="Flagged by on-chain evidence — hidden from the default list"
-              >
+              <span className="rounded bg-[rgba(248,113,113,0.12)] px-1.5 py-px text-[10px] font-bold tracking-wide text-[var(--rv-risk)] uppercase">
                 Flagged
               </span>
             )}
             <CopyBadge copies={t.copies} />
+            <CopyAddress address={t.address} />
+            <a
+              href={`${EXPLORER}/address/${t.address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[var(--rv-ice)]"
+            >
+              Explorer ↗
+            </a>
+            {t.dexUrl && (
+              <a
+                href={t.dexUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-[var(--rv-ice)]"
+              >
+                DexScreener ↗
+              </a>
+            )}
           </div>
-          <p className="rv-body truncate text-[13px] text-[var(--rv-ink-2)]">
-            {t.name} · {t.launchpad} · {age(t.launchedAt, now)} old
-          </p>
         </div>
         <div className="text-right">
-          <div className="rv-num text-[22px] font-semibold text-[var(--rv-ink)]">
+          <div className="rv-num text-[24px] font-bold tracking-tight text-[var(--rv-ink)]">
             {usd(t.priceUsd, { precise: true })}
           </div>
           <div
-            className="rv-num text-[13px]"
+            className="rv-num text-[13px] font-semibold"
             style={{ color: changeColor(t.change.h24) }}
           >
-            {change(t.change.h24)} 24h
+            {change(t.change.h24)}{" "}
+            <span className="text-[var(--rv-ink-3)]">24h</span>
           </div>
         </div>
         <WatchButton address={t.address} size="lg" />
-      </section>
+      </header>
 
-      {/* The score comes first on phones (on desktop it heads the right column). */}
-      <a
-        href="#score"
-        className="rv-card flex items-center gap-4 p-4 lg:hidden"
-      >
-        <div className="flex items-baseline gap-1">
-          <span
-            className="rv-display text-[40px] leading-none font-extrabold"
-            style={{ color: m.color }}
-          >
-            {t.score === null ? "—" : t.score.toFixed(1)}
-          </span>
-          <span className="rv-num text-[13px] text-[var(--rv-ink-3)]">/10</span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p
-            className="rv-body text-[12px] font-bold tracking-wide uppercase"
-            style={{ color: m.color }}
-          >
-            {m.label}
+      {/* Stat strip */}
+      <section className="rv-card scrollbar-hidden flex overflow-x-auto">
+        <Stat label="Market cap" value={usd(t.marketCap)} />
+        <Stat
+          label="Change 1h"
+          value={change(t.change.h1)}
+          color={changeColor(t.change.h1)}
+        />
+        <Stat label="Volume 24h" value={usd(t.volume.h24)} />
+        <Stat
+          label="Liquidity"
+          value={usd(t.liquidityUsd)}
+          hint="DexScreener's figure"
+        />
+        <Stat
+          label="USDC in pool"
+          value={usd(t.usdcInPool)}
+          color={
+            t.usdcInPool !== null && t.usdcInPool < 1000
+              ? "var(--rv-caution)"
+              : undefined
+          }
+          hint="Real USDC sellers can exit into"
+        />
+        <Stat label="Holders" value={compact(t.holders)} />
+        <Stat
+          label="Buys / sells"
+          value={
+            t.buys24h === null
+              ? "—"
+              : `${compact(t.buys24h)} / ${compact(t.sells24h)}`
+          }
+        />
+        <Stat label="Fee" value={t.feePct === null ? "—" : pct(t.feePct)} />
+      </section>
+      {t.liquidityUsd !== null &&
+        t.usdcInPool !== null &&
+        t.usdcInPool < t.liquidityUsd * 0.1 && (
+          <p className="-mt-2 text-[12px] leading-snug text-[var(--rv-caution)]">
+            Most of that &ldquo;liquidity&rdquo; is this token valued at its own
+            price. Only {usd(t.usdcInPool)} of real USDC is in the pool —
+            that&apos;s all sellers can exit into.
           </p>
-          <p className="rv-body line-clamp-2 text-[13px] leading-snug text-[var(--rv-ink)]">
-            {t.fake ? t.fakeReasons[0] : t.verdict}
-          </p>
-          <p className="rv-body mt-0.5 text-[11px] font-semibold text-[var(--rv-ice)]">
-            See the evidence ↓
-          </p>
-        </div>
-      </a>
+        )}
 
       <CopycatWarning token={t} copies={t.copyList} now={now} />
 
-      {tradable && (
-        <div className="flex flex-col gap-1.5 sm:max-w-sm">
-          {(t.fake || t.band === "risk") && (
-            <p className="rv-body text-[12px] leading-snug text-[var(--rv-caution)]">
-              Riven {t.fake ? "flagged" : "rates"} this token{" "}
-              {t.fake ? "" : "risky "}— read why before you trade.
-            </p>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setTrade("buy")}
-              className={`rv-body h-11 rounded-lg text-[15px] font-bold ${
-                t.fake || t.band === "risk"
-                  ? "text-[var(--rv-up)] ring-1 ring-[rgba(74,222,128,0.45)]"
-                  : "bg-[var(--rv-up)] text-black"
-              }`}
-            >
-              Buy
-            </button>
-            <button
-              type="button"
-              onClick={() => setTrade("sell")}
-              className="rv-body h-11 rounded-lg bg-[var(--rv-down)] text-[15px] font-bold text-black"
-            >
-              Sell
-            </button>
-          </div>
-        </div>
-      )}
-      {trade && (
-        <TradeSheet
-          token={t}
-          wallet={wallet}
-          initialSide={trade}
-          onClose={() => setTrade(null)}
-        />
-      )}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* Riven reads the token: big stage so the holograms are readable */}
+          <section className="rv-card relative overflow-hidden">
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background: `radial-gradient(ellipse at 50% 85%, ${m.tint.replace("0.10", "0.22")}, transparent 65%)`,
+              }}
+              aria-hidden
+            />
+            <div className="absolute top-3 left-4 z-20">
+              <p className="rv-label">Riven&apos;s read</p>
+              <p
+                className="text-[13px] font-semibold"
+                style={{ color: m.color }}
+              >
+                {m.label}
+              </p>
+            </div>
+            <MascotStage
+              className="h-[360px] w-full lg:h-[440px]"
+              framing="full"
+              mood={mood}
+              holos={holos}
+              holoSize={0.55}
+              lines={lines}
+              greet={`${m.label}. ${t.fake ? t.fakeReasons[0] : t.verdict}`}
+              bubbleSide="right"
+            />
+          </section>
 
-      <div className="grid gap-3.5 lg:grid-cols-[1.35fr_1fr]">
-        <div className="flex flex-col gap-3.5">
           {/* Chart */}
           {t.pairAddress ? (
             <section className="rv-card overflow-hidden">
               <iframe
                 title={`${t.symbol} chart`}
                 src={`https://dexscreener.com/arc/${t.pairAddress}?embed=1&loadChartSettings=0&trades=0&info=0&chartTheme=dark&theme=dark&chartStyle=1&chartType=usd&interval=5`}
-                className="h-[380px] w-full border-0 bg-black"
+                className="h-[460px] w-full border-0 bg-[var(--rv-sunken)]"
                 loading="lazy"
               />
             </section>
@@ -200,147 +294,72 @@ export function TokenView({
             <PriceChart series={t.priceSeries} />
           ) : null}
 
-          {/* Market strip */}
-          <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Metric label="Market cap" value={usd(t.marketCap)} />
-            <Metric
-              label="Liquidity · DexScreener"
-              value={usd(t.liquidityUsd)}
-            />
-            <Metric
-              label="USDC in pool"
-              value={usd(t.usdcInPool)}
-              tone={
-                t.usdcInPool !== null && t.usdcInPool < 1000
-                  ? "warn"
-                  : undefined
-              }
-            />
-            <Metric label="Volume 24h" value={usd(t.volume.h24)} />
-            <Metric
-              label="Buys / sells 24h"
-              value={
-                t.buys24h === null
-                  ? "—"
-                  : `${compact(t.buys24h)} / ${compact(t.sells24h)}`
-              }
-            />
-            <Metric label="Holders" value={compact(t.holders)} />
-            <Metric
-              label="Trading fee"
-              value={t.feePct === null ? "—" : pct(t.feePct)}
-            />
-            <Metric
-              label="1h / 6h"
-              value={`${change(t.change.h1)} / ${change(t.change.h6)}`}
-            />
-            {t.liquidityUsd !== null &&
-              t.usdcInPool !== null &&
-              t.usdcInPool < t.liquidityUsd * 0.1 && (
-                <p className="rv-body col-span-2 text-[12px] leading-snug text-[var(--rv-caution)] sm:col-span-4">
-                  Most of that &ldquo;liquidity&rdquo; is this token valued at
-                  its own price. Only {usd(t.usdcInPool)} of real USDC is in the
-                  pool — that&apos;s all sellers can exit into.
-                </p>
-              )}
-          </section>
-
-          <Holders t={t} />
-          <Trades t={t} now={now} />
-        </div>
-
-        <div className="flex flex-col gap-3.5">
-          {/* Score */}
-          <section id="score" className="rv-card scroll-mt-20 p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="rv-body text-[11px] font-semibold tracking-[0.14em] text-[var(--rv-ink-3)] uppercase">
-                  Riven score
-                </p>
-                <div className="mt-1 flex items-baseline gap-1">
-                  <span
-                    className="rv-display text-[52px] leading-none font-extrabold"
-                    style={{ color: m.color }}
-                  >
-                    {t.score === null ? "—" : t.score.toFixed(1)}
-                  </span>
-                  <span className="rv-num text-[16px] text-[var(--rv-ink-3)]">
-                    /10
-                  </span>
+          {/* Tabs */}
+          <section className="rv-card overflow-hidden">
+            <div
+              className="flex items-center gap-1 border-b border-[var(--rv-stroke)] px-2 pt-2"
+              role="tablist"
+            >
+              {(
+                [
+                  [
+                    "trades",
+                    `Trades${t.trades.length ? ` ${t.trades.length}` : ""}`,
+                  ],
+                  ["holders", "Holders"],
+                  ["creator", "Creator"],
+                  [
+                    "callouts",
+                    `Callouts${callouts.length ? ` ${callouts.length}` : ""}`,
+                  ],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === id}
+                  onClick={() => setTab(id)}
+                  className="relative px-3 pt-1.5 pb-2.5 text-[13px] font-semibold transition-colors"
+                  style={{
+                    color: tab === id ? "var(--rv-ink)" : "var(--rv-ink-3)",
+                  }}
+                >
+                  {label}
+                  {tab === id && (
+                    <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[var(--rv-blue)]" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="[&>section]:rounded-none [&>section]:border-0 [&>section]:bg-transparent [&>section>h2]:hidden">
+              {tab === "trades" &&
+                (t.trades.length ? (
+                  <Trades t={t} now={now} />
+                ) : (
+                  <p className="p-4 text-[13px] text-[var(--rv-ink-2)]">
+                    No indexed trades yet.
+                  </p>
+                ))}
+              {tab === "holders" && <Holders t={t} />}
+              {tab === "creator" &&
+                (t.creatorRecord ? (
+                  <CreatorTrack record={t.creatorRecord} now={now} />
+                ) : (
+                  <p className="p-4 text-[13px] text-[var(--rv-ink-2)]">
+                    The creator of this token isn&apos;t known yet.
+                  </p>
+                ))}
+              {tab === "callouts" && (
+                <div className="p-4">
+                  <CalloutsRow callouts={callouts} now={now} />
                 </div>
-              </div>
-              <ScoreBadge score={t.score} band={t.band} />
+              )}
             </div>
-            <div className="mt-3">
-              <ScoreMeter score={t.score} band={t.band} />
-            </div>
-            <p className="rv-body mt-3 text-[15px] leading-snug font-semibold text-[var(--rv-ink)]">
-              {t.verdict}
-            </p>
-            <p className="rv-body mt-1 text-[11px] text-[var(--rv-ink-3)]">
-              {t.scoredAt
-                ? `Scored ${age(t.scoredAt, now)} ago`
-                : "Not scored yet"}
-              {t.confidence ? ` · ${t.confidence} confidence` : ""}
-              {t.holderHistory === "partial" || t.holderHistory === "too_long"
-                ? " · holder history still loading"
-                : ""}
-            </p>
-            {t.subScores && (
-              <div className="mt-4 grid gap-2.5">
-                {ORDER.map((k) => (
-                  <SubBar key={k} k={k} {...t.subScores![k]} />
-                ))}
-              </div>
-            )}
           </section>
 
-          <Shield t={t} />
-
-          {/* Flags */}
-          <section className="rv-card p-4">
-            <h2 className="rv-display text-[16px] font-bold text-[var(--rv-ink)]">
-              What Riven found
-            </h2>
-            {t.flags.length === 0 ? (
-              <p className="rv-body mt-2 text-sm text-[var(--rv-ink-2)]">
-                Still reading this token&apos;s on-chain data.
-              </p>
-            ) : (
-              <ul className="mt-2.5 flex flex-col gap-1.5">
-                {[...dangers, ...warnings, ...goods].map((f, i) => (
-                  <li
-                    key={`${f.text}-${i}`}
-                    className="rv-body flex items-start gap-2.5 text-[13px] leading-snug text-[var(--rv-ink)]"
-                  >
-                    <span
-                      aria-hidden
-                      className="mt-1 size-2 shrink-0 rounded-sm"
-                      style={{
-                        background:
-                          f.level === "danger"
-                            ? "var(--rv-risk)"
-                            : f.level === "warning"
-                              ? "var(--rv-caution)"
-                              : "var(--rv-healthy)",
-                      }}
-                    />
-                    <span className="flex-1">{f.text}</span>
-                    <span className="text-[10px] tracking-wide text-[var(--rv-ink-3)] uppercase">
-                      {SUB_SCORE_LABEL[f.category]}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {t.creatorRecord && (
-            <CreatorTrack record={t.creatorRecord} now={now} />
-          )}
-
-          <section className="rv-card rv-body flex flex-col gap-2 p-4 text-[12px]">
-            <h2 className="rv-display text-[16px] font-bold text-[var(--rv-ink)]">
+          <section className="rv-card flex flex-col gap-2 p-4 text-[12px]">
+            <h2 className="text-[15px] font-bold text-[var(--rv-ink)]">
               Check it yourself
             </h2>
             <Row
@@ -392,8 +411,253 @@ export function TokenView({
             </p>
           </section>
         </div>
+
+        {/* Sidebar: shown first on phones (order-first): the score is the point of Riven. */}
+        <aside className="order-first flex flex-col gap-3 lg:sticky lg:top-28 lg:order-none">
+          <section
+            id="score"
+            className="rv-card relative scroll-mt-28 overflow-hidden"
+          >
+            <div className="relative p-4">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="rv-label">Riven score</p>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span
+                      className="text-[44px] leading-none font-bold tracking-tight"
+                      style={{ color: m.color }}
+                    >
+                      {t.score === null ? "—" : t.score.toFixed(1)}
+                    </span>
+                    <span className="rv-num text-[14px] text-[var(--rv-ink-3)]">
+                      /10
+                    </span>
+                  </div>
+                </div>
+                <span
+                  className="rounded-md px-2.5 py-1 text-[12px] font-bold tracking-wide uppercase"
+                  style={{ color: m.color, background: m.tint }}
+                >
+                  {m.label}
+                </span>
+              </div>
+              <div className="mt-3">
+                <ScoreMeter score={t.score} band={t.band} />
+              </div>
+              <p className="mt-3 text-[14px] leading-snug font-semibold text-[var(--rv-ink)]">
+                {t.verdict}
+              </p>
+              <p className="mt-1 text-[11px] text-[var(--rv-ink-3)]">
+                {t.scoredAt
+                  ? `Scored ${age(t.scoredAt, now)} ago`
+                  : "Not scored yet"}
+                {t.confidence ? ` · ${t.confidence} confidence` : ""}
+                {t.holderHistory === "partial" || t.holderHistory === "too_long"
+                  ? " · holder history still loading"
+                  : ""}
+              </p>
+              {t.subScores && (
+                <div className="mt-4 grid gap-2.5">
+                  {ORDER.map((k) => (
+                    <SubBar key={k} k={k} {...t.subScores![k]} />
+                  ))}
+                </div>
+              )}
+              <Link
+                href="/methodology"
+                className="mt-3 inline-block text-[12px] font-semibold text-[var(--rv-ice)] hover:underline"
+              >
+                How the score works →
+              </Link>
+            </div>
+          </section>
+
+          {tradable && <TradeBox t={t} />}
+
+          <Shield t={t} />
+
+          <section className="rv-card p-4">
+            <h2 className="text-[15px] font-bold text-[var(--rv-ink)]">
+              What Riven found
+            </h2>
+            {t.flags.length === 0 ? (
+              <p className="mt-2 text-sm text-[var(--rv-ink-2)]">
+                Still reading this token&apos;s on-chain data.
+              </p>
+            ) : (
+              <ul className="mt-2.5 flex flex-col gap-1.5">
+                {[...dangers, ...warnings, ...goods].map((f, i) => (
+                  <li
+                    key={`${f.text}-${i}`}
+                    className="flex items-start gap-2.5 text-[13px] leading-snug text-[var(--rv-ink)]"
+                  >
+                    <span
+                      aria-hidden
+                      className="mt-1 size-2 shrink-0 rounded-sm"
+                      style={{
+                        background:
+                          f.level === "danger"
+                            ? "var(--rv-risk)"
+                            : f.level === "warning"
+                              ? "var(--rv-caution)"
+                              : "var(--rv-healthy)",
+                      }}
+                    />
+                    <span className="flex-1">{f.text}</span>
+                    <span className="text-[10px] tracking-wide text-[var(--rv-ink-3)] uppercase">
+                      {SUB_SCORE_LABEL[f.category]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </aside>
       </div>
     </div>
+  )
+}
+
+function Stat({
+  label,
+  value,
+  color,
+  hint,
+}: {
+  label: string
+  value: string
+  color?: string
+  hint?: string
+}) {
+  return (
+    <div
+      className="min-w-[118px] flex-1 border-r border-[var(--rv-stroke)] px-4 py-3 last:border-r-0"
+      title={hint}
+    >
+      <div className="rv-label">{label}</div>
+      <div
+        className="rv-num mt-1 truncate text-[15px] font-bold"
+        style={{ color: color ?? "var(--rv-ink)" }}
+      >
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function CopyAddress({ address }: { address: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        navigator.clipboard?.writeText(address).then(() => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1400)
+        })
+      }
+      className="rv-num flex items-center gap-1 rounded bg-white/[0.05] px-1.5 py-px text-[11px] text-[var(--rv-ink-2)] hover:text-[var(--rv-ink)]"
+      title="Copy contract address"
+    >
+      {shortAddr(address)}
+      <span className="text-[var(--rv-ice)]">{copied ? "✓" : "⧉"}</span>
+    </button>
+  )
+}
+
+/** Inline trade box: pick side and size, then review and sign in the trade sheet. */
+function TradeBox({ t }: { t: TokenDetail }) {
+  const wallet = useArcWallet()
+  const [side, setSide] = useState<"buy" | "sell">("buy")
+  const [amount, setAmount] = useState("10")
+  const [open, setOpen] = useState(false)
+  const risky = t.fake || t.band === "risk"
+  return (
+    <section className="rv-card p-4">
+      <div className="rv-seg w-full" role="radiogroup" aria-label="Side">
+        {(["buy", "sell"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            role="radio"
+            aria-checked={side === s}
+            onClick={() => {
+              setSide(s)
+              setAmount(s === "buy" ? "10" : "")
+            }}
+            className="flex-1 capitalize"
+            style={
+              side === s
+                ? {
+                    background: s === "buy" ? "var(--rv-up)" : "var(--rv-down)",
+                    color: "#0a0a0c",
+                  }
+                : undefined
+            }
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      <label className="mt-3 block">
+        <span className="rv-label">
+          {side === "buy" ? "You pay (USDC)" : `You sell (${t.symbol})`}
+        </span>
+        <input
+          inputMode="decimal"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+          placeholder="0"
+          className="rv-input rv-num mt-1 h-11 w-full px-3 text-right text-[20px] font-bold"
+        />
+      </label>
+      {side === "buy" && (
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
+          {["5", "10", "25", "100"].map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setAmount(v)}
+              aria-pressed={amount === v}
+              className="rv-chip justify-center"
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      )}
+      {risky && (
+        <p className="mt-3 text-[12px] leading-snug text-[var(--rv-caution)]">
+          Riven {t.fake ? "flagged" : "rates"} this token
+          {t.fake ? "" : " risky"} — you&apos;ll see why before anything is
+          signed.
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={!amount || Number(amount) <= 0}
+        className="mt-3 h-11 w-full rounded-md text-[14px] font-bold transition-[filter] hover:brightness-110 disabled:opacity-40"
+        style={{
+          background: side === "buy" ? "var(--rv-up)" : "var(--rv-down)",
+          color: "#0a0a0c",
+        }}
+      >
+        {wallet.address ? `Review ${side}` : "Connect wallet to trade"}
+      </button>
+      <p className="mt-2 text-center text-[10.5px] text-[var(--rv-ink-3)]">
+        Uniswap v4 on Arc · you sign every transaction · Riven never holds funds
+      </p>
+      {open && (
+        <TradeSheet
+          token={t}
+          wallet={wallet}
+          initialSide={side}
+          initialAmount={amount}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </section>
   )
 }
 
@@ -675,37 +939,6 @@ function SubBar({
           className="h-full rounded-sm"
           style={{ width: `${Math.max(2, ratio * 100)}%`, background: color }}
         />
-      </div>
-    </div>
-  )
-}
-
-function Metric({
-  label,
-  value,
-  tone,
-}: {
-  label: string
-  value: string
-  tone?: "warn" | "bad"
-}) {
-  return (
-    <div className="rv-card px-3 py-2.5">
-      <div className="rv-body text-[10px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
-        {label}
-      </div>
-      <div
-        className="rv-num mt-0.5 truncate text-[15px] font-semibold"
-        style={{
-          color:
-            tone === "bad"
-              ? "var(--rv-risk)"
-              : tone === "warn"
-                ? "var(--rv-caution)"
-                : "var(--rv-ink)",
-        }}
-      >
-        {value}
       </div>
     </div>
   )

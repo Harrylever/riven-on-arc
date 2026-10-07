@@ -578,3 +578,21 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .rv-live-dot { animation: none; }
 }
+
+@keyframes rv-pop {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* hologram flicker: mostly steady, with the odd scanline stutter */
+@keyframes rv-holo-flicker {
+  0%, 100% { opacity: 1; }
+  46% { opacity: 1; }
+  47% { opacity: 0.72; }
+  48% { opacity: 1; }
+  82% { opacity: 0.9; }
+  83% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="rv-holo-flicker"] { animation: none !important; }
+}

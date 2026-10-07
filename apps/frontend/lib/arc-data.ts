@@ -783,9 +783,10 @@ export interface Callout {
 }
 
 /** Latest KOL callouts on X, newest first, each with the token's live Riven summary. */
-export async function getCallouts(limit = 12): Promise<Callout[]> {
+export async function getCallouts(limit = 12, tokenAddress?: string): Promise<Callout[]> {
   const db = getDb()
   const rows = await db.arcCallout.findMany({
+    where: tokenAddress ? { token: { mint: tokenAddress.toLowerCase() } } : undefined,
     orderBy: { postedAt: "desc" },
     take: limit,
     include: { token: { include: INCLUDE } },

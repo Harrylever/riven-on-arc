@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { getTokenDetail } from "@/lib/arc-data"
+import { getCallouts, getTokenDetail } from "@/lib/arc-data"
 import { BAND_META } from "@/lib/riven-format"
 import { TokenView } from "@/components/riven/token-view"
 
@@ -31,7 +31,9 @@ export default async function TokenPage({
   params: Promise<{ mint: string }>
 }) {
   const { mint } = await params
-  const t = await getTokenDetail(mint)
+  const [t, callouts] = await Promise.all([getTokenDetail(mint), getCallouts(8, mint).catch(() => [])])
   if (!t) notFound()
-  return <TokenView t={t} serverNow={Date.now()} />
+  // eslint-disable-next-line react-hooks/purity -- per-request server render
+  const now = Date.now()
+  return <TokenView t={t} callouts={callouts} serverNow={now} />
 }

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import type { TokenSummary } from "@/lib/arc-data"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
+import { MascotStage } from "@/components/mascot/mascot-stage"
 
 interface Msg {
   role: "user" | "riven"
@@ -73,15 +74,21 @@ export function AgentChat() {
 
   return (
     <div className="flex min-h-[70dvh] flex-col gap-3">
-      <header>
-        <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">
-          Ask Riven
-        </h1>
-        <p className="rv-body text-[13px] text-[var(--rv-ink-2)]">
-          Answers come only from Riven&apos;s on-chain data — each one says
-          whether Riven&apos;s rule engine wrote it or Claude rephrased those
-          same facts. It explains; it never tells you to buy or sell.
-        </p>
+      <header className="flex items-center gap-4">
+        <MascotStage
+          className="h-[170px] w-[150px] shrink-0"
+          framing="bust"
+          lines={["Paste a 0x address or a $TICKER.", "I only answer from on-chain data.", "I'll never tell you to buy or sell — just what the chain says."]}
+          greet="Ask me anything about an Arc token."
+          bubbleSide="right"
+        />
+        <div>
+          <h1 className="text-[26px] font-bold tracking-tight text-[var(--rv-ink)]">Ask Riven</h1>
+          <p className="text-[13px] text-[var(--rv-ink-2)]">
+            Answers come only from Riven&apos;s on-chain data — each one says whether Riven&apos;s rule engine wrote it or Claude
+            rephrased those same facts. It explains; it never tells you to buy or sell.
+          </p>
+        </div>
       </header>
       <div
         className="rv-card flex flex-1 flex-col gap-3 p-4"

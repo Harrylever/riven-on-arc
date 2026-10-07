@@ -2,16 +2,35 @@
 
 import Link from "next/link"
 import type { Callout, TokenAlert, TokenSummary } from "@/lib/arc-data"
-import { BAND_META, age, change, changeColor, compact, usd } from "@/lib/riven-format"
+import {
+  BAND_META,
+  age,
+  change,
+  changeColor,
+  compact,
+  usd,
+} from "@/lib/riven-format"
 import { FlashBuy } from "./flash-buy"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { FlagChip, Why } from "./screener"
 
-export function SectionTitle({ title, href, cta, live }: { title: string; href?: string; cta?: string; live?: boolean }) {
+export function SectionTitle({
+  title,
+  href,
+  cta,
+  live,
+}: {
+  title: string
+  href?: string
+  cta?: string
+  live?: boolean
+}) {
   return (
     <div className="mb-3 flex items-center gap-2">
-      <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">{title}</h2>
+      <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
+        {title}
+      </h2>
       {live && <span className="rv-live-dot" aria-hidden />}
       {href && (
         <Link href={href} className="rv-btn-ghost ml-auto h-8 px-3 text-[12px]">
@@ -44,7 +63,12 @@ export function TopCarousel({ tokens }: { tokens: TokenSummary[] }) {
               />
             ) : (
               <div className="grid size-full place-items-center">
-                <TokenAvatar image={null} symbol={t.symbol} address={t.address} size={72} />
+                <TokenAvatar
+                  image={null}
+                  symbol={t.symbol}
+                  address={t.address}
+                  size={72}
+                />
               </div>
             )}
             <span className="absolute top-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-bold text-[var(--rv-ink)]">
@@ -59,18 +83,28 @@ export function TopCarousel({ tokens }: { tokens: TokenSummary[] }) {
           <div className="flex flex-1 flex-col gap-1 p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate text-[14px] font-bold text-[var(--rv-ink)]">{t.symbol}</p>
-                <p className="truncate text-[11.5px] text-[var(--rv-ink-3)]">{t.name}</p>
+                <p className="truncate text-[14px] font-bold text-[var(--rv-ink)]">
+                  {t.symbol}
+                </p>
+                <p className="truncate text-[11.5px] text-[var(--rv-ink-3)]">
+                  {t.name}
+                </p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="rv-num text-[14px] font-bold text-[var(--rv-ink)]">{usd(t.marketCap)}</p>
-                <p className="rv-num text-[11.5px] font-semibold" style={{ color: changeColor(t.change.h24) }}>
+                <p className="rv-num text-[14px] font-bold text-[var(--rv-ink)]">
+                  {usd(t.marketCap)}
+                </p>
+                <p
+                  className="rv-num text-[11.5px] font-semibold"
+                  style={{ color: changeColor(t.change.h24) }}
+                >
                   {change(t.change.h24)}
                 </p>
               </div>
             </div>
             <p className="rv-num text-[11px] text-[var(--rv-ink-3)]">
-              {compact((t.buys24h ?? 0) + (t.sells24h ?? 0))} trades · vol {usd(t.volume.h24)}
+              {compact((t.buys24h ?? 0) + (t.sells24h ?? 0))} trades · vol{" "}
+              {usd(t.volume.h24)}
             </p>
             <div className="mt-auto flex items-center justify-between pt-1.5">
               <ScoreBadge score={t.score} band={t.band} size="sm" />
@@ -84,14 +118,21 @@ export function TopCarousel({ tokens }: { tokens: TokenSummary[] }) {
 }
 
 /** KOL posts on X that named an Arc token, next to that token's live score. */
-export function CalloutsRow({ callouts, now }: { callouts: Callout[]; now: number }) {
+export function CalloutsRow({
+  callouts,
+  now,
+}: {
+  callouts: Callout[]
+  now: number
+}) {
   if (callouts.length === 0) {
     return (
       <div className="rv-card flex flex-col items-start gap-1 p-4 text-[13px] text-[var(--rv-ink-2)] sm:flex-row sm:items-center sm:gap-3">
         <span className="text-[var(--rv-ink)]">No KOL callouts yet.</span>
         <span>
-          Riven watches X for tracked KOLs posting Arc contract addresses — and shows each one next to the token&apos;s score, so
-          a shill never comes without the facts.
+          Riven watches X for tracked KOLs posting Arc contract addresses — and
+          shows each one next to the token&apos;s score, so a shill never comes
+          without the facts.
         </span>
       </div>
     )
@@ -108,7 +149,9 @@ export function CalloutsRow({ callouts, now }: { callouts: Callout[]; now: numbe
               {c.author.slice(0, 2)}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[12.5px] font-semibold text-[var(--rv-ink)]">{c.authorName ?? c.author}</p>
+              <p className="truncate text-[12.5px] font-semibold text-[var(--rv-ink)]">
+                {c.authorName ?? c.author}
+              </p>
               <p className="truncate text-[11px] text-[var(--rv-ink-3)]">
                 @{c.author} · {age(c.postedAt, now)} ago
               </p>
@@ -120,26 +163,48 @@ export function CalloutsRow({ callouts, now }: { callouts: Callout[]; now: numbe
               className="rounded-md p-1.5 text-[var(--rv-ink-2)] hover:bg-white/[0.06] hover:text-[var(--rv-ink)]"
               aria-label={`Open @${c.author}'s post on X`}
             >
-              <svg viewBox="0 0 24 24" width={14} height={14} fill="currentColor" aria-hidden>
+              <svg
+                viewBox="0 0 24 24"
+                width={14}
+                height={14}
+                fill="currentColor"
+                aria-hidden
+              >
                 <path d="M17.75 3h3.07l-6.7 7.66L22 21h-6.17l-4.83-6.32L5.47 21H2.4l7.17-8.2L2 3h6.33l4.37 5.78L17.75 3zm-1.08 16.2h1.7L7.4 4.73H5.58l11.09 14.47z" />
               </svg>
             </a>
           </header>
-          <p className="line-clamp-3 text-[12.5px] leading-snug text-[var(--rv-ink-2)]">{c.text}</p>
+          <p className="line-clamp-3 text-[12.5px] leading-snug text-[var(--rv-ink-2)]">
+            {c.text}
+          </p>
           <Link
             href={`/token/${c.token.address}`}
             className="mt-auto flex items-center gap-2 rounded-md bg-[var(--rv-sunken)] p-2 ring-1 ring-[var(--rv-stroke)] hover:ring-[var(--rv-stroke-strong)]"
           >
-            <TokenAvatar image={c.token.image} symbol={c.token.symbol} address={c.token.address} size={26} />
+            <TokenAvatar
+              image={c.token.image}
+              symbol={c.token.symbol}
+              address={c.token.address}
+              size={26}
+            />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12.5px] font-bold text-[var(--rv-ink)]">${c.token.symbol}</span>
-              <span className="rv-num block text-[11px] text-[var(--rv-ink-3)]">{usd(c.token.marketCap)}</span>
+              <span className="block truncate text-[12.5px] font-bold text-[var(--rv-ink)]">
+                ${c.token.symbol}
+              </span>
+              <span className="rv-num block text-[11px] text-[var(--rv-ink-3)]">
+                {usd(c.token.marketCap)}
+              </span>
             </span>
             <ScoreBadge score={c.token.score} band={c.token.band} size="sm" />
           </Link>
           <div className="flex items-center justify-between">
-            <span className="text-[11px]" style={{ color: BAND_META[c.token.band].color }}>
-              {c.token.fake ? "Flagged by Riven" : BAND_META[c.token.band].label}
+            <span
+              className="text-[11px]"
+              style={{ color: BAND_META[c.token.band].color }}
+            >
+              {c.token.fake
+                ? "Flagged by Riven"
+                : BAND_META[c.token.band].label}
             </span>
             <FlashBuy token={c.token} />
           </div>
@@ -149,19 +214,41 @@ export function CalloutsRow({ callouts, now }: { callouts: Callout[]; now: numbe
   )
 }
 
-export function CaughtList({ tokens, now }: { tokens: TokenSummary[]; now: number }) {
+export function CaughtList({
+  tokens,
+  now,
+}: {
+  tokens: TokenSummary[]
+  now: number
+}) {
   if (tokens.length === 0)
-    return <p className="rv-card p-4 text-[13px] text-[var(--rv-ink-2)]">Nothing flagged in the last day.</p>
+    return (
+      <p className="rv-card p-4 text-[13px] text-[var(--rv-ink-2)]">
+        Nothing flagged in the last day.
+      </p>
+    )
   return (
     <ol className="rv-card divide-y divide-[var(--rv-stroke)] overflow-hidden">
       {tokens.map((t) => (
         <li key={t.address}>
-          <Link href={`/token/${t.address}`} className="flex items-start gap-3 px-3.5 py-3 hover:bg-[var(--rv-row-hover)]">
-            <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={36} />
+          <Link
+            href={`/token/${t.address}`}
+            className="flex items-start gap-3 px-3.5 py-3 hover:bg-[var(--rv-row-hover)]"
+          >
+            <TokenAvatar
+              image={t.image}
+              symbol={t.symbol}
+              address={t.address}
+              size={36}
+            />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-1.5">
-                <span className="truncate text-[13.5px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
-                <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">{age(t.launchedAt, now)}</span>
+                <span className="truncate text-[13.5px] font-bold text-[var(--rv-ink)]">
+                  {t.symbol}
+                </span>
+                <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">
+                  {age(t.launchedAt, now)}
+                </span>
               </div>
               <Why t={t} />
             </div>
@@ -180,27 +267,60 @@ const ALERT_META: Record<string, { label: string; color: string }> = {
   SCORE_DROP: { label: "Score drop", color: "var(--rv-caution)" },
 }
 
-export function AlertList({ alerts, now }: { alerts: TokenAlert[]; now: number }) {
+export function AlertList({
+  alerts,
+  now,
+}: {
+  alerts: TokenAlert[]
+  now: number
+}) {
   if (alerts.length === 0)
-    return <p className="rv-card p-4 text-[13px] text-[var(--rv-ink-2)]">Quiet for now — no rugs, dumps or score drops caught.</p>
+    return (
+      <p className="rv-card p-4 text-[13px] text-[var(--rv-ink-2)]">
+        Quiet for now — no rugs, dumps or score drops caught.
+      </p>
+    )
   return (
     <ol className="rv-card divide-y divide-[var(--rv-stroke)] overflow-hidden">
       {alerts.map((a) => {
-        const m = ALERT_META[a.type] ?? { label: a.type, color: "var(--rv-ink-2)" }
+        const m = ALERT_META[a.type] ?? {
+          label: a.type,
+          color: "var(--rv-ink-2)",
+        }
         return (
           <li key={a.id}>
-            <Link href={`/token/${a.token.address}`} className="flex items-start gap-3 px-3.5 py-3 hover:bg-[var(--rv-row-hover)]">
-              <TokenAvatar image={a.token.image} symbol={a.token.symbol} address={a.token.address} size={36} />
+            <Link
+              href={`/token/${a.token.address}`}
+              className="flex items-start gap-3 px-3.5 py-3 hover:bg-[var(--rv-row-hover)]"
+            >
+              <TokenAvatar
+                image={a.token.image}
+                symbol={a.token.symbol}
+                address={a.token.address}
+                size={36}
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-[13.5px] font-bold text-[var(--rv-ink)]">{a.token.symbol}</span>
-                  <span className="rounded px-1.5 py-px text-[10px] font-bold uppercase" style={{ color: m.color, background: "rgba(255,255,255,0.05)" }}>
+                  <span className="truncate text-[13.5px] font-bold text-[var(--rv-ink)]">
+                    {a.token.symbol}
+                  </span>
+                  <span
+                    className="rounded px-1.5 py-px text-[10px] font-bold uppercase"
+                    style={{
+                      color: m.color,
+                      background: "rgba(255,255,255,0.05)",
+                    }}
+                  >
                     {m.label}
                   </span>
                 </div>
-                <p className="mt-0.5 line-clamp-2 text-[12px] text-[var(--rv-ink-2)]">{a.message}</p>
+                <p className="mt-0.5 line-clamp-2 text-[12px] text-[var(--rv-ink-2)]">
+                  {a.message}
+                </p>
               </div>
-              <span className="rv-num shrink-0 text-[11px] text-[var(--rv-ink-3)]">{age(a.createdAt, now)}</span>
+              <span className="rv-num shrink-0 text-[11px] text-[var(--rv-ink-3)]">
+                {age(a.createdAt, now)}
+              </span>
             </Link>
           </li>
         )
