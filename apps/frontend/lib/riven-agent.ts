@@ -10,6 +10,29 @@ import {
 } from "./arc-data"
 import { DEFAULT_FILTERS } from "./screener-params"
 import { usd, times } from "./riven-format"
+import { getHyperliquidMarkets } from "./hyperliquid"
+import { coinsIn, getNews } from "./news"
+import { getPerpInsight, insightFacts } from "./perp-insight"
+
+/** What "this" refers to on the page the question was asked from. */
+export type AgentTopic = { kind: "token"; address: string } | { kind: "perp"; coin: string }
+
+/** A perp coin named in the question ("bitcoin", "SOL", "why is HYPE pumping"). */
+async function perpCoinIn(q: string): Promise<string | null> {
+  const markets = await getHyperliquidMarkets().catch(() => [])
+  const known = markets.map((m) => m.symbol.toUpperCase())
+  const found = coinsIn(q, new Set(known)).filter((c) => known.includes(c))
+  // bare tickers typed in lower case ("btc", "eth")
+  if (found.length === 0) {
+    for (const w of q.toUpperCase().match(/\b[A-Z0-9]{2,10}\b/g) ?? []) if (known.includes(w) && w.length >= 3) return w
+  }
+  return found[0] ?? null
+}
+
+async function explainPerp(coin: string): Promise<AgentReply> {
+  const i = await getPerpInsight(coin)
+  return { text: `${insightFacts(i)}\n${DISCLAIMER}`, tokens: [] }
+}
 
 export const DISCLAIMER = "Not financial advice. DYOR."
 
@@ -96,10 +119,32 @@ async function explainTicker(ticker: string): Promise<AgentReply> {
 }
 
 /** Routes a plain-English question to the right lookup. */
-export async function answer(question: string): Promise<AgentReply> {
+export async function answer(question: string, topic?: AgentTopic): Promise<AgentReply> {
   const q = question.trim()
   const lower = q.toLowerCase()
   const addr = q.match(ADDRESS)?.[0]?.toLowerCase()
+
+  // Perp pairs and the news that moves them.
+  if (!addr && !TICKER.test(q)) {
+    const named = await perpCoinIn(q)
+    const coin = named ?? (topic?.kind === "perp" ? topic.coin : null)
+    if (coin && (named || /pump|dump|moving|move|why|news|funding|long|short|signal|call|price|up|down|this|it\b/.test(lower))) {
+      return explainPerp(coin)
+    }
+    if (/\bnews|headline/.test(lower)) {
+      const news = await getNews({ limit: 6 }).catch(() => [])
+      return {
+        text: news.length
+          ? ["Latest crypto headlines:", ...news.map((n) => `• ${n.title} (${n.source}${n.coins.length ? `, about ${n.coins.join(", ")}` : ""})`), `Source: crypto news RSS. ${DISCLAIMER}`].join("\n")
+          : `Riven's news feeds are unavailable right now. ${DISCLAIMER}`,
+        tokens: [],
+      }
+    }
+  }
+  // "Is this safe?" on a token page means that token.
+  if (!addr && !TICKER.test(q) && topic?.kind === "token" && /this|it\b|safe|score|rug|risk|why|holder|liquid|creator|scan/.test(lower)) {
+    return explainToken(topic.address)
+  }
 
   if (addr) {
     if (/creator|dev|wallet|launched|deployer/.test(lower)) {
@@ -215,6 +260,7 @@ export async function answer(question: string): Promise<AgentReply> {
       "• “Is $TICKER safe?” or paste a 0x token address",
       "• “Who created 0x…?” for a creator's launch history",
       "• “What rugged today?” · “Safest tokens” · “What's trending?”",
+      "• “Why is SOL pumping?” · “Any news on bitcoin?” for perp pairs",
       DISCLAIMER,
     ].join("\n"),
     tokens: [],

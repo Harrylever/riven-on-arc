@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { MascotStage } from "./mascot-stage"
 import { useRiven } from "./riven-context"
+import * as sfx from "@/lib/bot-sfx"
 
 const KEY = "riven_companion_hidden_v1"
 
@@ -48,6 +49,12 @@ export function Companion() {
     }
   }, [command])
   useEffect(() => () => window.clearTimeout(shrink.current), [])
+  // he steps forward / back with a zoom sound
+  const wasBig = useRef(false)
+  useEffect(() => {
+    if (big !== wasBig.current) (big ? sfx.zoomIn : sfx.zoomOut)()
+    wasBig.current = big
+  }, [big])
 
   const onPhase = useCallback(
     (phase: "press" | "done") => {

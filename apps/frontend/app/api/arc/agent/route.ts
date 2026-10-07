@@ -1,20 +1,28 @@
 import { NextResponse } from "next/server"
-import { answer } from "@/lib/riven-agent"
+import { answer, type AgentTopic } from "@/lib/riven-agent"
 import { writeAnswer } from "@/lib/riven-writer"
 
 export const dynamic = "force-dynamic"
 
 /**
  * POST /api/arc/agent { question } — grounded answer from Riven's own data.
- * `mode` says who wrote it: "rules" (Riven's rule engine) or "claude" (Claude
- * rephrasing those same facts, when ANTHROPIC_API_KEY is set).
+ * `mode` says who wrote it: "rules" (Riven's analysis engine) or the AI that
+ * rephrased those same facts ("claude" with ANTHROPIC_API_KEY, "gemini" with
+ * GEMINI_API_KEY). `topic` = the token or perp pair on the asking page.
  */
 export async function POST(req: Request) {
   let question = ""
+  let topic: AgentTopic | undefined
   try {
-    const body = (await req.json()) as { question?: unknown }
+    const body = (await req.json()) as { question?: unknown; topic?: { kind?: unknown; address?: unknown; coin?: unknown } }
     question =
       typeof body.question === "string" ? body.question.slice(0, 500) : ""
+    // What "this" means on the page the question came from (voice asks from any page).
+    const t = body.topic
+    if (t?.kind === "token" && typeof t.address === "string" && /^0x[0-9a-fA-F]{40}$/.test(t.address))
+      topic = { kind: "token", address: t.address.toLowerCase() }
+    else if (t?.kind === "perp" && typeof t.coin === "string" && /^[A-Za-z0-9]{1,20}$/.test(t.coin))
+      topic = { kind: "perp", coin: t.coin.toUpperCase() }
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
@@ -22,7 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Ask a question" }, { status: 400 })
   try {
     return NextResponse.json(
-      await writeAnswer(question, await answer(question)),
+      await writeAnswer(question, await answer(question, topic)),
     )
   } catch (err) {
     console.error(`[arc/agent] ${(err as Error).message}`)

@@ -24,7 +24,6 @@ import type { getMarketTotals } from "@/lib/arc-data"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
-import { CopyBadge } from "./copycat"
 
 const REFRESH_MS = 20_000
 /** Where "Dispute a score" goes: NEXT_PUBLIC_DISPUTE_URL, else the methodology page. */
@@ -62,7 +61,6 @@ const RANKS = SORTS.filter((s) => s.id !== "trending")
 
 const TF_KEY = { "5m": "m5", "1h": "h1", "6h": "h6", "24h": "h24" } as const
 const pick = (t: TokenSummary, tf: Timeframe) => ({ vol: t.volume[TF_KEY[tf]], chg: t.change[TF_KEY[tf]] })
-const padLabel = (p: string) => (p === "OTHER" ? "DEX" : p.charAt(0) + p.slice(1).toLowerCase())
 
 export function Screener({
   title = "Every token on Arc",
@@ -474,14 +472,9 @@ function DesktopTable({
                     <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={28} />
                     <span className="min-w-0">
                       <span className="flex items-center gap-1.5">
-                        <span className="rounded bg-white/[0.06] px-1 py-px text-[9.5px] font-bold text-[var(--rv-ink-3)] uppercase">
-                          {padLabel(t.launchpad)}
-                        </span>
                         <span className="max-w-[130px] truncate text-[13.5px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
                         <span className="text-[12px] text-[var(--rv-ink-3)]">/USDC</span>
                         <span className="max-w-[150px] truncate text-[12px] text-[var(--rv-ink-3)]">{t.name}</span>
-                        {t.fake && <FlagChip />}
-                        <CopyBadge copies={t.copies} />
                       </span>
                       {showWhy && (
                         <span className="block max-w-[520px]">
@@ -564,7 +557,6 @@ function MobileList({
                 <div className="flex items-center gap-1">
                   <span className="truncate text-[14px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
                   <span className="text-[11px] text-[var(--rv-ink-3)]">/USDC</span>
-                  {t.fake && <FlagChip />}
                 </div>
                 <div className="rv-num mt-0.5 flex flex-wrap gap-x-2 text-[10.5px] text-[var(--rv-ink-3)]">
                   <span>{age(t.launchedAt, now)}</span>
@@ -630,8 +622,6 @@ export function Meta({ t, now }: { t: TokenSummary; now: number }) {
           {compact(t.holders)}
         </span>
       )}
-      {t.fake && <FlagChip />}
-      <CopyBadge copies={t.copies} />
     </span>
   )
 }

@@ -397,6 +397,10 @@ model PerpSignal {
   /// 0-10 scale, matching sakz-bot's own signal_outcomes.confidence — NOT
   /// 0-100. Feeds directly into the agent card's MiniBar, no rescaling.
   confidence Int
+  /// The scanner's own score before calibration (null for calls made before self-training).
+  rawConfidence Int?     @map("raw_confidence")
+  /// Win probability from the self-trained model (0–1), when it has been trained.
+  winProb       Decimal? @map("win_prob")
   entryPrice Decimal      @map("entry_price")
   entryLow   Decimal      @map("entry_low")
   entryHigh  Decimal      @map("entry_high")

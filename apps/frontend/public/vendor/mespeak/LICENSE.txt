@@ -1,0 +1,8 @@
+meSpeak (Norbert Landsteiner, www.masswerk.at/mespeak) and eSpeak (Jonathan Duddington)
+are free software under the GNU General Public License v3 (GPL-3.0).
+
+mespeak.js here is an unmodified build of the npm package "mespeak" 2.0.2
+(https://github.com/mikolalysenko/mespeak), with src/ESpeak.js re-encoded from
+Latin-1 to UTF-8 (same characters) and bundled/minified with `bun build`.
+Source: https://www.npmjs.com/package/mespeak · https://github.com/mikolalysenko/mespeak
+Voice and config data: the package's voices/en/en-us.json and src/mespeak_config.json.

@@ -4,7 +4,6 @@ import { age, change, changeColor, usd } from "@/lib/riven-format"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
-import { CopyBadge } from "./copycat"
 
 /** One token, one glance: who it is, what it's worth, and whether it's a setup. */
 export function TokenCard({ t, now }: { t: TokenSummary; now: number }) {
@@ -31,7 +30,6 @@ export function TokenCard({ t, now }: { t: TokenSummary; now: number }) {
             <span className="truncate text-[12px] text-[var(--rv-ink-3)]">
               {t.name}
             </span>
-            <CopyBadge copies={t.copies} />
           </div>
           <div className="rv-num mt-0.5 flex flex-wrap gap-x-3 text-[12px] text-[var(--rv-ink-2)]">
             <span>MC {usd(t.marketCap)}</span>

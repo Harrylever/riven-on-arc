@@ -1015,7 +1015,10 @@ function Robot({
         if (typeof fz === "number") a.t = Math.min(fz, a.dur - 0.01)
       }
       if (a.t >= a.dur) {
-        if (a.name === "scan") onPhase?.("done")
+        if (a.name === "scan") {
+          sfx.notify() // read it — the details are updated
+          onPhase?.("done")
+        }
         act.current = { name: "idle", t: 0, dur: 0, fired: new Set() }
       }
     }
@@ -1184,7 +1187,7 @@ function Robot({
         lift += up * 0.06 * b
         crouch = 0.03 * up * (1 - b)
         eyeShape = "happy"
-        once("yay", 0.2, () => sfx.chirp())
+        once("yay", 0.2, () => sfx.notify())
         break
       }
       case "point": {
@@ -1210,6 +1213,7 @@ function Robot({
         break
       }
       case "spin":
+        once("whirl", 0.05, () => sfx.move())
         yaw += ease(k) * Math.PI * 2
         lift += bump(k) * 0.05
         break
@@ -1223,7 +1227,7 @@ function Robot({
         tmp.rT.y += 0.04 * bump(air)
         tmp.rT.z += 0.03 * bump(air)
         eyeShape = air > 0 && air < 1 ? "wide" : "dot"
-        once("boing", 0.18, () => sfx.servo(0.25))
+        once("boing", 0.15, () => sfx.move())
         break
       }
       case "dance": {
@@ -1239,7 +1243,7 @@ function Robot({
         headPitch += on * 0.08 * Math.sin(beat)
         headYaw = on * 0.2 * Math.sin(beat / 2)
         eyeShape = "happy"
-        once("bop", 0.3, () => sfx.chirp())
+        once("bop", 0.2, () => sfx.move())
         break
       }
       case "look": {

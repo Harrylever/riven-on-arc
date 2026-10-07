@@ -1,5 +1,10 @@
 import { getDb } from "@clawdex/shared";
-import { USDC } from "./config";
+import { createPublicClient, http, parseAbi, type Address, type PublicClient } from "viem";
+import { arc, cleanText, USDC } from "./config";
+
+/** Arc launchpads publish the token's icon on the token itself: logo() → "ipfs://…". */
+const LOGO_ABI = parseAbi(["function logo() view returns (string)"]);
+const LOGO_PER_RUN = Number(process.env.ARC_LOGO_LOOKUPS_PER_RUN ?? "300");
 
 const DEXSCREENER = "https://api.dexscreener.com/tokens/v1/arc/";
 /** GeckoTerminal knows icons DexScreener doesn't (majors, CoinGecko-listed tokens). 30 req/min free. */
@@ -49,6 +54,17 @@ const dec = (n: number | string | undefined | null) =>
  * as a fallback for "USDC in the pool" on tokens whose swaps Riven didn't index.
  */
 export class MarketSyncService {
+  private readonly client: PublicClient;
+
+  constructor(client?: PublicClient) {
+    this.client =
+      client ??
+      createPublicClient({
+        chain: arc,
+        transport: http(process.env.ARC_RPC_URL ?? "https://rpc.mainnet.arc.io", { timeout: 20_000, retryCount: 2 }),
+      });
+  }
+
   async syncOnce() {
     const db = getDb();
     const freshSince = new Date(Date.now() - 48 * 60 * 60 * 1000);
@@ -157,11 +173,41 @@ export class MarketSyncService {
         updated++;
       }
     }
+    const logos = await this.fillLogos().catch(() => 0);
     const icons = await this.fillIcons();
-    return { queued: queue.length, updated, listed, icons };
+    return { queued: queue.length, updated, listed, logos, icons };
   }
 
   private readonly iconTried = new Set<string>();
+  private readonly logoTried = new Set<string>();
+
+  /** Icons the token sets on-chain (logo()), read in one multicall per batch. */
+  private async fillLogos() {
+    const db = getDb();
+    const missing = await db.token.findMany({
+      where: { imageUri: null, OR: [{ arcMarket: null }, { arcMarket: { imageUrl: null } }] },
+      select: { id: true, mint: true },
+      orderBy: [{ arcMarket: { volume24h: { sort: "desc", nulls: "last" } } }, { launchTime: "desc" }],
+      take: LOGO_PER_RUN * 3,
+    });
+    const todo = missing.filter((t) => !this.logoTried.has(t.mint)).slice(0, LOGO_PER_RUN);
+    if (todo.length === 0) return 0;
+    const res = await this.client.multicall({
+      allowFailure: true,
+      contracts: todo.map((t) => ({ address: t.mint as Address, abi: LOGO_ABI, functionName: "logo" }) as const),
+    });
+    let found = 0;
+    for (const [i, t] of todo.entries()) {
+      this.logoTried.add(t.mint);
+      const r = res[i];
+      if (r?.status !== "success") continue;
+      const uri = cleanText(String(r.result), 400);
+      if (!/^(ipfs:\/\/|https:\/\/|ar:\/\/)\S+$/.test(uri)) continue;
+      await db.token.update({ where: { id: t.id }, data: { imageUri: uri } });
+      found++;
+    }
+    return found;
+  }
 
   /** Icons for listed tokens that still have none, from GeckoTerminal (30 per call). */
   private async fillIcons() {

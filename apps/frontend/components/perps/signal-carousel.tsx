@@ -1,6 +1,9 @@
 "use client"
 
+import Link from "next/link"
+import { useEffect, useRef } from "react"
 import type { PerpSignal } from "@/components/perps/perps-panel"
+import { CoinIcon, coinArtUrl } from "@/components/perps/coin-icon"
 import { ago, priceUsd } from "@/lib/format"
 import { signalCoinKey } from "@/lib/perp-symbols"
 
@@ -15,71 +18,92 @@ const OUTCOME: Record<string, { label: string; color: string }> = {
 
 const pctFrom = (from: number, to: number) => (from > 0 ? ((to - from) / from) * 100 : 0)
 
-/**
- * The trade plan drawn as a ladder: stop, entry zone, three targets, and where
- * price is now — so the call reads at a glance, like a chart thumbnail.
- */
-function Ladder({ s, mark }: { s: PerpSignal; mark: number | null }) {
-  const long = s.bias === "LONG"
-  const levels = [s.stopLoss, s.entryLow, s.entryHigh, s.t1, s.t2, s.t3, ...(mark ? [mark] : [])]
-  const lo = Math.min(...levels)
-  const hi = Math.max(...levels)
-  const span = hi - lo || 1
-  // top of the box = highest price
-  const y = (p: number) => 8 + (1 - (p - lo) / span) * 104
-  const up = "var(--rv-up)"
-  const down = "var(--rv-down)"
-  const tp = long ? up : down
+/** The pair's own logo, big, over a soft blurred copy of itself — readable at a glance. */
+function CoinArt({ coin, long }: { coin: string; long: boolean }) {
+  const url = coinArtUrl(coin)
   return (
-    <svg viewBox="0 0 200 120" className="size-full" aria-hidden>
-      <defs>
-        <linearGradient id={`zone-${s.id}`} x1="0" x2="1">
-          <stop offset="0" stopColor="rgba(124,196,232,0.05)" />
-          <stop offset="1" stopColor="rgba(124,196,232,0.25)" />
-        </linearGradient>
-      </defs>
-      {/* entry zone */}
-      <rect x="0" y={y(s.entryHigh)} width="200" height={Math.max(2, y(s.entryLow) - y(s.entryHigh))} fill={`url(#zone-${s.id})`} />
-      {[
-        [s.t3, "T3", tp],
-        [s.t2, "T2", tp],
-        [s.t1, "T1", tp],
-        [s.stopLoss, "SL", long ? down : up],
-      ].map(([p, label, col]) => (
-        <g key={label as string}>
-          <line x1="0" x2="200" y1={y(p as number)} y2={y(p as number)} stroke={col as string} strokeOpacity={0.75} strokeDasharray={label === "SL" ? "0" : "4 4"} />
-          <text x="196" y={y(p as number) - 3} textAnchor="end" fontSize="9" fontWeight="700" fill={col as string}>
-            {label as string}
-          </text>
-        </g>
-      ))}
-      <text x="4" y={y(s.entryHigh) - 3} fontSize="9" fontWeight="700" fill="var(--rv-ice)">
-        ENTRY
-      </text>
-      {mark !== null && (
-        <g>
-          <line x1="0" x2="200" y1={y(mark)} y2={y(mark)} stroke="var(--rv-ink)" strokeWidth={1.5} />
-          <circle cx="100" cy={y(mark)} r="3.5" fill="var(--rv-ink)" />
-          <text x="108" y={y(mark) + 12} fontSize="9" fontWeight="700" fill="var(--rv-ink)">
-            NOW
-          </text>
-        </g>
-      )}
-    </svg>
+    <>
+      <div
+        className="absolute inset-0 scale-150 opacity-40 blur-2xl"
+        style={{ backgroundImage: `url(${url})`, backgroundSize: "60%", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0"
+        style={{ background: `radial-gradient(circle at 50% 55%, transparent 30%, ${long ? "rgba(20,40,8,0.55)" : "rgba(48,10,10,0.55)"} 100%)` }}
+        aria-hidden
+      />
+      <div className="absolute inset-0 grid place-items-center">
+        <div className="drop-shadow-[0_8px_24px_rgba(0,0,0,0.55)] transition-transform duration-300 group-hover:scale-105">
+          <CoinIcon coin={coin} size={88} />
+        </div>
+      </div>
+    </>
   )
 }
 
-/** sakz-bot's calls as a swipeable row of cards, like the home page's tokens. */
+/**
+ * Glides the row sideways on its own — slowly — and pauses while someone is
+ * touching, hovering or focusing it, so it never fights the user.
+ */
+function useAutoSlide(ref: React.RefObject<HTMLDivElement | null>, pxPerSec = 22) {
+  useEffect(() => {
+    const el = ref.current
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    let raf = 0
+    let last = performance.now()
+    let pausedUntil = 0
+    let carry = 0
+    const pause = (ms: number) => () => (pausedUntil = performance.now() + ms)
+    const onEnter = pause(60_000)
+    const onLeave = () => (pausedUntil = performance.now() + 1500)
+    const onTouch = pause(5000)
+    el.addEventListener("pointerenter", onEnter)
+    el.addEventListener("pointerleave", onLeave)
+    el.addEventListener("touchstart", onTouch, { passive: true })
+    el.addEventListener("wheel", onTouch, { passive: true })
+    el.addEventListener("focusin", onEnter)
+    el.addEventListener("focusout", onLeave)
+    const step = (now: number) => {
+      const dt = Math.min(64, now - last)
+      last = now
+      if (now > pausedUntil && el.scrollWidth > el.clientWidth + 4) {
+        carry += (pxPerSec * dt) / 1000
+        const whole = Math.floor(carry)
+        if (whole >= 1) {
+          carry -= whole
+          if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 2) {
+            el.scrollTo({ left: 0, behavior: "smooth" }) // back to the start, then glide again
+            pausedUntil = now + 2500
+          } else el.scrollLeft += whole
+        }
+      }
+      raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => {
+      cancelAnimationFrame(raf)
+      el.removeEventListener("pointerenter", onEnter)
+      el.removeEventListener("pointerleave", onLeave)
+      el.removeEventListener("touchstart", onTouch)
+      el.removeEventListener("wheel", onTouch)
+      el.removeEventListener("focusin", onEnter)
+      el.removeEventListener("focusout", onLeave)
+    }
+  }, [ref, pxPerSec])
+}
+
+/** sakz-bot's calls as a gliding row of cards; each opens that pair's page. */
 export function SignalCarousel({
   signals,
   marks,
-  onSelect,
 }: {
   signals: PerpSignal[]
   /** Live mark price per base coin (Hyperliquid). */
   marks: Map<string, number>
-  onSelect: (s: PerpSignal) => void
 }) {
+  const row = useRef<HTMLDivElement>(null)
+  useAutoSlide(row)
   if (signals.length === 0) {
     return (
       <div className="rv-card px-4 py-6 text-center text-[13px] text-[var(--rv-ink-2)]">
@@ -88,7 +112,7 @@ export function SignalCarousel({
     )
   }
   return (
-    <div className="scrollbar-hidden -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1">
+    <div ref={row} className="scrollbar-hidden -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
       {signals.map((s) => {
         const coin = signalCoinKey(s.symbol)
         const long = s.bias === "LONG"
@@ -98,11 +122,10 @@ export function SignalCarousel({
         const t1Pct = pctFrom(s.entryPrice, s.t1)
         const slPct = pctFrom(s.entryPrice, s.stopLoss)
         return (
-          <button
+          <Link
             key={s.id}
-            type="button"
-            onClick={() => onSelect(s)}
-            className="group relative flex w-[232px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)] text-left transition-colors hover:border-[var(--rv-stroke-strong)]"
+            href={`/perps/${coin}`}
+            className="group relative flex w-[232px] shrink-0 flex-col overflow-hidden rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)] text-left transition-colors hover:border-[var(--rv-stroke-strong)]"
           >
             <div
               className="relative aspect-[5/3] w-full overflow-hidden"
@@ -110,9 +133,7 @@ export function SignalCarousel({
                 background: `linear-gradient(160deg, ${long ? "rgba(163,230,53,0.16)" : "rgba(248,113,113,0.16)"}, var(--rv-sunken) 70%)`,
               }}
             >
-              <div className="absolute inset-x-2 top-7 bottom-2">
-                <Ladder s={s} mark={mark} />
-              </div>
+              <CoinArt coin={coin} long={long} />
               <span
                 className="absolute top-2 left-2 rounded px-1.5 py-0.5 text-[11px] font-extrabold"
                 style={{ color: "#0b0b0d", background: col }}
@@ -128,7 +149,7 @@ export function SignalCarousel({
             </div>
             <div className="flex flex-1 flex-col gap-1.5 p-3">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-bold text-[var(--rv-ink)]">
                     {coin}
                     <span className="text-[11.5px] font-semibold text-[var(--rv-ink-3)]"> /USDT</span>
@@ -170,10 +191,10 @@ export function SignalCarousel({
                 </span>
               </div>
               <span className="mt-auto pt-1 text-[11.5px] font-semibold text-[var(--rv-ice)] group-hover:underline">
-                See the plan · paper trade →
+                Chart, plan & Riven's read →
               </span>
             </div>
-          </button>
+          </Link>
         )
       })}
     </div>

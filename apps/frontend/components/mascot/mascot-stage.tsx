@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Mascot, type Holo, type Mood } from "./mascot"
 import type { Framing } from "./riven-mascot"
 import * as sfx from "@/lib/bot-sfx"
+import { useRivenOptional } from "./riven-context"
 
 /** What he says while doing each of his moves. */
 const ACT_LINES: Record<string, string[]> = {
@@ -54,6 +55,7 @@ export function MascotStage({
   onTap,
   say: sayProp,
   autoScan,
+  onDoubleTap,
 }: {
   mood?: Mood
   holos?: Holo[]
@@ -76,7 +78,12 @@ export function MascotStage({
   /** Something the page wants him to say right now (bump the object to repeat). */
   say?: { text: string; ms?: number } | null
   autoScan?: boolean
+  /** Double-tap: defaults to "ask Riven out loud". */
+  onDoubleTap?: () => void
 }) {
+  const riven = useRivenOptional()
+  const lastTap = useRef(0)
+  const single = useRef<number | undefined>(undefined)
   const [say, setSay] = useState<string | null>(greet ?? null)
   const [poke, setPoke] = useState(0)
   const [muted, setMutedState] = useState(false)
@@ -127,19 +134,29 @@ export function MascotStage({
     <div className={`group relative select-none ${className}`}>
       <button
         type="button"
-        aria-label="Riven, the Riven mascot — tap to say hi"
+        aria-label="Riven — tap for a scan or a tip, double-tap to ask him out loud"
         onClick={() => {
           sfx.arm() // a tap unlocks his voice (browsers block sound until a gesture)
-          if (onTap) {
-            onTap()
+          // Double-tap → talk to him. A single tap waits a beat to be sure.
+          const now = Date.now()
+          const double = onDoubleTap ?? riven?.listen
+          if (double && now - lastTap.current < 320) {
+            window.clearTimeout(single.current)
+            lastTap.current = 0
+            double()
             return
           }
-          setPoke((p) => p + 1)
-          speak(
-            lines.length
-              ? lines[Math.floor(Math.random() * lines.length)]!
-              : "Hey! I'm Riven. I check every token on Arc.",
-          )
+          lastTap.current = now
+          window.clearTimeout(single.current)
+          single.current = window.setTimeout(() => {
+            if (onTap) return onTap()
+            setPoke((p) => p + 1)
+            speak(
+              lines.length
+                ? lines[Math.floor(Math.random() * lines.length)]!
+                : "Hey! I'm Riven. Double-tap me to ask a question.",
+            )
+          }, double ? 300 : 0)
         }}
         className="absolute inset-0 z-10 cursor-pointer rounded-[inherit] focus-visible:outline-2 focus-visible:outline-[var(--rv-blue)]"
       />

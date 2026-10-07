@@ -11,9 +11,11 @@ import { ago, priceUsd } from "@/lib/format"
 import { PERPS_ENABLED } from "@/lib/flags"
 import { SignalOrderModal } from "@/components/perps/signal-order-modal"
 import { usePortfolio } from "@/hooks/use-portfolio"
-import { PerpTerminal } from "@/components/perps/perp-terminal"
-import { PerpWatch } from "@/components/perps/perp-watch"
 import { SignalCarousel } from "@/components/perps/signal-carousel"
+import { CallCard } from "@/components/perps/call-card"
+import { CoinIcon } from "@/components/perps/coin-icon"
+import { NewsFeed } from "@/components/perps/news-feed"
+import Link from "next/link"
 import { isMajorPerp, isMemePerp, signalCoinKey } from "@/lib/perp-symbols"
 import type { PerpMarket } from "@/lib/hyperliquid"
 
@@ -22,7 +24,12 @@ export interface PerpSignal {
   exchange: "BYBIT" | "MEXC" | "BINANCE"
   symbol: string
   bias: "LONG" | "SHORT"
+  /** Conviction after self-training calibration (0–10). */
   confidence: number
+  /** The scanner's raw score before calibration, when calibrated. */
+  rawConfidence?: number | null
+  /** Self-trained model's win probability (0–1), when available. */
+  winProb?: number | null
   entryPrice: number
   entryLow: number
   entryHigh: number
@@ -343,30 +350,11 @@ export function PerpsPanel() {
             ))}
           </div>
         ) : (
-          <SignalCarousel signals={liveCalls} marks={marks} onSelect={setSelectedSignal} />
+          <SignalCarousel signals={liveCalls} marks={marks} />
         )}
       </section>
 
-      {selectedMarket && markets && (
-        <PerpTerminal
-          market={selectedMarket}
-          markets={markets}
-          signal={signalByCoin.get(selectedMarket.symbol.toUpperCase()) ?? null}
-          signalByCoin={signalByCoin}
-          onSelect={setSelectedSymbol}
-        />
-      )}
-
       <TelegramConnect />
-
-      {selectedMarket && markets && (
-        <PerpWatch
-          market={selectedMarket}
-          markets={markets}
-          signals={signals}
-          onSelect={setSelectedSymbol}
-        />
-      )}
 
       {/* Track Record Stats Header */}
       {stats && (
@@ -686,15 +674,13 @@ export function PerpsPanel() {
                 ).map((m) => {
                   const sig = signalByCoin.get(m.symbol.toUpperCase())
                   return (
-                    <button
+                    <Link
                       key={m.symbol}
-                      onClick={() => {
-                        setSelectedSymbol(m.symbol)
-                        window.scrollTo({ top: 0, behavior: "smooth" })
-                      }}
-                      className="flex items-center justify-between bg-[var(--rv-card)] px-3 py-2 text-left hover:bg-[var(--rv-sunken)]"
+                      href={`/perps/${m.symbol}`}
+                      className="flex items-center justify-between gap-2 bg-[var(--rv-card)] px-3 py-2 text-left hover:bg-[var(--rv-sunken)]"
                     >
-                      <div>
+                      <CoinIcon coin={m.symbol.toUpperCase()} size={22} />
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 text-xs font-extrabold">
                           {m.symbol}
                           {sig && (
@@ -728,7 +714,7 @@ export function PerpsPanel() {
                         {m.change24h >= 0 ? "+" : ""}
                         {m.change24h.toFixed(2)}%
                       </span>
-                    </button>
+                    </Link>
                   )
                 })}
               </div>
@@ -769,11 +755,7 @@ export function PerpsPanel() {
       ) : displayedSignals && displayedSignals.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
           {displayedSignals.map((signal) => (
-            <PerpCard
-              key={signal.id}
-              signal={signal}
-              onSelect={setSelectedSignal}
-            />
+            <CallCard key={signal.id} signal={signal} onTrade={setSelectedSignal} />
           ))}
         </div>
       ) : (
@@ -789,6 +771,8 @@ export function PerpsPanel() {
         </div>
       )}
 
+      <NewsFeed />
+
       {/* Regulatory / Safe Terminal Disclaimer */}
       <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-3 text-[11px] text-[var(--rv-ink-3)]">
         <span className="font-bold text-[var(--rv-ink-2)]">Paper trading only:</span> {DISCLAIMER} Riven mirrors
@@ -801,161 +785,6 @@ export function PerpsPanel() {
         signal={selectedSignal}
         onClose={() => setSelectedSignal(null)}
       />
-    </div>
-  )
-}
-
-function PerpCard({
-  signal,
-  onSelect,
-}: {
-  signal: PerpSignal
-  onSelect: (signal: PerpSignal) => void
-}) {
-  const outcomeMeta = OUTCOME_META[signal.outcome] ?? OUTCOME_META.pending
-  const biasColor = signal.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)"
-
-  return (
-    <div
-      onClick={() => onSelect(signal)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          onSelect(signal)
-        }
-      }}
-      className="group cursor-pointer rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-4 transition-all hover:border-[var(--rv-blue)]/80 hover:bg-[var(--rv-card-hover)]"
-    >
-      {/* Header: Symbol, Venue, Bias, Outcome */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rv-stroke)]/60 pb-3">
-        <div className="flex items-center gap-2">
-          <span className=" text-base font-extrabold text-[var(--rv-ink)] group-hover:text-[var(--rv-blue)]">
-            {signal.symbol}
-          </span>
-          <span className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-            {signal.exchange}
-          </span>
-          <span
-            className="rounded-md border px-1.5 py-0.5 text-[10px] font-extrabold"
-            style={{ borderColor: biasColor, color: biasColor }}
-          >
-            {signal.bias}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          {signal.entryConfirmed === 0 && (
-            <span
-              className="rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400"
-              title="Price did not trade in entry zone before call concluded"
-            >
-              ⚠ Missed Entry
-            </span>
-          )}
-
-          {signal.slAfterTarget === 1 && (
-            <span className="rounded-md border border-[var(--rv-stroke)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--rv-ink-3)]">
-              SL after target
-            </span>
-          )}
-
-          <span
-            className="rounded-md border px-2 py-0.5 text-[10px] font-bold"
-            style={{
-              borderColor: outcomeMeta.color,
-              color: outcomeMeta.color,
-              background: outcomeMeta.tint,
-            }}
-          >
-            {outcomeMeta.label}
-          </span>
-        </div>
-      </div>
-
-      {/* Conviction / Confidence bar */}
-      <div className="mt-3">
-        <MiniBar label="Signal Conviction (0-10)" value={signal.confidence} />
-      </div>
-
-      {/* Price Target and Key Levels Matrix */}
-      <div className="mt-3">
-        <StatRow
-          size="sm"
-          items={[
-            {
-              label: "Tracked Entry",
-              value: priceUsd(signal.entryPrice),
-            },
-            {
-              label: "Entry Zone",
-              value: `${priceUsd(signal.entryLow)} - ${priceUsd(signal.entryHigh)}`,
-            },
-            {
-              label: "Stop Loss",
-              value: priceUsd(signal.stopLoss),
-              tone: "down",
-            },
-          ]}
-        />
-        <div className="mt-1.5">
-          <StatRow
-            size="sm"
-            items={[
-              {
-                label: "Target 1",
-                value: priceUsd(signal.t1),
-                tone:
-                  signal.bestTargetHit === "t1" ||
-                  signal.outcome === "t1_hit" ||
-                  signal.outcome === "t2_hit" ||
-                  signal.outcome === "t3_hit"
-                    ? "up"
-                    : undefined,
-              },
-              {
-                label: "Target 2",
-                value: priceUsd(signal.t2),
-                tone:
-                  signal.bestTargetHit === "t2" ||
-                  signal.outcome === "t2_hit" ||
-                  signal.outcome === "t3_hit"
-                    ? "up"
-                    : undefined,
-              },
-              {
-                label: "Target 3",
-                value: priceUsd(signal.t3),
-                tone:
-                  signal.bestTargetHit === "t3" || signal.outcome === "t3_hit"
-                    ? "up"
-                    : undefined,
-              },
-            ]}
-          />
-        </div>
-      </div>
-
-      {/* Timestamp & Timing */}
-      <div className="mt-3 flex items-center justify-between text-[10px] text-[var(--rv-ink-3)]">
-        <span>Scanned {ago(signal.scanTime)} ago</span>
-        {signal.resolvedAt ? (
-          <span>Resolved {ago(signal.resolvedAt)} ago</span>
-        ) : (
-          <span className="text-[var(--rv-blue)]">Tracking live</span>
-        )}
-      </div>
-
-      {/* Interactive Action Prompt */}
-      <div className="mt-3 flex items-center justify-between border-t border-[var(--rv-stroke)]/60 pt-2.5">
-        <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--rv-blue)] group-hover:underline">
-          View Details & Trade (Limit / Market / Spot) →
-        </span>
-        <span className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--rv-ink-3)] uppercase">
-          Interactive
-        </span>
-      </div>
     </div>
   )
 }

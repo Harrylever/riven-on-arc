@@ -78,11 +78,12 @@ export async function GET(req: Request) {
   try {
     const db = getDb()
 
-    const where: Record<string, unknown> = {}
+    // Expired calls (never hit a target or the stop in 48h) aren't shown.
+    const where: Record<string, unknown> = { outcome: { not: "expired" } }
     if (isOpenOnly) {
       where.outcome = "pending"
     } else if (isResolvedOnly) {
-      where.outcome = { not: "pending" }
+      where.outcome = { notIn: ["pending", "expired"] }
     }
     if (exchange) {
       where.exchange = exchange
@@ -117,6 +118,8 @@ export async function GET(req: Request) {
       symbol: s.symbol,
       bias: s.bias,
       confidence: s.confidence,
+      rawConfidence: s.rawConfidence,
+      winProb: s.winProb === null ? null : num(s.winProb),
       entryPrice: num(s.entryPrice),
       entryLow: num(s.entryLow),
       entryHigh: num(s.entryHigh),

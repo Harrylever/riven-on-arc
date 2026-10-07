@@ -1,14 +1,41 @@
 "use client"
 
 /**
- * Riven's robot noises, synthesized with WebAudio — no audio files. Browsers
- * only allow sound after a user gesture, so nothing plays until the visitor
- * has tapped Riven at least once (`arm()`), and it can be muted for good.
+ * Riven's sounds. Real recorded robot SFX (Mixkit / Freesound / Pixabay,
+ * trimmed into public/sfx) played through WebAudio; a synthesized beep stands
+ * in if a clip can't load. Browsers only allow sound after a user gesture, so
+ * nothing plays until the visitor has tapped Riven once (`arm()`), and it can
+ * be muted for good.
+ *
+ * Cue → clip: tap = little robot chirp · zoomIn/zoomOut = he steps forward /
+ * back · press = watch slap · holoUp = hologram sweep · notify = data ready ·
+ * compute = thinking beeps · scan = reading the HUD · servo = arm reach ·
+ * move = big moves (hop, dance, spin) · sad = nothing to read · glitch =
+ * something failed · talk = he's speaking an answer.
  */
 
 const MUTE_KEY = "riven_sfx_muted_v1"
+const CLIPS = [
+  "tap",
+  "zoom-in",
+  "zoom-out",
+  "press",
+  "holo",
+  "notify",
+  "compute",
+  "scan",
+  "servo",
+  "move",
+  "sad",
+  "glitch",
+  "talk",
+] as const
+type Clip = (typeof CLIPS)[number]
+
 let ctx: AudioContext | null = null
 let armed = false
+const buffers = new Map<Clip, AudioBuffer>()
+let loading: Promise<void> | null = null
 
 export function isMuted() {
   try {
@@ -25,150 +52,144 @@ export function setMuted(m: boolean) {
   } catch {}
 }
 
+function load(c: AudioContext) {
+  loading ??= Promise.all(
+    CLIPS.map(async (name) => {
+      try {
+        const res = await fetch(`/sfx/${name}.mp3`)
+        if (!res.ok) return
+        buffers.set(name, await c.decodeAudioData(await res.arrayBuffer()))
+      } catch {
+        // keep the synth fallback for this cue
+      }
+    }),
+  ).then(() => {})
+  return loading
+}
+
 /** Call from a click/tap handler: unlocks audio for the rest of the visit. */
 export function arm() {
   if (typeof window === "undefined") return
   if (!ctx) {
     const AC =
       window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!AC) return
     ctx = new AC()
   }
   void ctx.resume()
   armed = true
+  void load(ctx)
 }
 
-function out(): { c: AudioContext; master: GainNode } | null {
+function out(volume = 0.5): { c: AudioContext; master: GainNode } | null {
   if (!armed || !ctx || ctx.state !== "running" || isMuted()) return null
   const master = ctx.createGain()
-  master.gain.value = 0.16
+  master.gain.value = volume
   master.connect(ctx.destination)
   return { c: ctx, master }
 }
 
-function tone(
-  c: AudioContext,
-  dest: AudioNode,
-  freq: number,
-  at: number,
-  dur: number,
-  type: OscillatorType = "square",
-  glideTo?: number,
-) {
-  const o = c.createOscillator()
+/**
+ * Play a clip; `maxSec` cuts it short with a quick fade. Returns true when the
+ * cue is handled (played, or sound is off) so the synth fallback stays quiet.
+ */
+function play(name: Clip, opts: { volume?: number; maxSec?: number } = {}) {
+  const o = out(opts.volume ?? 0.55)
+  if (!o) return true // muted / not armed: nothing should play
+  const buf = buffers.get(name)
+  if (!buf) {
+    o.master.disconnect()
+    return false
+  }
+  const src = o.c.createBufferSource()
+  src.buffer = buf
+  src.connect(o.master)
+  const t = o.c.currentTime
+  src.start(t)
+  if (opts.maxSec && opts.maxSec < buf.duration) {
+    o.master.gain.setValueAtTime(opts.volume ?? 0.55, t + Math.max(0, opts.maxSec - 0.12))
+    o.master.gain.linearRampToValueAtTime(0.0001, t + opts.maxSec)
+    src.stop(t + opts.maxSec + 0.02)
+  }
+  return true
+}
+
+// ── synth fallback (only when a clip is missing) ──
+function tone(c: AudioContext, dest: AudioNode, freq: number, at: number, dur: number, type: OscillatorType) {
+  const osc = c.createOscillator()
   const g = c.createGain()
-  o.type = type
-  o.frequency.setValueAtTime(freq, at)
-  if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, at + dur)
+  osc.type = type
+  osc.frequency.setValueAtTime(freq, at)
   g.gain.setValueAtTime(0.0001, at)
   g.gain.exponentialRampToValueAtTime(0.5, at + 0.008)
   g.gain.exponentialRampToValueAtTime(0.0001, at + dur)
-  o.connect(g).connect(dest)
-  o.start(at)
-  o.stop(at + dur + 0.02)
+  osc.connect(g).connect(dest)
+  osc.start(at)
+  osc.stop(at + dur + 0.02)
+}
+function beep(freqs: number[], step = 0.08, type: OscillatorType = "square") {
+  const o = out(0.16)
+  if (!o) return
+  const t = o.c.currentTime
+  freqs.forEach((f, i) => tone(o.c, o.master, f, t + i * step, step * 0.9, type))
 }
 
-/** Short two-note "hello" chirp — when he's tapped. */
+// ── cues ──
+/** Tapped: a little chirp. */
 export function chirp() {
-  const o = out()
-  if (!o) return
-  const t = o.c.currentTime
-  tone(o.c, o.master, 880, t, 0.07, "square", 1320)
-  tone(o.c, o.master, 1320, t + 0.08, 0.09, "square", 990)
+  if (!play("tap")) beep([880, 1320])
 }
-
-/** Button press on the forearm: a crisp blip with a confirmation tick. */
+/** Pressing the watch on his wrist. */
 export function press() {
-  const o = out()
-  if (!o) return
-  const t = o.c.currentTime
-  tone(o.c, o.master, 1800, t, 0.04, "sine")
-  tone(o.c, o.master, 2400, t + 0.05, 0.05, "sine")
+  if (!play("press", { volume: 0.5 })) beep([1800, 2400], 0.05, "sine")
 }
-
-/** "Computing": a run of random data blips, like a terminal thinking. */
-export function compute(ms = 900) {
-  const o = out()
-  if (!o) return
-  const t = o.c.currentTime
-  const n = Math.round(ms / 45)
-  for (let i = 0; i < n; i++) {
-    const f = 600 + Math.random() * 1800
-    tone(
-      o.c,
-      o.master,
-      f,
-      t + i * 0.045,
-      0.03,
-      Math.random() < 0.5 ? "square" : "triangle",
-    )
-  }
-}
-
-/** Hologram power-up: a rising filtered sweep. */
+/** The hologram sweeping out of the wrist. */
 export function holoUp() {
-  const o = out()
-  if (!o) return
-  const t = o.c.currentTime
-  tone(o.c, o.master, 220, t, 0.45, "sawtooth", 1400)
-  tone(o.c, o.master, 330, t + 0.05, 0.4, "triangle", 1800)
+  if (!play("holo", { volume: 0.5 })) beep([220, 660, 1400], 0.1, "sawtooth")
 }
-
-/** Servo whirr for big arm moves. */
+/** Data landed / good news. */
+export function notify() {
+  if (!play("notify", { volume: 0.45 })) beep([1320, 1760], 0.1, "sine")
+}
+/** "Computing": data blips. */
+export function compute(ms = 900) {
+  if (!play("compute", { volume: 0.4, maxSec: ms / 1000 })) beep([900, 1500, 700, 1900, 1100], 0.045)
+}
+/** Arm reach / small servo move. */
 export function servo(dur = 0.35) {
-  const o = out()
-  if (!o) return
-  const t = o.c.currentTime
-  const len = Math.ceil(o.c.sampleRate * dur)
-  const buf = o.c.createBuffer(1, len, o.c.sampleRate)
-  const d = buf.getChannelData(0)
-  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.6
-  const src = o.c.createBufferSource()
-  src.buffer = buf
-  const bp = o.c.createBiquadFilter()
-  bp.type = "bandpass"
-  bp.Q.value = 9
-  bp.frequency.setValueAtTime(500, t)
-  bp.frequency.exponentialRampToValueAtTime(1600, t + dur)
-  const g = o.c.createGain()
-  g.gain.setValueAtTime(0.0001, t)
-  g.gain.exponentialRampToValueAtTime(0.35, t + 0.04)
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
-  src.connect(bp).connect(g).connect(o.master)
-  src.start(t)
+  if (!play("servo", { volume: 0.45, maxSec: Math.max(0.5, dur * 2.5) })) beep([500, 900], dur / 2, "sawtooth")
 }
-
-/** Magnifier scan: a slow, wobbling sweep tone. */
+/** Big body moves: hop, dance, spin. */
+export function move() {
+  if (!play("move", { volume: 0.45 })) beep([400, 700, 500], 0.12, "sawtooth")
+}
+/** Reading the hologram through the magnifier. */
 export function scan(dur = 2.2) {
-  const o = out()
-  if (!o) return
-  const t = o.c.currentTime
-  const osc = o.c.createOscillator()
-  const lfo = o.c.createOscillator()
-  const lfoGain = o.c.createGain()
-  const g = o.c.createGain()
-  osc.type = "sine"
-  osc.frequency.value = 760
-  lfo.frequency.value = 6
-  lfoGain.gain.value = 60
-  lfo.connect(lfoGain).connect(osc.frequency)
-  g.gain.setValueAtTime(0.0001, t)
-  g.gain.exponentialRampToValueAtTime(0.18, t + 0.1)
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
-  osc.connect(g).connect(o.master)
-  osc.start(t)
-  lfo.start(t)
-  osc.stop(t + dur + 0.05)
-  lfo.stop(t + dur + 0.05)
+  if (!play("scan", { volume: 0.35, maxSec: dur })) beep([760, 820, 760, 820], dur / 4, "sine")
+}
+/** "Nothing here." */
+export function sad() {
+  if (!play("sad", { volume: 0.45 })) beep([520, 390, 260], 0.22, "triangle")
+}
+/** Something went wrong (no mic, no answer). */
+export function glitch() {
+  if (!play("glitch", { volume: 0.4 })) beep([300, 180, 300], 0.06, "sawtooth")
+}
+/** He's saying something (spoken answers). */
+export function talk() {
+  if (!play("talk", { volume: 0.3 })) beep([660, 990, 780], 0.06)
+}
+/** He steps forward (the dock grows). */
+export function zoomIn() {
+  if (!play("zoom-in", { volume: 0.4 })) beep([600, 1200], 0.06, "sine")
+}
+/** He steps back. */
+export function zoomOut() {
+  if (!play("zoom-out", { volume: 0.35 })) beep([1200, 600], 0.06, "sine")
 }
 
-/** "Nothing here": a soft descending two-note womp. */
-export function sad() {
-  const o = out()
-  if (!o) return
-  const t = o.c.currentTime
-  tone(o.c, o.master, 520, t, 0.22, "triangle", 390)
-  tone(o.c, o.master, 390, t + 0.24, 0.36, "triangle", 260)
+/** A fresh output (gain → speakers) for other voices, e.g. Riven's robot speech. Null when muted / not armed. */
+export function audioOut(volume = 0.8) {
+  return out(volume)
 }

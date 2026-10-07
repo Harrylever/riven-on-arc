@@ -13,7 +13,7 @@ import {
 import { FlashBuy } from "./flash-buy"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
-import { FlagChip, Why } from "./screener"
+import { Why } from "./screener"
 
 export function SectionTitle({
   title,
@@ -74,11 +74,6 @@ export function TopCarousel({ tokens }: { tokens: TokenSummary[] }) {
             <span className="absolute top-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-bold text-[var(--rv-ink)]">
               #{i + 1}
             </span>
-            {t.fake && (
-              <span className="absolute top-2 left-2">
-                <FlagChip />
-              </span>
-            )}
           </div>
           <div className="flex flex-1 flex-col gap-1 p-3">
             <div className="flex items-start justify-between gap-2">

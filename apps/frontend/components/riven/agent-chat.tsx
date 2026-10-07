@@ -12,7 +12,7 @@ interface Msg {
   role: "user" | "riven"
   text: string
   tokens?: TokenSummary[]
-  mode?: "claude" | "rules"
+  mode?: "claude" | "gemini" | "rules"
 }
 
 const STARTERS = [
@@ -38,10 +38,9 @@ export function AgentChat() {
     greet: "Ask me anything about an Arc token.",
   })
 
-  useEffect(
-    () => end.current?.scrollIntoView({ behavior: "smooth", block: "end" }),
-    [msgs],
-  )
+  useEffect(() => {
+    end.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+  }, [msgs])
 
   const ask = async (question: string) => {
     const text = question.trim()
@@ -119,7 +118,9 @@ export function AgentChat() {
               <p className="rv-num mt-1 text-[10.5px] text-[var(--rv-ink-3)]">
                 {m.mode === "claude"
                   ? "Written by Claude from Riven's data"
-                  : "Riven rule engine · no AI model"}
+                  : m.mode === "gemini"
+                    ? "Written by Gemini from Riven's data"
+                    : "Riven's analysis engine · no AI model"}
               </p>
             )}
             {m.tokens && m.tokens.length > 0 && (

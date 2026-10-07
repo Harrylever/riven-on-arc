@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import type { Holo, Mood } from "./mascot"
+import { VoicePanel, useRivenVoice } from "./riven-voice"
 
 /**
  * One Riven for the whole site. Pages don't get their own mascot window any
@@ -14,6 +15,8 @@ export interface RivenPage {
   lines?: string[]
   mood?: Mood
   greet?: string
+  /** What "this" means when the user asks Riven a question here (voice or chat). */
+  topic?: { kind: "token"; address: string } | { kind: "perp"; coin: string }
   /** Present on pages with something to scan (a token). */
   scan?: {
     /** False → he shrugs "no data for this token/pair yet". */
@@ -34,6 +37,8 @@ interface Ctx {
   scan: () => void
   say: { text: string; ms?: number } | null
   speak: (text: string, ms?: number) => void
+  /** Double-tap: open / close voice chat. */
+  listen: () => void
 }
 
 const RivenCtx = createContext<Ctx | null>(null)
@@ -51,8 +56,37 @@ export function RivenProvider({ children }: { children: ReactNode }) {
     if (!s) return play("wave")
     play(s.hasData && pageRef.current?.holos?.length ? "scan" : "nodata")
   }, [play])
-  const value = useMemo(() => ({ page, setPage, command, play, scan, say, speak }), [page, command, play, scan, say, speak])
-  return <RivenCtx.Provider value={value}>{children}</RivenCtx.Provider>
+  const voice = useRivenVoice({
+    topic: () => pageRef.current?.topic,
+    onThinking: () => play("think"),
+    onAnswer: (short) => {
+      play("nod")
+      speak(short, 6000)
+    },
+  })
+  const listen = voice.toggle
+  const value = useMemo(
+    () => ({ page, setPage, command, play, scan, say, speak, listen }),
+    [page, command, play, scan, say, speak, listen],
+  )
+  return (
+    <RivenCtx.Provider value={value}>
+      {children}
+      <VoicePanel
+        chat={voice.chat}
+        onAsk={voice.ask}
+        onClose={voice.toggle}
+        onListen={voice.listen}
+        onStop={voice.stopListening}
+        onReply={voice.setReply}
+      />
+    </RivenCtx.Provider>
+  )
+}
+
+/** Same as useRiven, but null outside the provider (e.g. isolated previews). */
+export function useRivenOptional() {
+  return useContext(RivenCtx)
 }
 
 export function useRiven() {
