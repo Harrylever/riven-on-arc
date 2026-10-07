@@ -54,6 +54,8 @@ model Token {
   /// trusted when transfers were indexed from here ("complete").
   creationBlock  BigInt?         @map("creation_block")
   holderHistory  String?         @map("holder_history") // complete | pending | partial
+  /// Set when someone asks Riven to scan this token now; the scorer takes these first.
+  rescoreRequestedAt DateTime? @map("rescore_requested_at")
   arcMarket      ArcMarket?
   createdAt      DateTime        @default(now()) @map("created_at")
 
@@ -528,4 +530,43 @@ model ArcCallout {
   @@index([postedAt])
   @@index([tokenId])
   @@map("arc_callouts")
+}
+
+/// A browser/device that asked for Telegram alerts. `deviceKey` is a random id
+/// kept in that browser; `linkCode` is the one-time code in the t.me deep link.
+/// There are no accounts: the chat is linked when the user presses Start.
+model TelegramLink {
+  id        String          @id @default(uuid())
+  deviceKey String          @unique @map("device_key")
+  linkCode  String          @unique @map("link_code")
+  chatId    String?         @map("chat_id")
+  username  String?
+  linkedAt  DateTime?       @map("linked_at")
+  createdAt DateTime        @default(now()) @map("created_at")
+  watches   TelegramWatch[]
+
+  @@index([chatId])
+  @@map("telegram_links")
+}
+
+/// What a linked chat wants pinged about: an Arc token (address) or a perp coin (e.g. BTC).
+model TelegramWatch {
+  id        String       @id @default(uuid())
+  linkId    String       @map("link_id")
+  link      TelegramLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  kind      String // "token" | "perp"
+  target    String
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  @@unique([linkId, kind, target])
+  @@index([kind, target])
+  @@map("telegram_watches")
+}
+
+/// Dedupe for outbound Telegram messages (one row per thing sent to a chat).
+model TelegramSent {
+  key    String   @id
+  sentAt DateTime @default(now()) @map("sent_at")
+
+  @@map("telegram_sent")
 }

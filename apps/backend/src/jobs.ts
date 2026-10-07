@@ -12,6 +12,7 @@ import type { Services } from "./container";
 const logger = new Logger("Jobs");
 
 const EVERY_MINUTE = "0 * * * * *";
+const EVERY_20_SECONDS = "*/20 * * * * *";
 const EVERY_5_MINUTES = "0 */5 * * * *";
 const EVERY_10_MINUTES = "0 */10 * * * *";
 const EVERY_30_MINUTES = "0 */30 * * * *";
@@ -21,7 +22,11 @@ export function startJobs(s: Services): Cron[] {
   const arcIndexing: Array<[string, string, () => Promise<unknown>]> = [
     // Launches → holder/swap activity → scores. `protect` skips a tick while
     // the previous one is still catching up.
-    ["arcPipeline.runOnce", EVERY_MINUTE, () => s.arcPipeline.runOnce()],
+    ["arcPipeline.runOnce", EVERY_MINUTE, () => s.arcPipeline.runOnce({ score: false })],
+    // Telegram: link /start codes and forward alerts/calls (no-op without a bot token).
+    ["telegram.tick", EVERY_20_SECONDS, () => s.telegram.tick()],
+    // Scores on their own loop so they stay live while slower indexing catches up.
+    ["arcScoring.scoreOnce", EVERY_MINUTE, () => s.arcScoring.scoreOnce()],
   ];
   const legacySolanaJobs: Array<[string, string, () => Promise<unknown>]> = [
     [

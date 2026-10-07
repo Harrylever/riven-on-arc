@@ -36,6 +36,8 @@ export interface Holo {
   series?: number[]
   bars?: number[]
   tone?: "blue" | "green" | "amber" | "red"
+  /** 0..1 — drawn as the HUD's ring gauge (e.g. score / 10). */
+  gauge?: number
 }
 
 const TONE: Record<NonNullable<Holo["tone"]>, string> = {
@@ -353,7 +355,7 @@ const EYES = [
   const ns = Math.hypot(e.side[0]!, e.side[1]!)
   return { ...e, ux: e.up[0]! / nu, uy: e.up[1]! / nu, sx: e.side[0]! / ns, sy: e.side[1]! / ns }
 })
-export type EyeShape = "dot" | "happy" | "squint" | "wide"
+export type EyeShape = "dot" | "happy" | "squint" | "wide" | "sad"
 
 function makeEyes() {
   const c = document.createElement("canvas")
@@ -381,7 +383,13 @@ function makeEyes() {
       g.shadowBlur = R * 0.9
       g.fillStyle = "#f2f8ff"
       g.strokeStyle = "#f2f8ff"
-      if (shape === "happy") {
+      if (shape === "sad") {
+        // droopy: the top of each eye sags into a flat, tilted lid
+        g.beginPath()
+        g.ellipse(0, -R * 0.15, R * 0.95, R * 0.7, 0, Math.PI * 1.06, Math.PI * 1.94, true)
+        g.closePath()
+        g.fill()
+      } else if (shape === "happy") {
         g.lineWidth = R * 0.62
         g.lineCap = "round"
         g.beginPath()
@@ -507,10 +515,11 @@ function Emitter({ glow }: { glow: React.MutableRefObject<number> }) {
     <group>
       <mesh ref={disc} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.016, 24]} />
-        <meshBasicMaterial color="#8fd6ff" transparent toneMapped={false} />
+        <meshBasicMaterial color="#ffc24a" transparent toneMapped={false} />
       </mesh>
       <sprite ref={halo}>
         <spriteMaterial
+          color="#ffc24a"
           map={tex}
           transparent
           depthWrite={false}
@@ -546,11 +555,14 @@ function Beam({
   to,
   on,
   delay,
+  spread = 0.045,
 }: {
   from: React.MutableRefObject<THREE.Vector3>
   to: THREE.Vector3
   on: boolean
   delay: number
+  /** radius of the light cone where it meets the hologram */
+  spread?: number
 }) {
   const m = useRef<THREE.Mesh>(null)
   const k = useRef(0)
@@ -578,9 +590,9 @@ function Beam({
   return (
     <mesh ref={m} visible={false}>
       {/* a thin cone: narrow at the wrist, wide at the hologram — light spreading out */}
-      <cylinderGeometry args={[0.045, 0.003, 1, 24, 1, true]} />
+      <cylinderGeometry args={[spread, 0.004, 1, 32, 1, true]} />
       <meshBasicMaterial
-        color="#8fd6ff"
+        color="#ffc24a"
         alphaMap={falloff}
         transparent
         side={THREE.DoubleSide}
@@ -592,81 +604,169 @@ function Beam({
   )
 }
 
-// ── holograms (crisp HTML in 3D, readable at any size) ─────────────────────
-function HoloCard({ h }: { h: Holo }) {
-  const col = TONE[h.tone ?? "blue"]
-  const series = h.series && h.series.length > 1 ? h.series : null
-  let path = ""
-  if (series) {
-    const min = Math.min(...series)
-    const max = Math.max(...series)
-    const span = max - min || 1
-    path = series
-      .map(
-        (v, i) =>
-          `${i ? "L" : "M"}${((i / (series.length - 1)) * 196).toFixed(1)},${(52 - ((v - min) / span) * 48).toFixed(1)}`,
-      )
-      .join(" ")
-  }
+// ── the wrist hologram: one round HUD projected from his watch ─────────────
+/**
+ * Hologram light is warm amber-gold: the opposite of his blue chrome, so the
+ * readout never melts into his body. Values keep their meaning colours
+ * (green good, red bad); neutral ones use the amber too.
+ */
+const HUD_INK = "#ffc24a"
+const HUD_TEXT = "#fff3d6"
+function Sparkline({ series, col, w = 210, h = 46 }: { series: number[]; col: string; w?: number; h?: number }) {
+  const min = Math.min(...series)
+  const max = Math.max(...series)
+  const span = max - min || 1
+  const path = series
+    .map((v, i) => `${i ? "L" : "M"}${((i / (series.length - 1)) * w).toFixed(1)},${(h - 4 - ((v - min) / span) * (h - 8)).toFixed(1)}`)
+    .join(" ")
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-hidden>
+      <path d={`${path} L${w},${h} L0,${h} Z`} fill={`${col}2e`} />
+      <path d={path} fill="none" stroke={col} strokeWidth={2} style={{ filter: `drop-shadow(0 0 4px ${col})` }} />
+    </svg>
+  )
+}
+
+/**
+ * A circular holographic readout, like a smartwatch projecting a scan: spinning
+ * rings and ticks, a gauge, the headline number in the middle, a chart and up
+ * to three small readouts underneath. HTML, so the text stays crisp.
+ */
+function HoloHud({ holos }: { holos: Holo[] }) {
+  const main = holos[0]!
+  const rest = holos.slice(1, 4)
+  const valueCol = (h: Holo) => (!h.tone || h.tone === "blue" ? HUD_INK : TONE[h.tone])
+  const col = valueCol(main)
+  const S = 400
+  const c = S / 2
+  const gauge = main.gauge === undefined ? null : Math.max(0, Math.min(1, main.gauge))
+  const R = 158
+  const arc = gauge === null ? 0 : 2 * Math.PI * R * gauge
+  const spin = (sec: number, rev = false) => ({
+    transformOrigin: `${c}px ${c}px`,
+    animation: `rv-spin ${sec}s linear infinite${rev ? " reverse" : ""}`,
+  })
   return (
     <div
-      className="w-[230px] rounded-xl border px-3.5 py-3"
       style={{
-        borderColor: col,
-        background:
-          "linear-gradient(180deg, rgba(40,110,190,0.28), rgba(10,30,60,0.55)), repeating-linear-gradient(0deg, rgba(124,196,232,0.07) 0 1px, transparent 1px 4px)",
-        boxShadow: `0 0 24px ${col}55, inset 0 0 18px ${col}22`,
-        color: "#e8f6ff",
+        width: S,
+        height: S,
+        position: "relative",
+        color: HUD_TEXT,
         fontFamily: "var(--font-inter), Inter, system-ui, sans-serif",
       }}
     >
-      <div className="text-[11px] font-bold tracking-[0.14em] uppercase opacity-80">{h.title}</div>
+      <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S} style={{ position: "absolute", inset: 0 }} aria-hidden>
+        <defs>
+          <radialGradient id="rv-hud-fill">
+            <stop offset="0%" stopColor="rgba(14,10,4,0.88)" />
+            <stop offset="72%" stopColor="rgba(26,16,4,0.80)" />
+            <stop offset="100%" stopColor="rgba(60,36,6,0.55)" />
+          </radialGradient>
+        </defs>
+        <circle cx={c} cy={c} r={190} fill="url(#rv-hud-fill)" stroke={HUD_INK} strokeOpacity={0.9} strokeWidth={2} />
+        <g style={spin(30)}>
+          {Array.from({ length: 72 }, (_, i) => {
+            const a = (i / 72) * Math.PI * 2
+            const r1 = i % 6 === 0 ? 172 : 177
+            return (
+              <line
+                key={i}
+                x1={c + Math.cos(a) * r1}
+                y1={c + Math.sin(a) * r1}
+                x2={c + Math.cos(a) * 183}
+                y2={c + Math.sin(a) * 183}
+                stroke={HUD_INK}
+                strokeOpacity={i % 6 === 0 ? 1 : 0.5}
+                strokeWidth={i % 6 === 0 ? 2 : 1}
+              />
+            )
+          })}
+        </g>
+        <circle cx={c} cy={c} r={R} fill="none" stroke={HUD_INK} strokeOpacity={0.2} strokeWidth={8} />
+        {gauge !== null && (
+          <circle
+            cx={c}
+            cy={c}
+            r={R}
+            fill="none"
+            stroke={col}
+            strokeWidth={8}
+            strokeLinecap="round"
+            strokeDasharray={`${arc} ${2 * Math.PI * R}`}
+            transform={`rotate(-90 ${c} ${c})`}
+            style={{ filter: `drop-shadow(0 0 6px ${col})` }}
+          />
+        )}
+        <g style={spin(14, true)}>
+          <circle cx={c} cy={c} r={136} fill="none" stroke={HUD_INK} strokeOpacity={0.6} strokeWidth={1.4} strokeDasharray="3 9" />
+        </g>
+        <g style={spin(9)}>
+          <path
+            d={`M ${c - 120} ${c} A 120 120 0 0 1 ${c} ${c - 120}`}
+            fill="none"
+            stroke={HUD_INK}
+            strokeOpacity={0.85}
+            strokeWidth={2}
+          />
+        </g>
+      </svg>
       <div
-        className="mt-0.5 text-[30px] leading-none font-bold tracking-tight"
-        style={{ color: col, textShadow: `0 0 12px ${col}88` }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          padding: "0 64px",
+        }}
       >
-        {h.value}
-      </div>
-      {h.note && <div className="mt-1 text-[11.5px] leading-snug opacity-85">{h.note}</div>}
-      {series && (
-        <svg viewBox="0 0 196 56" className="mt-2 h-[56px] w-full" aria-hidden>
-          <path d={`${path} L196,56 L0,56 Z`} fill={`${col}33`} />
-          <path d={path} fill="none" stroke={col} strokeWidth={2} style={{ filter: `drop-shadow(0 0 4px ${col})` }} />
-        </svg>
-      )}
-      {!series && h.bars && h.bars.length > 0 && (
-        <div className="mt-2 flex h-[44px] items-end gap-1.5">
-          {h.bars.map((b, i) => (
-            <span
-              key={i}
-              className="flex-1 rounded-sm"
-              style={{
-                height: `${Math.max(6, Math.min(1, b) * 100)}%`,
-                background: col,
-                opacity: 0.4 + 0.6 * Math.min(1, b),
-              }}
-            />
-          ))}
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: HUD_INK }}>
+          {main.title}
         </div>
-      )}
+        <div style={{ fontSize: 50, lineHeight: 1, fontWeight: 800, color: col, textShadow: `0 0 16px ${col}aa`, marginTop: 4 }}>
+          {main.value}
+        </div>
+        {main.note && <div style={{ fontSize: 13, lineHeight: 1.3, opacity: 0.9, marginTop: 6, maxWidth: 250 }}>{main.note}</div>}
+        {main.series && main.series.length > 1 && (
+          <div style={{ marginTop: 8 }}>
+            <Sparkline series={main.series} col={col} />
+          </div>
+        )}
+        {rest.length > 0 && (
+          <div style={{ display: "flex", gap: 14, marginTop: 10 }}>
+            {rest.map((h, i) => {
+              const hc = valueCol(h)
+              return (
+                <div key={i} style={{ minWidth: 70 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: HUD_INK, opacity: 0.85 }}>
+                    {h.title}
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: hc, textShadow: `0 0 8px ${hc}88` }}>{h.value}</div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-/** One hologram: rides its light beam out of the wrist to its slot. */
-function HoloSlot({
-  h,
+/** The HUD rides its light beam out of the wrist to where he can read it. */
+function HudSlot({
+  holos,
   slot,
   from,
   shown,
-  delay,
   size,
 }: {
-  h: Holo
+  holos: Holo[]
   slot: THREE.Vector3
   from: React.MutableRefObject<THREE.Vector3>
   shown: boolean
-  delay: number
   size: number
 }) {
   const g = useRef<THREE.Group>(null)
@@ -675,23 +775,16 @@ function HoloSlot({
   useFrame((_, dt) => {
     const grp = g.current
     if (!grp) return
-    t.current = shown ? Math.min(1, t.current + dt / 0.9) : Math.max(0, t.current - dt / 0.4)
-    const k = Math.max(0, Math.min(1, (t.current - delay) / (1 - delay)))
-    const e = 1 - Math.pow(1 - k, 3)
+    t.current = shown ? Math.min(1, t.current + dt / 0.8) : Math.max(0, t.current - dt / 0.35)
+    const e = 1 - Math.pow(1 - t.current, 3)
     grp.position.lerpVectors(from.current, slot, e)
-    grp.scale.setScalar(0.08 + 0.92 * e)
-    const v = k > 0.02
+    grp.scale.setScalar(0.05 + 0.95 * e)
+    const v = t.current > 0.02
     if (v !== vis) setVis(v)
   })
   return (
     <group ref={g}>
-      <Html
-        transform
-        rotation={[0, Math.PI / 2, 0]}
-        distanceFactor={size}
-        pointerEvents="none"
-        zIndexRange={[20, 0]}
-      >
+      <Html transform rotation={[0, Math.PI / 2, 0]} distanceFactor={size} pointerEvents="none" zIndexRange={[20, 0]}>
         <div
           style={{
             opacity: vis ? 1 : 0,
@@ -699,7 +792,7 @@ function HoloSlot({
             animation: vis ? "rv-holo-flicker 2.6s infinite" : undefined,
           }}
         >
-          <HoloCard h={h} />
+          <HoloHud holos={holos} />
         </div>
       </Html>
     </group>
@@ -721,6 +814,7 @@ type Act =
   | "point"
   | "dance"
   | "look"
+  | "nodata"
 
 const DUR: Record<Exclude<Act, "idle">, number> = {
   scan: 12,
@@ -735,10 +829,17 @@ const DUR: Record<Exclude<Act, "idle">, number> = {
   point: 2.0,
   dance: 3.4,
   look: 3.0,
+  nodata: 2.8,
 }
 
-/** Where the left wrist sits for the "watch" pose: forearm level across the chest. */
-const WATCH = V(0.15, 0.035, -0.04)
+/** Where the left wrist sits for the "watch" pose: forearm brought forward, watch face up. */
+const WATCH = V(0.21, -0.02, -0.08)
+/**
+ * Where the wrist hologram settles: in front of him, below his face, out to his
+ * right (screen left). He's docked at the right edge of the page, so that's
+ * the side with room — the whole dial stays in view.
+ */
+const HUD_POS = V(0.36, 0.03, 0.12)
 
 function Robot({
   mood,
@@ -749,16 +850,24 @@ function Robot({
   poke,
   calm,
   lively,
+  command,
+  onPhase,
+  autoScan,
 }: {
   mood: Mood
   holos: Holo[]
   holoSize: number
   onAct?: (a: Act) => void
+  command?: { id: number; act: string; at?: number }
+  onPhase?: (phase: "press" | "done") => void
+  autoScan: boolean
   pointer: React.MutableRefObject<{ x: number; y: number }>
   poke: number
   calm: boolean
   lively: boolean
 }) {
+  // A move asked for just before he finished loading still plays; older ones don't replay.
+  const lastCommand = useRef(command && command.at && Date.now() - command.at < 6000 ? 0 : (command?.id ?? 0))
   const { scene } = useGLTF(MODEL, DRACO)
   const { rig, chrome, eyes } = useMemo(() => {
     let src: THREE.Mesh | null = null
@@ -856,10 +965,17 @@ function Robot({
       sfx.chirp()
       eye.current.pokeT = t
       if (a.name === "idle") {
-        if (holos.length && Math.random() < 0.6) start("scan")
+        if (autoScan && holos.length && Math.random() < 0.6) start("scan")
         else if (mood === "danger" || mood === "warn") start("shake")
         else start((["wave", "celebrate", "dance", "point", "hop"] as const)[Math.floor(Math.random() * 5)]!)
       }
+    }
+
+    // A page asked for a move (e.g. "scan this token"): it overrides whatever he's doing.
+    if (command && command.id !== lastCommand.current) {
+      lastCommand.current = command.id
+      const want = command.act as Exclude<Act, "idle">
+      if (want in DUR) start(want === "scan" && !holos.length ? "nodata" : want)
     }
 
     // Dev only: window.__rivenAct = "scan" | "think" | … plays a move on demand.
@@ -878,7 +994,7 @@ function Robot({
       next.current -= dt
       if (next.current <= 0) {
         const r = Math.random()
-        if (holos.length && !holoOn && r < 0.3) start("scan")
+        if (autoScan && holos.length && !holoOn && r < 0.3) start("scan")
         else if (r < 0.42) start("inspect")
         else if (r < 0.52) start("look")
         else if (r < 0.6) start("think")
@@ -898,7 +1014,10 @@ function Robot({
         const fz = (window as unknown as { __rivenFreeze?: number }).__rivenFreeze
         if (typeof fz === "number") a.t = Math.min(fz, a.dur - 0.01)
       }
-      if (a.t >= a.dur) act.current = { name: "idle", t: 0, dur: 0, fired: new Set() }
+      if (a.t >= a.dur) {
+        if (a.name === "scan") onPhase?.("done")
+        act.current = { name: "idle", t: 0, dur: 0, fired: new Set() }
+      }
     }
     const once = (key: string, at: number, fn: () => void) => {
       if (a.t >= at && !a.fired.has(key)) {
@@ -960,6 +1079,7 @@ function Robot({
         tmp.rShift.set(0.015 * reach, 0.008 * reach, -0.015 * reach)
         poleR = V(-0.05, 0.05, 0.6)
         once("press", 1.12, () => {
+          onPhase?.("press")
           sfx.press()
           window.setTimeout(() => sfx.holoUp(), 70)
           setBeamsOn(true)
@@ -982,13 +1102,14 @@ function Robot({
           tmp.rT.lerp(V(0.14, 0.135, 0.06), read)
           tmp.rShift.set(0.02 * read, 0.015 * read, -0.012 * read)
           poleR = V(-0.05, -0.25, 0.55)
-          const sweep = Math.sin((s - 4.0) * 0.9)
-          yaw += sweep * 0.42 * read
-          headYaw += sweep * 0.25 * read
-          headPitch = 0.04
+          // reading the HUD in front of him, scanning across it line by line
+          const sweep = Math.sin((s - 4.0) * 1.3)
+          yaw += 0.08 * read
+          headYaw = 0.18 * read + sweep * 0.08 * read
+          headPitch = 0.14 * read
           eyeShape = "squint"
-          lookX = -sweep * 0.8
-          lookY = 0.1
+          lookX = 0.35 + sweep * 0.35
+          lookY = -0.35
         }
         glassShow = s > 2.75 && s < 10.25 ? 1 : 0
         glassUp = read
@@ -997,6 +1118,22 @@ function Robot({
         once("compute2", 7.2, () => sfx.compute(700))
         once("servo2", 9.4, () => sfx.servo(0.4))
         once("beamsOff", 10.6, () => setBeamsOn(false))
+        break
+      }
+      case "nodata": {
+        // palms up, head tilted, droopy eyes: "nothing to read on this one"
+        const up = ease(k / 0.2) * (1 - ease((k - 0.8) / 0.2))
+        tmp.lT.lerp(V(0.12, -0.04, -0.29), up)
+        tmp.rT.lerp(V(0.12, -0.04, 0.27), up)
+        poleL = V(-0.2, -0.3, -0.6)
+        poleR = V(-0.2, -0.3, 0.6)
+        headYaw = 0.12 * up
+        headPitch = 0.08 * up
+        roll = 0.07 * up
+        crouch = 0.012 * up
+        eyeShape = up > 0.3 ? "sad" : "dot"
+        lookY = -0.2
+        once("womp", 0.25, () => sfx.sad())
         break
       }
       case "inspect": {
@@ -1242,9 +1379,7 @@ function Robot({
     g.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash))
   })
 
-  // Hologram slots around him, in model space (front = +X).
-  const slots = useMemo(() => [V(0.14, 0.24, -0.48), V(0.14, 0.26, 0.48), V(0.16, -0.12, 0.5)], [])
-  const shown = holos.slice(0, 3)
+  const shown = holos.slice(0, 4)
 
   return (
     <group ref={body}>
@@ -1260,23 +1395,11 @@ function Robot({
         <group ref={emitter} visible={false}>
           <Emitter glow={glow} />
         </group>
-        {shown.map((h, i) => (
-          <Beam key={`b-${h.title}-${i}`} from={wrist} to={slots[i]!} on={beamsOn || calm} delay={i * 0.12} />
-        ))}
+        {shown.length > 0 && <Beam from={wrist} to={HUD_POS} on={beamsOn || calm} delay={0} spread={0.16} />}
         <group ref={glass} visible={false}>
           <Magnifier chrome={chrome} />
         </group>
-        {shown.map((h, i) => (
-          <HoloSlot
-            key={`${h.title}-${i}`}
-            h={h}
-            slot={slots[i]!}
-            from={wrist}
-            shown={holoOn || calm}
-            delay={0.12 + i * 0.12}
-            size={holoSize}
-          />
-        ))}
+        {shown.length > 0 && <HudSlot holos={shown} slot={HUD_POS} from={wrist} shown={holoOn || calm} size={holoSize} />}
       </group>
       {/* soft floor glow */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.52, 0]}>
@@ -1368,6 +1491,12 @@ export interface RivenMascotProps {
   onAct?: (a: string) => void
   /** Increment to make him react (e.g. on click). */
   poke?: number
+  /** Ask for a specific move; bump `id` to replay ("scan" without holos becomes "nodata"). */
+  command?: { id: number; act: string; at?: number }
+  /** Scan milestones: "press" when the hologram opens, "done" when he's finished reading. */
+  onPhase?: (phase: "press" | "done") => void
+  /** Let him pull up his hologram on his own now and then (off when docked: it needs room). */
+  autoScan?: boolean
 }
 
 export default function RivenMascot({
@@ -1381,6 +1510,9 @@ export default function RivenMascot({
   className,
   onAct,
   poke = 0,
+  command,
+  onPhase,
+  autoScan = true,
 }: RivenMascotProps) {
   const wrap = useRef<HTMLDivElement>(null)
   const pointer = useRef({ x: 0, y: 0 })
@@ -1429,6 +1561,9 @@ export default function RivenMascot({
             poke={poke}
             calm={!!calm || reduced}
             lively={lively}
+            command={command}
+            onPhase={onPhase}
+            autoScan={autoScan}
           />
         </Suspense>
       </Canvas>

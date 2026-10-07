@@ -7,6 +7,7 @@ import { PERPS_ENABLED } from "@/lib/flags"
 import { RugWatcher } from "./rug-watcher"
 import { TickerStrip } from "./ticker-strip"
 import { Companion } from "@/components/mascot/companion"
+import { RivenProvider } from "@/components/mascot/riven-context"
 
 interface Status {
   lastBlock: string | null
@@ -100,6 +101,7 @@ export function RivenShell({ children }: { children: ReactNode }) {
   const stale = lagMin !== null && lagMin > 10
 
   return (
+    <RivenProvider>
     <div className="flex min-h-dvh flex-col">
       <RugWatcher />
       <Companion />
@@ -247,5 +249,6 @@ export function RivenShell({ children }: { children: ReactNode }) {
         </div>
       </nav>
     </div>
+    </RivenProvider>
   )
 }

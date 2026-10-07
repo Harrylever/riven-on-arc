@@ -23,6 +23,7 @@ const ACT_LINES: Record<string, string[]> = {
   hop: ["Boing.", "On it!"],
   shake: ["Nope. Read the red flags.", "I wouldn't. Check why first."],
   nod: ["Looking good so far.", "Clean on-chain."],
+  nodata: ["Nothing to read on this one yet — no trades or pool data.", "No data on this pair yet. Check back once it trades."],
   think: ["Hmm… let me think about that one.", "Computing…"],
   celebrate: ["Woo! Clean on-chain!", "That's what I like to see."],
   point: ["You — check the score before you buy.", "Read the red flags first!"],
@@ -44,10 +45,15 @@ export function MascotStage({
   framing = "full",
   zoom,
   className = "",
-  bubbleSide = "left",
+  bubbleSide = "bottom",
   greet,
   holoSize,
   lively,
+  command,
+  onPhase,
+  onTap,
+  say: sayProp,
+  autoScan,
 }: {
   mood?: Mood
   holos?: Holo[]
@@ -55,13 +61,21 @@ export function MascotStage({
   framing?: Framing
   zoom?: number
   className?: string
-  bubbleSide?: "left" | "right" | "top"
+  /** Where his speech bubble sits — never over his face. */
+  bubbleSide?: "outside-left" | "bottom"
   /** First thing he says. */
   greet?: string
   /** Hologram card size (bigger = more readable). */
   holoSize?: number
   /** Emote more often (home page). */
   lively?: boolean
+  command?: { id: number; act: string; at?: number }
+  onPhase?: (phase: "press" | "done") => void
+  /** Replaces the default tap reaction (e.g. "scan this token"). */
+  onTap?: () => void
+  /** Something the page wants him to say right now (bump the object to repeat). */
+  say?: { text: string; ms?: number } | null
+  autoScan?: boolean
 }) {
   const [say, setSay] = useState<string | null>(greet ?? null)
   const [poke, setPoke] = useState(0)
@@ -91,6 +105,10 @@ export function MascotStage({
     return () => window.clearInterval(id)
   }, [lines, speak])
 
+  useEffect(() => {
+    if (sayProp?.text) speak(sayProp.text, sayProp.ms ?? 4200)
+  }, [sayProp, speak])
+
   const onAct = useCallback(
     (a: string) => {
       const options = ACT_LINES[a]
@@ -99,12 +117,11 @@ export function MascotStage({
     [speak],
   )
 
+  // Beside him (docked) or down by his feet (hero) — never across his visor.
   const bubblePos =
-    bubbleSide === "top"
-      ? "left-1/2 top-2 -translate-x-1/2"
-      : bubbleSide === "right"
-        ? "right-2 top-6"
-        : "left-2 top-6"
+    bubbleSide === "outside-left"
+      ? "right-full top-[18%] mr-1 w-max max-w-[220px]"
+      : "left-1/2 bottom-1 -translate-x-1/2 w-max max-w-[min(260px,92%)]"
 
   return (
     <div className={`group relative select-none ${className}`}>
@@ -113,6 +130,10 @@ export function MascotStage({
         aria-label="Riven, the Riven mascot — tap to say hi"
         onClick={() => {
           sfx.arm() // a tap unlocks his voice (browsers block sound until a gesture)
+          if (onTap) {
+            onTap()
+            return
+          }
           setPoke((p) => p + 1)
           speak(
             lines.length
@@ -132,6 +153,9 @@ export function MascotStage({
         lively={lively}
         onAct={onAct}
         poke={poke}
+        command={command}
+        onPhase={onPhase}
+        autoScan={autoScan}
       />
       <button
         type="button"
@@ -169,7 +193,7 @@ export function MascotStage({
       {say && (
         <div
           role="status"
-          className={`pointer-events-none absolute z-20 max-w-[220px] rounded-xl border border-[rgba(124,196,232,0.35)] bg-[rgba(10,14,20,0.92)] px-3 py-2 text-[12.5px] leading-snug text-[var(--rv-ink)] shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur ${bubblePos}`}
+          className={`pointer-events-none absolute z-20 rounded-xl border border-[rgba(124,196,232,0.35)] bg-[rgba(10,14,20,0.92)] px-3 py-2 text-[12.5px] leading-snug text-[var(--rv-ink)] shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur ${bubblePos}`}
           style={{ animation: "rv-pop 180ms ease-out" }}
         >
           <span className="mb-0.5 block text-[10px] font-bold tracking-[0.12em] text-[var(--rv-blue)] uppercase">

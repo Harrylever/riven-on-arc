@@ -163,3 +163,12 @@ export function scan(dur = 2.2) {
   osc.stop(t + dur + 0.05)
   lfo.stop(t + dur + 0.05)
 }
+
+/** "Nothing here": a soft descending two-note womp. */
+export function sad() {
+  const o = out()
+  if (!o) return
+  const t = o.c.currentTime
+  tone(o.c, o.master, 520, t, 0.22, "triangle", 390)
+  tone(o.c, o.master, 390, t + 0.24, 0.36, "triangle", 260)
+}

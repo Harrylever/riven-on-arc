@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import type { TokenSummary } from "@/lib/arc-data"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
-import { MascotStage } from "@/components/mascot/mascot-stage"
+import { useRiven, useRivenPage } from "@/components/mascot/riven-context"
 import { RivenOrb } from "./orb-field"
 
 interface Msg {
@@ -32,6 +32,11 @@ export function AgentChat() {
   const [q, setQ] = useState("")
   const [busy, setBusy] = useState(false)
   const end = useRef<HTMLDivElement>(null)
+  const riven = useRiven()
+  useRivenPage({
+    lines: ["Paste a 0x address or a $TICKER.", "I only answer from on-chain data.", "I'll never tell you to buy or sell — just what the chain says."],
+    greet: "Ask me anything about an Arc token.",
+  })
 
   useEffect(
     () => end.current?.scrollIntoView({ behavior: "smooth", block: "end" }),
@@ -44,6 +49,7 @@ export function AgentChat() {
     setQ("")
     setMsgs((m) => [...m, { role: "user", text }])
     setBusy(true)
+    riven.play("think")
     try {
       const res = await fetch("/api/arc/agent", {
         method: "POST",
@@ -60,6 +66,7 @@ export function AgentChat() {
           mode: d.mode,
         },
       ])
+      riven.play("nod")
     } catch {
       setMsgs((m) => [
         ...m,
@@ -76,13 +83,7 @@ export function AgentChat() {
   return (
     <div className="flex min-h-[70dvh] flex-col gap-3">
       <header className="flex items-center gap-4">
-        <MascotStage
-          className="h-[170px] w-[150px] shrink-0"
-          framing="bust"
-          lines={["Paste a 0x address or a $TICKER.", "I only answer from on-chain data.", "I'll never tell you to buy or sell — just what the chain says."]}
-          greet="Ask me anything about an Arc token."
-          bubbleSide="right"
-        />
+
         <div>
           <h1 className="text-[26px] font-bold tracking-tight text-[var(--rv-ink)]">Ask Riven</h1>
           <p className="text-[13px] text-[var(--rv-ink-2)]">

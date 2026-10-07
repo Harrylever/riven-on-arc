@@ -32,8 +32,8 @@ import { scanBlockRange } from "./factory-log-indexer.service";
 const ACTIVITY_CURSOR = "arc:activity";
 const MAX_TOKENS_PER_RUN = 60;
 const FRESH_MS = 24 * 60 * 60 * 1000;
-const RESCORE_FRESH_MS = 5 * 60 * 1000;
-const RESCORE_OLD_MS = 60 * 60 * 1000;
+const RESCORE_FRESH_MS = 2 * 60 * 1000;
+const RESCORE_OLD_MS = 15 * 60 * 1000;
 /** Bought within ~5s of launch (10 blocks × ~510ms) = sniper. */
 const SNIPER_BLOCKS = 10n;
 /** Window around launch in which creator USDC transfers mark a wallet as creator-funded. */
@@ -228,7 +228,14 @@ export class ArcScoringService {
       arcMarket: true,
       scoreRuns: { orderBy: { calculatedAt: "desc" as const }, take: 1 },
     };
-    const [freshRows, liquidRows] = await Promise.all([
+    const [requestedRows, freshRows, liquidRows] = await Promise.all([
+      // "Scan this token" requests from the site come first.
+      db.token.findMany({
+        where: { pools: { some: {} }, rescoreRequestedAt: { gte: new Date(now - 10 * 60 * 1000) } },
+        orderBy: { rescoreRequestedAt: "desc" },
+        take: 20,
+        include,
+      }),
       db.token.findMany({
         where: { pools: { some: {} } },
         orderBy: { launchTime: "desc" },
@@ -242,10 +249,11 @@ export class ArcScoringService {
         include,
       }),
     ]);
-    const candidates = [...new Map([...freshRows, ...liquidRows].map((t) => [t.id, t])).values()];
+    const candidates = [...new Map([...requestedRows, ...freshRows, ...liquidRows].map((t) => [t.id, t])).values()];
     const due = candidates
       .filter((t) => {
         const last = t.scoreRuns[0]?.calculatedAt.getTime();
+        if (t.rescoreRequestedAt && (last === undefined || t.rescoreRequestedAt.getTime() > last)) return true;
         // A methodology change rescores everything promptly, not on the slow cadence.
         if (t.scoreRuns[0] && t.scoreRuns[0].methodology !== ARC_METHODOLOGY) return true;
         if (last === undefined) return true;

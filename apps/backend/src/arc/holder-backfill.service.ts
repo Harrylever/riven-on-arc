@@ -16,6 +16,8 @@ const CHUNK = 9_999n;
 /** ~29 days of Arc blocks. Longer histories stay "too_long" rather than stall the pipeline. */
 const MAX_SPAN = BigInt(process.env.ARC_BACKFILL_MAX_BLOCKS ?? "2500000");
 const MIN_LIQUIDITY_USD = Number(process.env.ARC_BACKFILL_MIN_LIQUIDITY ?? "1000");
+/** Tokens replayed per pipeline tick, deepest liquidity first. */
+const TOKENS_PER_RUN = Number(process.env.ARC_BACKFILL_TOKENS_PER_RUN ?? "4");
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 const TRANSFER = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)");
@@ -52,14 +54,43 @@ export class HolderBackfillService {
     const db = getDb();
     const cursor = await db.arcIndexerCursor.findUnique({ where: { source: ACTIVITY_CURSOR } });
     if (!cursor) return { skipped: "activity indexer has not started" };
-    const t = await db.token.findFirst({
-      where: { holderHistory: "partial", arcMarket: { liquidityUsd: { gte: MIN_LIQUIDITY_USD } } },
+    // Only tokens the live indexer has already passed: newer ones would be
+    // skipped forever and block the queue.
+    const tokens = await db.token.findMany({
+      where: {
+        holderHistory: "partial",
+        arcMarket: { liquidityUsd: { gte: MIN_LIQUIDITY_USD } },
+        OR: [{ launchBlock: null }, { launchBlock: { lte: cursor.lastBlock } }],
+      },
       orderBy: { arcMarket: { liquidityUsd: "desc" } },
       include: { pools: true },
+      take: TOKENS_PER_RUN,
     });
-    if (!t) return { backfilled: null };
+    if (tokens.length === 0) return { backfilled: null };
+    const done: unknown[] = [];
+    for (const t of tokens) {
+      try {
+        done.push(await this.backfillToken(t, cursor.lastBlock));
+      } catch (err) {
+        const msg = (err as Error).message;
+        // Network blips retry next tick; a history the RPC can't serve (too many
+        // logs) is set aside so it doesn't block every token behind it.
+        if (!/ENOTFOUND|ECONNRESET|timed out|timeout|fetch failed/i.test(msg)) {
+          await db.token.update({ where: { id: t.id }, data: { holderHistory: "unavailable" } });
+        }
+        done.push({ token: t.symbol, error: msg.slice(0, 120) });
+      }
+    }
+    return { backfilled: done };
+  }
 
-    const to = cursor.lastBlock;
+  private async backfillToken(
+    t: Awaited<ReturnType<ReturnType<typeof getDb>["token"]["findFirstOrThrow"]>> & {
+      pools: Array<{ id: string; address: string; venue: string }>;
+    },
+    to: bigint,
+  ) {
+    const db = getDb();
     const creation = await this.creationBlock(t.mint as Address, t.launchBlock ?? to);
     if (creation > to) return { token: t.symbol, skipped: "activity indexer not caught up yet" };
     if (to - creation > MAX_SPAN) {

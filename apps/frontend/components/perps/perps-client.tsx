@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { PerpsPanel, type PerpSignal, type PerpStats } from "@/components/perps/perps-panel"
-import { MascotStage } from "@/components/mascot/mascot-stage"
+import { useRivenPage } from "@/components/mascot/riven-context"
 import type { Holo } from "@/components/mascot/mascot"
 import { PERPS_ENABLED } from "@/lib/flags"
 
@@ -62,10 +62,11 @@ function useSignalHolos() {
 
 export function PerpsClient() {
   const holos = useSignalHolos()
+  useRivenPage({ holos, lines: LINES, greet: "Riven here — I read the scanner so you don't trade blind." })
   if (!PERPS_ENABLED) return null
   return (
     <div className="flex flex-col gap-4">
-      <header className="rv-card relative grid items-center gap-2 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_380px]">
+      <header className="rv-card relative overflow-hidden p-4 sm:p-5">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_85%_40%,rgba(124,196,232,0.14),transparent_60%)]"
           aria-hidden
@@ -96,15 +97,7 @@ export function PerpsClient() {
             </a>
           </div>
         </div>
-        <MascotStage
-          className="relative -my-2 h-[260px] lg:h-[300px]"
-          framing="full"
-          holos={holos}
-          holoSize={0.5}
-          lines={LINES}
-          greet="Riven here — I read the scanner so you don't trade blind."
-          bubbleSide="left"
-        />
+
       </header>
       <PerpsPanel />
     </div>

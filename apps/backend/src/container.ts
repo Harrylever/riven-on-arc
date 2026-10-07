@@ -16,6 +16,7 @@ import { ArcActivityIndexerService } from "./arc/activity-indexer.service";
 import { ArcScoringService } from "./arc/scoring.service";
 import { ArcPipelineService } from "./arc/pipeline.service";
 import { CalloutsService } from "./arc/callouts.service";
+import { TelegramService } from "./arc/telegram.service";
 import { PoolIndexerService } from "./arc/pool-indexer.service";
 import { MarketSyncService } from "./arc/market-sync.service";
 import { HolderBackfillService } from "./arc/holder-backfill.service";
@@ -41,6 +42,7 @@ export function createServices() {
   const callouts = new CalloutsService();
   return {
     callouts,
+    telegram: new TelegramService(),
     authorityChecker,
     holderConcentration,
     burnIngest,

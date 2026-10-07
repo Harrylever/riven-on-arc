@@ -4,6 +4,7 @@ import { getAlerts } from "@/lib/arc-data"
 import { age } from "@/lib/riven-format"
 import { TokenAvatar } from "@/components/riven/token-avatar"
 import { AlertSettings } from "@/components/riven/alert-settings"
+import { TelegramConnect } from "@/components/riven/telegram-connect"
 import { PageHero } from "@/components/riven/page-hero"
 import type { Holo } from "@/components/mascot/mascot"
 
@@ -60,6 +61,7 @@ export default async function AlertsPage() {
         Every time liquidity gets pulled, a creator sells out, a whale sells 5%+ of supply, or a score collapses on Arc.
       </PageHero>
       <AlertSettings />
+      <TelegramConnect />
       {alerts === null ? (
         <div className="rv-card px-6 py-10 text-center" role="alert">
           <p className="text-lg font-bold text-[var(--rv-caution)]">

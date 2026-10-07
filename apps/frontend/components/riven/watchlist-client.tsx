@@ -1,6 +1,7 @@
 "use client"
 
 import { PageHero } from "./page-hero"
+import { TelegramConnect } from "./telegram-connect"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import type { TokenSummary } from "@/lib/arc-data"
@@ -50,6 +51,7 @@ export function WatchlistClient() {
       >
         Your starred tokens, rescored every 30 seconds. Saved on this device.
       </PageHero>
+      <TelegramConnect />
       {failed && (
         <p
           className="rounded-lg bg-[rgba(251,191,36,0.08)] px-3 py-2 text-sm text-[var(--rv-caution)]"

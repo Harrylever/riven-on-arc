@@ -596,3 +596,25 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   [style*="rv-holo-flicker"] { animation: none !important; }
 }
+
+/* Riven's wrist HUD rings */
+@keyframes rv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="rv-spin"] {
+    animation: none !important;
+  }
+}
+
+/* a section Riven just updated */
+@keyframes rv-flash {
+  0% {
+    box-shadow: 0 0 0 2px var(--rv-blue), 0 0 28px rgba(124, 196, 232, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

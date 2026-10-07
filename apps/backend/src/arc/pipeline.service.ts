@@ -23,7 +23,8 @@ export class ArcPipelineService {
     private readonly callouts?: CalloutsService,
   ) {}
 
-  async runOnce() {
+  /** `score: false` when scoring runs on its own loop (jobs, dev worker). */
+  async runOnce({ score = true }: { score?: boolean } = {}) {
     const step = async <T>(name: string, fn: () => Promise<T>) => {
       try {
         return await fn();
@@ -37,7 +38,7 @@ export class ArcPipelineService {
     const activity = await step("activity indexing", () => this.activity.indexActivityOnce());
     const market = await step("market sync", () => this.market.syncOnce());
     const backfill = await step("holder backfill", () => this.backfill.backfillOnce());
-    const scoring = await step("scoring", () => this.scoring.scoreOnce());
+    const scoring = score ? await step("scoring", () => this.scoring.scoreOnce()) : { skipped: "own loop" };
     const callouts = this.callouts
       ? await step("X callouts", () => this.callouts!.indexOnce())
       : { skipped: "not configured" };

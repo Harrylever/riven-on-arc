@@ -167,7 +167,7 @@ export default async function Home() {
               lines={lines}
               greet="Hey, I'm Riven. I rug-check every token on Arc."
               lively
-              bubbleSide="left"
+              bubbleSide="bottom"
             />
           </div>
         </div>

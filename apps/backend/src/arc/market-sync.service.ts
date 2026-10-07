@@ -2,6 +2,9 @@ import { getDb } from "@clawdex/shared";
 import { USDC } from "./config";
 
 const DEXSCREENER = "https://api.dexscreener.com/tokens/v1/arc/";
+/** GeckoTerminal knows icons DexScreener doesn't (majors, CoinGecko-listed tokens). 30 req/min free. */
+const GECKO = "https://api.geckoterminal.com/api/v2/networks/arc/tokens/multi/";
+const GECKO_CALLS_PER_RUN = Number(process.env.ARC_GECKO_CALLS_PER_RUN ?? "4");
 /** DexScreener allows 300 req/min on this endpoint; 40 sequential calls per tick stays well below it. */
 const BATCH = 30;
 const CALLS_PER_RUN = Number(process.env.ARC_MARKET_CALLS_PER_RUN ?? "40");
@@ -123,7 +126,8 @@ export class MarketSyncService {
               change24h: dec(p.priceChange?.h24),
               buys24h: p.txns?.h24?.buys ?? null,
               sells24h: p.txns?.h24?.sells ?? null,
-              imageUrl: p.info?.imageUrl ?? null,
+              // only overwrite an icon with a real one — never wipe one we found elsewhere
+              ...(p.info?.imageUrl ? { imageUrl: p.info.imageUrl } : {}),
               socials: {
                 usdcInPool: p.quoteToken?.address?.toLowerCase() === USDC.toLowerCase() ? p.liquidity?.quote ?? null : null,
                 websites: (p.info?.websites ?? []).map((w) => w.url),
@@ -153,6 +157,44 @@ export class MarketSyncService {
         updated++;
       }
     }
-    return { queued: queue.length, updated, listed };
+    const icons = await this.fillIcons();
+    return { queued: queue.length, updated, listed, icons };
+  }
+
+  private readonly iconTried = new Set<string>();
+
+  /** Icons for listed tokens that still have none, from GeckoTerminal (30 per call). */
+  private async fillIcons() {
+    const db = getDb();
+    const missing = await db.token.findMany({
+      where: { imageUri: null, arcMarket: { imageUrl: null, OR: [{ liquidityUsd: { gt: 0 } }, { volume24h: { gt: 0 } }] } },
+      select: { id: true, mint: true },
+      orderBy: { arcMarket: { volume24h: { sort: "desc", nulls: "last" } } },
+      take: 600,
+    });
+    const todo = missing.filter((t) => !this.iconTried.has(t.mint)).slice(0, BATCH * GECKO_CALLS_PER_RUN);
+    let found = 0;
+    for (let i = 0; i < todo.length; i += BATCH) {
+      const batch = todo.slice(i, i + BATCH);
+      const res = await fetch(GECKO + batch.map((t) => t.mint).join(","), {
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(15_000),
+      }).catch(() => null);
+      if (!res || res.status === 429) break;
+      batch.forEach((t) => this.iconTried.add(t.mint));
+      if (!res.ok) continue;
+      const json = (await res.json().catch(() => null)) as {
+        data?: Array<{ attributes?: { address?: string; image_url?: string | null } }>;
+      } | null;
+      for (const d of json?.data ?? []) {
+        const addr = d.attributes?.address?.toLowerCase();
+        const url = d.attributes?.image_url;
+        const t = batch.find((x) => x.mint === addr);
+        if (!t || !url || !/^https:\/\//.test(url) || url.includes("missing")) continue;
+        await db.arcMarket.update({ where: { tokenId: t.id }, data: { imageUrl: url } });
+        found++;
+      }
+    }
+    return found;
   }
 }

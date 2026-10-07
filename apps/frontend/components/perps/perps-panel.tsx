@@ -1,5 +1,6 @@
 "use client"
 
+import { TelegramConnect } from "@/components/riven/telegram-connect"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Freshness } from "@/components/perps/freshness"
 import { MiniBar } from "@/components/perps/mini-bar"
@@ -12,6 +13,7 @@ import { SignalOrderModal } from "@/components/perps/signal-order-modal"
 import { usePortfolio } from "@/hooks/use-portfolio"
 import { PerpTerminal } from "@/components/perps/perp-terminal"
 import { PerpWatch } from "@/components/perps/perp-watch"
+import { SignalCarousel } from "@/components/perps/signal-carousel"
 import { isMajorPerp, isMemePerp, signalCoinKey } from "@/lib/perp-symbols"
 import type { PerpMarket } from "@/lib/hyperliquid"
 
@@ -317,8 +319,34 @@ export function PerpsPanel() {
     return null
   }
 
+  // Live calls first in the carousel: newest, then highest conviction.
+  const liveCalls = (signals ?? [])
+    .filter((s) => s.outcome === "pending")
+    .sort((a, b) => b.scanTime.localeCompare(a.scanTime) || b.confidence - a.confidence)
+    .slice(0, 24)
+  const marks = new Map((markets ?? []).map((m) => [m.symbol.toUpperCase(), m.markPrice]))
+
   return (
     <div className="space-y-4">
+      <section>
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">Live scanner calls</h2>
+          <span className="rv-live-dot" aria-hidden />
+          <a href="#perp-signals" className="rv-btn-ghost ml-auto h-8 px-3 text-[12px]">
+            All calls →
+          </a>
+        </div>
+        {loading && signals === null ? (
+          <div className="flex gap-3 overflow-hidden">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-[300px] w-[232px] shrink-0 rounded-[var(--rv-radius)]" />
+            ))}
+          </div>
+        ) : (
+          <SignalCarousel signals={liveCalls} marks={marks} onSelect={setSelectedSignal} />
+        )}
+      </section>
+
       {selectedMarket && markets && (
         <PerpTerminal
           market={selectedMarket}
@@ -328,6 +356,8 @@ export function PerpsPanel() {
           onSelect={setSelectedSymbol}
         />
       )}
+
+      <TelegramConnect />
 
       {selectedMarket && markets && (
         <PerpWatch

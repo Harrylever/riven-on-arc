@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { SUB_SCORE_LABEL, type SubScoreKey } from "@clawdex/shared/score"
 import type { Callout, CreatorRecord, TokenDetail } from "@/lib/arc-data"
 import {
@@ -17,8 +18,8 @@ import {
 } from "@/lib/riven-format"
 import { ScoreMeter } from "./score-badge"
 import { CalloutsRow } from "./home-sections"
-import { MascotStage } from "@/components/mascot/mascot-stage"
 import type { Holo, Mood } from "@/components/mascot/mascot"
+import { useRiven, useRivenPage } from "@/components/mascot/riven-context"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
 import { CopyBadge, CopycatWarning } from "./copycat"
@@ -77,56 +78,67 @@ export function TokenView({
         : t.band === "healthy"
           ? "happy"
           : "idle"
+  const tone: Holo["tone"] =
+    t.band === "healthy" ? "green" : t.band === "caution" ? "amber" : t.band === "risk" ? "red" : "blue"
   const holos: Holo[] = [
     {
-      title: "Riven score",
+      title: `${t.symbol} · Riven score`,
       value: t.score === null ? "scoring…" : `${t.score.toFixed(1)}/10`,
       note: t.fake ? t.fakeReasons[0] : t.verdict,
-      bars: t.subScores
-        ? ORDER.map(
-            (k) => t.subScores![k].points / Math.max(1, t.subScores![k].max),
-          )
-        : undefined,
-      tone:
-        t.band === "healthy"
-          ? "green"
-          : t.band === "caution"
-            ? "amber"
-            : t.band === "risk"
-              ? "red"
-              : "blue",
+      gauge: t.score === null ? undefined : t.score / 10,
+      series: t.priceSeries.length > 2 ? t.priceSeries.map((s) => s.p) : undefined,
+      tone,
     },
-    ...(t.priceSeries.length > 2
-      ? [
-          {
-            title: `${t.symbol} price · 24h`,
-            value: change(t.change.h24),
-            note: `Now ${usd(t.priceUsd, { precise: true })} · vol ${usd(t.volume.h24)}`,
-            series: t.priceSeries.map((s) => s.p),
-            tone: ((t.change.h24 ?? 0) >= 0 ? "green" : "red") as Holo["tone"],
-          },
-        ]
-      : []),
-    ...(t.usdcInPool !== null
-      ? [
-          {
-            title: "Real USDC in pool",
-            value: usd(t.usdcInPool),
-            note:
-              t.usdcInPool < 1000
-                ? "All sellers can exit into — that's thin."
-                : "What sellers can exit into.",
-            tone: (t.usdcInPool < 1000 ? "amber" : "blue") as Holo["tone"],
-          },
-        ]
-      : []),
+    { title: "24h", value: t.change.h24 === null ? "—" : change(t.change.h24), tone: (t.change.h24 ?? 0) >= 0 ? "green" : "red" },
+    {
+      title: "Real USDC",
+      value: t.usdcInPool === null ? "—" : usd(t.usdcInPool),
+      tone: t.usdcInPool !== null && t.usdcInPool < 1000 ? "amber" : "blue",
+    },
+    { title: "Holders", value: t.holders === null ? "—" : compact(t.holders), tone: "blue" },
   ]
+  // Nothing to read: no score, no price, no pool → he shrugs instead of scanning.
+  const hasData = t.score !== null || t.priceUsd !== null || t.liquidityUsd !== null
+  const router = useRouter()
+  const riven = useRiven()
+  const [flash, setFlash] = useState(0)
+  const requestScan = () =>
+    fetch(`/api/arc/tokens/${t.address}/rescore`, { method: "POST" })
+      .catch(() => {})
+      .finally(() => router.refresh())
   const lines = [
     t.fake ? `Flagged: ${t.fakeReasons[0]}` : t.verdict,
     ...dangers.slice(0, 2).map((f) => f.text),
     ...(goods[0] ? [`Good sign: ${goods[0].text.toLowerCase()}.`] : []),
-    "Tap me — I'll pull up the numbers.",
+    "Tap me — I'll scan it and pull up the numbers.",
   ]
+  useRivenPage({
+    mood,
+    holos,
+    lines,
+    greet: `${m.label}. ${t.fake ? t.fakeReasons[0] : t.verdict}`,
+    scan: {
+      hasData,
+      // Hologram open: ask for a fresh score and reload the numbers…
+      onPress: () => void requestScan(),
+      // …then point at the full breakdown, updated.
+      onDone: () => {
+        router.refresh()
+        setFlash((f) => f + 1)
+        document.getElementById("score")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      },
+    },
+  })
+  // Keep the page live: numbers refresh every 30s, and once more after a scan settles.
+  useEffect(() => {
+    const id = window.setInterval(() => router.refresh(), 30_000)
+    return () => window.clearInterval(id)
+  }, [router])
+  useEffect(() => {
+    if (!flash) return
+    const id = window.setTimeout(() => router.refresh(), 45_000)
+    return () => window.clearTimeout(id)
+  }, [flash, router])
 
   return (
     <div className="flex flex-col gap-4">
@@ -198,6 +210,21 @@ export function TokenView({
             <span className="text-[var(--rv-ink-3)]">24h</span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            riven.scan()
+            if (!hasData) riven.speak("Nothing to read on this pair yet — no trades or pool data.", 4500)
+          }}
+          className="rv-btn h-9 gap-1.5 px-3 text-[13px]"
+          title="Riven scans this token and refreshes its score"
+        >
+          <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+            <circle cx="11" cy="11" r="6" />
+            <path d="m20 20-4.2-4.2" />
+          </svg>
+          Scan
+        </button>
         <WatchButton address={t.address} size="lg" />
       </header>
 
@@ -250,35 +277,7 @@ export function TokenView({
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-4">
-          {/* Riven reads the token: big stage so the holograms are readable */}
-          <section className="rv-card relative overflow-hidden">
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background: `radial-gradient(ellipse at 50% 85%, ${m.tint.replace("0.10", "0.22")}, transparent 65%)`,
-              }}
-              aria-hidden
-            />
-            <div className="absolute top-3 left-4 z-20">
-              <p className="rv-label">Riven&apos;s read</p>
-              <p
-                className="text-[13px] font-semibold"
-                style={{ color: m.color }}
-              >
-                {m.label}
-              </p>
-            </div>
-            <MascotStage
-              className="h-[360px] w-full lg:h-[440px]"
-              framing="full"
-              mood={mood}
-              holos={holos}
-              holoSize={0.55}
-              lines={lines}
-              greet={`${m.label}. ${t.fake ? t.fakeReasons[0] : t.verdict}`}
-              bubbleSide="right"
-            />
-          </section>
+
 
           {/* Chart */}
           {t.pairAddress ? (
@@ -416,7 +415,9 @@ export function TokenView({
         <aside className="order-first flex flex-col gap-3 lg:sticky lg:top-28 lg:order-none">
           <section
             id="score"
+            key={`score-${flash}`}
             className="rv-card relative scroll-mt-28 overflow-hidden"
+            style={flash ? { animation: "rv-flash 1.6s ease-out" } : undefined}
           >
             <div className="relative p-4">
               <div className="flex items-end justify-between gap-3">
