@@ -154,7 +154,7 @@ export function TradeSheet({
         <div className="flex items-center justify-between">
           <h2
             id="trade-title"
-            className="rv-display text-[20px] font-extrabold"
+            className="text-[20px] font-extrabold"
           >
             {side === "buy" ? "Buy" : "Sell"} ${token.symbol}
           </h2>
@@ -176,7 +176,7 @@ export function TradeSheet({
               type="button"
               onClick={() => setSide(s)}
               disabled={running}
-              className="rv-body rounded-md py-2 text-[14px] font-bold capitalize"
+              className="rounded-md py-2 text-[14px] font-bold capitalize"
               style={{
                 background:
                   side === s
@@ -193,7 +193,7 @@ export function TradeSheet({
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="rv-body text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
+          <span className="text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
             You pay ({unit})
           </span>
           <input
@@ -206,7 +206,7 @@ export function TradeSheet({
           />
         </label>
 
-        <div className="rv-body flex items-center gap-2 text-[12px] text-[var(--rv-ink-2)]">
+        <div className="flex items-center gap-2 text-[12px] text-[var(--rv-ink-2)]">
           Max slippage
           {[1, 3, 5, 10].map((v) => (
             <button
@@ -227,7 +227,7 @@ export function TradeSheet({
 
         <div className="rv-card rv-num px-3 py-2.5 text-[13px]">
           {!wallet.address ? (
-            <span className="rv-body text-[var(--rv-ink-2)]">
+            <span className="text-[var(--rv-ink-2)]">
               Connect your wallet to get a quote.
             </span>
           ) : loading ? (
@@ -235,7 +235,7 @@ export function TradeSheet({
               Getting a quote from Uniswap…
             </span>
           ) : quote?.error ? (
-            <span className="rv-body text-[var(--rv-risk)]">{quote.error}</span>
+            <span className="text-[var(--rv-risk)]">{quote.error}</span>
           ) : quote ? (
             <div className="flex flex-col gap-1">
               <div className="flex justify-between">
@@ -253,13 +253,13 @@ export function TradeSheet({
                 </span>
               </div>
               {quote.approvals.length > 0 && (
-                <div className="rv-body text-[11px] text-[var(--rv-ink-3)]">
+                <div className="text-[11px] text-[var(--rv-ink-3)]">
                   First trade of this token: {quote.approvals.length} one-time
                   approval{quote.approvals.length > 1 ? "s" : ""} first.
                 </div>
               )}
               {quote.insufficient && (
-                <div className="rv-body text-[12px] text-[var(--rv-risk)]">
+                <div className="text-[12px] text-[var(--rv-risk)]">
                   Not enough {unit} in your wallet.
                 </div>
               )}
@@ -270,7 +270,7 @@ export function TradeSheet({
         </div>
 
         {side === "buy" && risky && (
-          <label className="rv-body flex gap-2.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.06)] p-3 text-[12px] leading-snug">
+          <label className="flex gap-2.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.06)] p-3 text-[12px] leading-snug">
             <input
               type="checkbox"
               checked={riskAck}
@@ -297,7 +297,7 @@ export function TradeSheet({
             {steps.map((s, i) => (
               <li
                 key={i}
-                className="rv-body flex items-center gap-2 text-[13px]"
+                className="flex items-center gap-2 text-[13px]"
               >
                 <span
                   className="rv-num w-5 text-center font-bold"
@@ -344,7 +344,7 @@ export function TradeSheet({
           <button
             type="button"
             onClick={() => void wallet.connect()}
-            className="rv-body h-12 rounded-lg bg-[var(--rv-blue)] text-[15px] font-bold text-white"
+            className="h-12 rounded-lg bg-[var(--rv-blue)] text-[15px] font-bold text-[var(--rv-on-blue)]"
           >
             Connect wallet
           </button>
@@ -360,7 +360,7 @@ export function TradeSheet({
               running ||
               steps?.every((s) => s.state === "done")
             }
-            className="rv-body h-12 rounded-lg text-[15px] font-bold text-black disabled:opacity-40"
+            className="h-12 rounded-lg text-[15px] font-bold text-black disabled:opacity-40"
             style={{
               background: side === "buy" ? "var(--rv-up)" : "var(--rv-down)",
             }}
@@ -372,7 +372,7 @@ export function TradeSheet({
                 : `${side === "buy" ? "Buy" : "Sell"} $${token.symbol}`}
           </button>
         )}
-        <p className="rv-body text-center text-[11px] text-[var(--rv-ink-3)]">
+        <p className="text-center text-[11px] text-[var(--rv-ink-3)]">
           Routed through Uniswap v4 on Arc. You sign every transaction in your
           own wallet — Riven never holds your funds.
         </p>

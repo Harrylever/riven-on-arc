@@ -100,11 +100,11 @@ export function PerpWatch({
   return (
     <section className="rv-card p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rv-body text-[12px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
+        <span className="text-[12px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
           Tracked pairs
         </span>
         {pairs.length === 0 && (
-          <span className="rv-body text-[12px] text-[var(--rv-ink-3)]">
+          <span className="text-[12px] text-[var(--rv-ink-3)]">
             Track a pair to see it here and get its signals.
           </span>
         )}
@@ -142,7 +142,7 @@ export function PerpWatch({
         <button
           type="button"
           onClick={() => toggleTrack(market.symbol)}
-          className="rv-body ml-auto rounded-md px-3 py-1 text-[12px] font-semibold"
+          className="ml-auto rounded-md px-3 py-1 text-[12px] font-semibold"
           style={{
             color: tracked ? "#000" : "var(--rv-ice)",
             background: tracked ? "var(--rv-ice)" : "transparent",
@@ -168,7 +168,7 @@ export function PerpWatch({
             void Notification.requestPermission()
         }}
       >
-        <span className="rv-body text-[12px] text-[var(--rv-ink-2)]">
+        <span className="text-[12px] text-[var(--rv-ink-2)]">
           Alert me when {market.symbol} goes
         </span>
         <select
@@ -190,7 +190,7 @@ export function PerpWatch({
         />
         <button
           type="submit"
-          className="rv-body h-8 rounded-md bg-[var(--rv-blue)] px-3 text-[12px] font-semibold text-white"
+          className="h-8 rounded-md bg-[var(--rv-blue)] px-3 text-[12px] font-semibold text-[var(--rv-on-blue)]"
         >
           Set alert
         </button>

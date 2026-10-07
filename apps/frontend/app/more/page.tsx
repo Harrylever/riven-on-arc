@@ -35,7 +35,7 @@ const LINKS = [
 export default function MorePage() {
   return (
     <div className="flex flex-col gap-3">
-      <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">
+      <h1 className="text-[28px] font-extrabold text-[var(--rv-ink)]">
         More
       </h1>
       <ul className="rv-card divide-y divide-[var(--rv-stroke)]">
@@ -46,10 +46,10 @@ export default function MorePage() {
               className="flex items-center gap-3 px-4 py-4 hover:bg-[var(--rv-row-hover)]"
             >
               <div className="flex-1">
-                <p className="rv-body text-[15px] font-semibold text-[var(--rv-ink)]">
+                <p className="text-[15px] font-semibold text-[var(--rv-ink)]">
                   {l.label}
                 </p>
-                <p className="rv-body text-[12px] text-[var(--rv-ink-3)]">
+                <p className="text-[12px] text-[var(--rv-ink-3)]">
                   {l.hint}
                 </p>
               </div>

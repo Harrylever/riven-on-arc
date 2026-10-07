@@ -16,10 +16,10 @@ export default async function EcosystemPage() {
   return (
     <div className="flex flex-col gap-4">
       <header>
-        <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">
+        <h1 className="text-[28px] font-extrabold text-[var(--rv-ink)]">
           Arc ecosystem
         </h1>
-        <p className="rv-body text-[14px] text-[var(--rv-ink-2)]">
+        <p className="text-[14px] text-[var(--rv-ink-2)]">
           Where tokens launch on Arc, and how many of them are real. Last 24
           hours.
         </p>
@@ -33,7 +33,7 @@ export default async function EcosystemPage() {
           <div className="grid gap-3 md:grid-cols-3">
             {eco.pads.map((p) => (
               <section key={p.name} className="rv-card p-4">
-                <h2 className="rv-display text-[18px] font-bold text-[var(--rv-ink)]">
+                <h2 className="text-[18px] font-bold text-[var(--rv-ink)]">
                   {p.name}
                 </h2>
                 <dl className="rv-num mt-3 grid grid-cols-2 gap-2 text-[12px]">
@@ -61,7 +61,7 @@ export default async function EcosystemPage() {
                       address={p.best.address}
                       size={26}
                     />
-                    <span className="rv-body flex-1 truncate text-[13px] font-semibold text-[var(--rv-ink)]">
+                    <span className="flex-1 truncate text-[13px] font-semibold text-[var(--rv-ink)]">
                       Top real token: {p.best.symbol}
                     </span>
                     <ScoreBadge
@@ -75,10 +75,10 @@ export default async function EcosystemPage() {
             ))}
           </div>
           <section className="rv-card p-4">
-            <h2 className="rv-display text-[18px] font-bold text-[var(--rv-ink)]">
+            <h2 className="text-[18px] font-bold text-[var(--rv-ink)]">
               Most active creators · 24h
             </h2>
-            <p className="rv-body text-[12px] text-[var(--rv-ink-3)]">
+            <p className="text-[12px] text-[var(--rv-ink-3)]">
               Wallets launching many tokens a day are usually farming, not
               building.
             </p>

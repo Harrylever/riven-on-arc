@@ -11,7 +11,7 @@ import {
   type PerpSide,
 } from "@/lib/perp-trade-setup"
 
-const sideColor = (s: PerpSide) => (s === "LONG" ? "var(--up)" : "var(--down)")
+const sideColor = (s: PerpSide) => (s === "LONG" ? "var(--rv-up)" : "var(--rv-down)")
 
 /** Order form with one-click "Trade setup" (entry, SL, TP1-3) and a confirm step. */
 export function PerpTradePanel({
@@ -91,8 +91,8 @@ export function PerpTradePanel({
 
   return (
     <div className="space-y-3 p-3 text-xs">
-      <div className="border border-[var(--border)] bg-[var(--surface-sunken)] p-2">
-        <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold text-[var(--text-muted)] uppercase">
+      <div className="border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2">
+        <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
           <span>Trade from · {accountLabel}</span>
           <span>Paper account</span>
         </div>
@@ -113,14 +113,14 @@ export function PerpTradePanel({
                 onClick={() => setCollateral(c)}
                 className="flex items-center justify-between border px-2 py-1.5"
                 style={{
-                  borderColor: on ? "var(--brand)" : "var(--border)",
+                  borderColor: on ? "var(--rv-blue)" : "var(--rv-stroke)",
                   background: on ? "rgba(124, 196, 232, 0.12)" : "transparent",
                 }}
               >
                 <span
                   className="font-bold"
                   style={{
-                    color: on ? "var(--text-primary)" : "var(--text-muted)",
+                    color: on ? "var(--rv-ink)" : "var(--rv-ink-3)",
                   }}
                 >
                   {c}
@@ -142,8 +142,8 @@ export function PerpTradePanel({
             }}
             className="border py-2 font-extrabold"
             style={{
-              borderColor: side === s ? sideColor(s) : "var(--border)",
-              color: side === s ? sideColor(s) : "var(--text-muted)",
+              borderColor: side === s ? sideColor(s) : "var(--rv-stroke)",
+              color: side === s ? sideColor(s) : "var(--rv-ink-3)",
             }}
           >
             {s}
@@ -151,7 +151,7 @@ export function PerpTradePanel({
         ))}
       </div>
 
-      <div className="flex gap-4 border-b border-[var(--border)]">
+      <div className="flex gap-4 border-b border-[var(--rv-stroke)]">
         {(["MARKET", "LIMIT"] as const).map((t) => (
           <button
             key={t}
@@ -161,8 +161,8 @@ export function PerpTradePanel({
             }}
             className={`pb-1.5 font-bold ${
               orderType === t
-                ? "border-b-2 border-[var(--brand)] text-[var(--text-primary)]"
-                : "text-[var(--text-muted)]"
+                ? "border-b-2 border-[var(--rv-blue)] text-[var(--rv-ink)]"
+                : "text-[var(--rv-ink-3)]"
             }`}
           >
             {t === "MARKET" ? "Market" : "Limit"}
@@ -170,14 +170,14 @@ export function PerpTradePanel({
         ))}
       </div>
 
-      <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase">
+      <label className="block text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
         Size (USD)
         <input
           type="number"
           min={0}
           value={usdSize}
           onChange={(e) => setUsdSize(e.target.value)}
-          className="mt-1 w-full border border-[var(--border)] bg-[var(--surface-sunken)] px-2.5 py-1.5 font-mono text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand)]"
+          className="mt-1 w-full border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-1.5 font-mono text-sm text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
         />
       </label>
       <div className="flex gap-1">
@@ -190,14 +190,14 @@ export function PerpTradePanel({
                 String(Math.floor((balance * pct) / (1 / leverage + 0.00045))),
               )
             }
-            className="flex-1 border border-[var(--border)] py-1 text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="flex-1 border border-[var(--rv-stroke)] py-1 text-[10px] font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
           >
             {pct * 100}%
           </button>
         ))}
       </div>
 
-      <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase">
+      <label className="block text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
         Leverage {leverage}x (max {market.maxLeverage}x)
         <input
           type="range"
@@ -209,7 +209,7 @@ export function PerpTradePanel({
         />
       </label>
 
-      <div className="space-y-1.5 border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
+      <div className="space-y-1.5 border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
         {orderType === "LIMIT" ? (
           <LevelInput
             label="Limit entry"
@@ -219,7 +219,7 @@ export function PerpTradePanel({
           />
         ) : (
           <div className="flex items-center justify-between font-mono">
-            <span className="font-sans text-[var(--text-muted)]">
+            <span className="font-sans text-[var(--rv-ink-3)]">
               Entry (mark)
             </span>
             <span className="font-bold">{priceUsd(setup.entry)}</span>
@@ -227,7 +227,7 @@ export function PerpTradePanel({
         )}
         <LevelInput
           label="Stop loss"
-          color="var(--down)"
+          color="var(--rv-down)"
           value={edits.sl ?? String(suggested.stopLoss)}
           onChange={(v) => setEdits((e) => ({ ...e, sl: v }))}
           entry={setup.entry}
@@ -236,14 +236,14 @@ export function PerpTradePanel({
           <LevelInput
             key={i}
             label={`TP${i + 1}`}
-            color="var(--up)"
+            color="var(--rv-up)"
             value={edits[`tp${i}`] ?? String(suggested.tps[i])}
             onChange={(v) => setEdits((e) => ({ ...e, [`tp${i}`]: v }))}
             entry={setup.entry}
             optional={i > 0}
           />
         ))}
-        <div className="flex items-start justify-between gap-2 border-t border-[var(--border)] pt-1.5 text-[10px] text-[var(--text-muted)]">
+        <div className="flex items-start justify-between gap-2 border-t border-[var(--rv-stroke)] pt-1.5 text-[10px] text-[var(--rv-ink-3)]">
           <span>
             {signal && signal.bias === side
               ? `Suggested from the ${signal.exchange} signal (conviction ${signal.confidence}/10).`
@@ -253,7 +253,7 @@ export function PerpTradePanel({
           {Object.keys(edits).length > 0 && (
             <button
               onClick={resetEdits}
-              className="shrink-0 font-bold text-[var(--brand)] hover:underline"
+              className="shrink-0 font-bold text-[var(--rv-blue)] hover:underline"
             >
               Reset
             </button>
@@ -267,7 +267,7 @@ export function PerpTradePanel({
         </div>
       )}
       {success && (
-        <div className="border border-[var(--up)]/30 bg-[var(--up)]/10 p-2 text-[var(--up)]">
+        <div className="border border-[var(--rv-up)]/30 bg-[var(--rv-up)]/10 p-2 text-[var(--rv-up)]">
           {success}
         </div>
       )}
@@ -286,7 +286,7 @@ export function PerpTradePanel({
         Trade setup · {orderType === "LIMIT" ? "Limit" : "Market"} {side}{" "}
         {market.symbol}
       </button>
-      <p className="text-center text-[10px] text-[var(--text-muted)]">
+      <p className="text-center text-[10px] text-[var(--rv-ink-3)]">
         One click sets entry, stop loss and TP1–3 together. You confirm before
         anything is placed.
       </p>
@@ -356,10 +356,10 @@ function ConfirmSetup({
     ? Math.abs(pnlAt(setup.tps[setup.tps.length - 1]!)) / Math.max(risk, 1e-9)
     : 0
   const rows: Array<[string, number, string]> = [
-    ["Entry", setup.entry, "var(--text-primary)"],
-    ["Stop loss", setup.stopLoss, "var(--down)"],
+    ["Entry", setup.entry, "var(--rv-ink)"],
+    ["Stop loss", setup.stopLoss, "var(--rv-down)"],
     ...setup.tps.map(
-      (tp, i) => [`TP${i + 1}`, tp, "var(--up)"] as [string, number, string],
+      (tp, i) => [`TP${i + 1}`, tp, "var(--rv-up)"] as [string, number, string],
     ),
   ]
   const stopBeyondLiq =
@@ -372,17 +372,17 @@ function ConfirmSetup({
         onCancel()
       }}
       aria-labelledby="confirm-setup-title"
-      className="m-auto w-[min(440px,calc(100vw-24px))] border border-[var(--brand)] bg-[var(--rv-card)] p-0 text-[var(--text-primary)] backdrop:bg-black/75"
+      className="m-auto w-[min(440px,calc(100vw-24px))] border border-[var(--rv-blue)] bg-[var(--rv-card)] p-0 text-[var(--rv-ink)] backdrop:bg-black/75"
     >
       <div className="space-y-3 p-4 text-xs">
         <div>
-          <div className="text-[10px] font-bold tracking-[0.14em] text-[var(--brand-bright)] uppercase">
+          <div className="text-[10px] font-bold tracking-[0.14em] text-[var(--rv-ice)] uppercase">
             Confirm trade setup
           </div>
           <h2 id="confirm-setup-title" className="mt-1 text-lg font-extrabold">
             Are you sure you want to set up this trade?
           </h2>
-          <p className="mt-1 text-[var(--text-muted)]">
+          <p className="mt-1 text-[var(--rv-ink-3)]">
             <b style={{ color: sideColor(side) }}>
               {orderType} {side} {symbol}
             </b>{" "}
@@ -392,7 +392,7 @@ function ConfirmSetup({
         </div>
         <table className="w-full font-mono">
           <thead>
-            <tr className="text-left text-[10px] text-[var(--text-muted)] uppercase">
+            <tr className="text-left text-[10px] text-[var(--rv-ink-3)] uppercase">
               <th className="py-1 font-normal">Level</th>
               <th className="py-1 text-right font-normal">Price</th>
               <th className="py-1 text-right font-normal">Move</th>
@@ -403,12 +403,12 @@ function ConfirmSetup({
             {rows.map(([label, price, color]) => {
               const pnl = label === "Entry" ? 0 : pnlAt(price)
               return (
-                <tr key={label} className="border-t border-[var(--border)]">
+                <tr key={label} className="border-t border-[var(--rv-stroke)]">
                   <td className="py-1.5 font-sans font-bold" style={{ color }}>
                     {label}
                   </td>
                   <td className="py-1.5 text-right">{priceUsd(price)}</td>
-                  <td className="py-1.5 text-right text-[var(--text-muted)]">
+                  <td className="py-1.5 text-right text-[var(--rv-ink-3)]">
                     {label === "Entry"
                       ? "—"
                       : `${move(price) >= 0 ? "+" : ""}${move(price).toFixed(2)}%`}
@@ -418,9 +418,9 @@ function ConfirmSetup({
                     style={{
                       color:
                         pnl > 0
-                          ? "var(--up)"
+                          ? "var(--rv-up)"
                           : pnl < 0
-                            ? "var(--down)"
+                            ? "var(--rv-down)"
                             : undefined,
                     }}
                   >
@@ -433,15 +433,15 @@ function ConfirmSetup({
             })}
           </tbody>
         </table>
-        <div className="grid grid-cols-2 gap-2 border-t border-[var(--border)] pt-2 font-mono">
+        <div className="grid grid-cols-2 gap-2 border-t border-[var(--rv-stroke)] pt-2 font-mono">
           <div>
-            <div className="font-sans text-[10px] text-[var(--text-muted)] uppercase">
+            <div className="font-sans text-[10px] text-[var(--rv-ink-3)] uppercase">
               Est. liquidation
             </div>
-            <div className="font-bold text-[var(--down)]">{priceUsd(liq)}</div>
+            <div className="font-bold text-[var(--rv-down)]">{priceUsd(liq)}</div>
           </div>
           <div>
-            <div className="font-sans text-[10px] text-[var(--text-muted)] uppercase">
+            <div className="font-sans text-[10px] text-[var(--rv-ink-3)] uppercase">
               Risk : reward
             </div>
             <div className="font-bold">1 : {rr.toFixed(2)}</div>
@@ -453,7 +453,7 @@ function ConfirmSetup({
             liquidated before it triggers. Lower the leverage.
           </div>
         )}
-        <p className="text-[10px] text-[var(--text-muted)]">
+        <p className="text-[10px] text-[var(--rv-ink-3)]">
           Paper trade on Riven&apos;s practice account — nothing is sent to an
           exchange. Not financial advice.
         </p>
@@ -461,7 +461,7 @@ function ConfirmSetup({
           <button
             type="button"
             onClick={onCancel}
-            className="border border-[var(--border)] py-2.5 font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="border border-[var(--rv-stroke)] py-2.5 font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
           >
             No, go back
           </button>
@@ -503,7 +503,7 @@ function LevelInput({
     <label className="flex items-center gap-2">
       <span
         className="w-20 shrink-0 font-bold"
-        style={{ color: color ?? "var(--text-muted)" }}
+        style={{ color: color ?? "var(--rv-ink-3)" }}
       >
         {label}
       </span>
@@ -514,9 +514,9 @@ function LevelInput({
         value={value}
         placeholder={optional ? "off" : undefined}
         onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 flex-1 border border-[var(--border)] bg-[var(--surface)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--brand)]"
+        className="min-w-0 flex-1 border border-[var(--rv-stroke)] bg-[var(--rv-card)] px-2 py-1 font-mono text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
       />
-      <span className="w-14 shrink-0 text-right font-mono text-[10px] text-[var(--text-muted)]">
+      <span className="w-14 shrink-0 text-right font-mono text-[10px] text-[var(--rv-ink-3)]">
         {pct === null ? "" : `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`}
       </span>
     </label>

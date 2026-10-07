@@ -101,14 +101,14 @@ export function AgentChat() {
             className={m.role === "user" ? "self-end" : "self-start"}
           >
             <div
-              className={`rv-body max-w-[640px] rounded-xl px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-line ${
+              className={`max-w-[640px] rounded-xl px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-line ${
                 m.role === "user"
-                  ? "bg-[var(--rv-blue)] text-white"
+                  ? "bg-[var(--rv-blue)] text-[var(--rv-on-blue)]"
                   : "bg-white/[0.04] text-[var(--rv-ink)]"
               }`}
             >
               {m.role === "riven" && (
-                <span className="rv-num mr-1 text-[12px] text-[var(--rv-cyan)]">
+                <span className="rv-num mr-1 text-[12px] text-[var(--rv-blue)]">
                   riven&gt;
                 </span>
               )}
@@ -135,7 +135,7 @@ export function AgentChat() {
                       address={t.address}
                       size={22}
                     />
-                    <span className="rv-body text-[13px] font-semibold text-[var(--rv-ink)]">
+                    <span className="text-[13px] font-semibold text-[var(--rv-ink)]">
                       {t.symbol}
                     </span>
                     <ScoreBadge score={t.score} band={t.band} size="sm" />
@@ -159,7 +159,7 @@ export function AgentChat() {
             key={s}
             type="button"
             onClick={() => ask(s)}
-            className="rv-body rounded-full px-3 py-1.5 text-[12px] font-semibold text-[var(--rv-ice)] ring-1 ring-[var(--rv-stroke-strong)] hover:bg-white/5"
+            className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-[var(--rv-ice)] ring-1 ring-[var(--rv-stroke-strong)] hover:bg-white/5"
           >
             {s}
           </button>
@@ -182,7 +182,7 @@ export function AgentChat() {
         <button
           type="submit"
           disabled={busy}
-          className="rv-body rounded-lg bg-[var(--rv-blue)] px-5 text-[14px] font-semibold text-white disabled:opacity-50"
+          className="rounded-lg bg-[var(--rv-blue)] px-5 text-[14px] font-semibold text-[var(--rv-on-blue)] disabled:opacity-50"
         >
           Ask
         </button>

@@ -1,5 +1,6 @@
 "use client"
 
+import { PageHero } from "./page-hero"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import type { TokenSummary } from "@/lib/arc-data"
@@ -42,12 +43,16 @@ export function WatchlistClient() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="rv-display text-[30px] font-extrabold text-[var(--rv-ink)]">
-        Watchlist
-      </h1>
+      <PageHero
+        title="Watchlist"
+        lines={["Your starred tokens, scored live.", "I'll warn you if one of these gets rugged."]}
+        greet="Star tokens anywhere and I'll keep an eye on them here."
+      >
+        Your starred tokens, rescored every 30 seconds. Saved on this device.
+      </PageHero>
       {failed && (
         <p
-          className="rv-body rounded-lg bg-[rgba(251,191,36,0.08)] px-3 py-2 text-sm text-[var(--rv-caution)]"
+          className="rounded-lg bg-[rgba(251,191,36,0.08)] px-3 py-2 text-sm text-[var(--rv-caution)]"
           role="alert"
         >
           Couldn&apos;t refresh scores —{" "}
@@ -55,7 +60,7 @@ export function WatchlistClient() {
         </p>
       )}
       {tokens === null ? (
-        <p className="rv-body text-sm text-[var(--rv-ink-3)]">
+        <p className="text-sm text-[var(--rv-ink-3)]">
           {failed ? "" : "Loading…"}
         </p>
       ) : tokens.length === 0 && !failed ? (
@@ -63,16 +68,16 @@ export function WatchlistClient() {
           <span className="text-4xl" aria-hidden>
             ⭐
           </span>
-          <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">
+          <p className="text-lg font-bold text-[var(--rv-ink)]">
             Nothing saved yet
           </p>
-          <p className="rv-body max-w-xs text-sm text-[var(--rv-ink-2)]">
+          <p className="max-w-xs text-sm text-[var(--rv-ink-2)]">
             Tap the star on any launch to keep an eye on it. Its score updates
             here live. Saved on this device only, no account needed.
           </p>
           <Link
             href="/trending"
-            className="rv-body mt-1 rounded-full bg-[var(--rv-blue)] px-5 py-2.5 text-sm font-semibold text-white"
+            className="mt-1 rounded-full bg-[var(--rv-blue)] px-5 py-2.5 text-sm font-semibold text-[var(--rv-on-blue)]"
           >
             Browse launches
           </Link>

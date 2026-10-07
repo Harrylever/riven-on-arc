@@ -332,7 +332,7 @@ export function TokenView({
                 </button>
               ))}
             </div>
-            <div className="[&>section]:rounded-none [&>section]:border-0 [&>section]:bg-transparent [&>section>h2]:hidden">
+            <div className="[&>section]:rounded-md [&>section]:border-0 [&>section]:bg-transparent [&>section>h2]:hidden">
               {tab === "trades" &&
                 (t.trades.length ? (
                   <Trades t={t} now={now} />
@@ -732,7 +732,7 @@ function Shield({ t }: { t: TokenDetail }) {
   return (
     <section className="rv-card p-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="rv-display text-[16px] font-bold text-[var(--rv-ink)]">
+        <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
           Anti-rug shield
         </h2>
         {t.alerts.length > 0 && (
@@ -745,7 +745,7 @@ function Shield({ t }: { t: TokenDetail }) {
         {rows.map((r) => (
           <li
             key={r.label}
-            className="rv-body flex items-center gap-2.5 text-[13px]"
+            className="flex items-center gap-2.5 text-[13px]"
           >
             <span
               className="rv-num w-5 text-center font-bold"
@@ -765,7 +765,7 @@ function Shield({ t }: { t: TokenDetail }) {
           {t.alerts.slice(0, 5).map((a) => (
             <li
               key={a.id}
-              className="rv-body flex items-baseline gap-2 text-[12px]"
+              className="flex items-baseline gap-2 text-[12px]"
             >
               <span className="rounded bg-[rgba(248,113,113,0.12)] px-1.5 text-[10px] font-bold text-[var(--rv-risk)] uppercase">
                 {ALERT_LABEL[a.type] ?? a.type}
@@ -788,7 +788,7 @@ function CreatorTrack({ record, now }: { record: CreatorRecord; now: number }) {
   return (
     <section className="rv-card p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="rv-display text-[16px] font-bold text-[var(--rv-ink)]">
+        <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
           Creator&apos;s other launches
         </h2>
         <a
@@ -819,7 +819,7 @@ function CreatorTrack({ record, now }: { record: CreatorRecord; now: number }) {
         />
       </dl>
       {record.tokens.length === 0 ? (
-        <p className="rv-body mt-3 text-[12px] text-[var(--rv-ink-2)]">
+        <p className="mt-3 text-[12px] text-[var(--rv-ink-2)]">
           This is the only token Riven has seen from this creator.
         </p>
       ) : (
@@ -849,7 +849,7 @@ function CreatorTrack({ record, now }: { record: CreatorRecord; now: number }) {
                       address={x.address}
                       size={22}
                     />
-                    <span className="rv-body max-w-[110px] truncate font-semibold text-[var(--rv-ink)]">
+                    <span className="max-w-[110px] truncate font-semibold text-[var(--rv-ink)]">
                       {x.symbol}
                     </span>
                     <span className="rv-num text-[10px] text-[var(--rv-ink-3)]">
@@ -870,7 +870,7 @@ function CreatorTrack({ record, now }: { record: CreatorRecord; now: number }) {
                   {times(x.nowX)}
                 </td>
                 <td
-                  className="rv-body py-1.5 text-right text-[11px] font-semibold uppercase"
+                  className="py-1.5 text-right text-[11px] font-semibold uppercase"
                   style={{ color: statusColor[x.status] }}
                 >
                   {x.status}
@@ -880,7 +880,7 @@ function CreatorTrack({ record, now }: { record: CreatorRecord; now: number }) {
           </tbody>
         </table>
       )}
-      <p className="rv-body mt-2 text-[10px] text-[var(--rv-ink-3)]">
+      <p className="mt-2 text-[10px] text-[var(--rv-ink-3)]">
         ATH and Now are multiples of the first trade price, from swaps Riven
         indexed.
       </p>
@@ -925,7 +925,7 @@ function SubBar({
         : "var(--rv-risk)"
   return (
     <div title={SUB_HINT[k]}>
-      <div className="rv-body flex items-baseline justify-between text-[12px]">
+      <div className="flex items-baseline justify-between text-[12px]">
         <span className="font-semibold text-[var(--rv-ink)]">
           {SUB_SCORE_LABEL[k]}
         </span>
@@ -963,7 +963,7 @@ function PriceChart({ series }: { series: Array<{ t: number; p: number }> }) {
   const color = up ? "var(--rv-up)" : "var(--rv-down)"
   return (
     <section className="rv-card p-4">
-      <h2 className="rv-display text-[16px] font-bold text-[var(--rv-ink)]">
+      <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
         Price (indexed swaps)
       </h2>
       <svg
@@ -988,14 +988,14 @@ function PriceChart({ series }: { series: Array<{ t: number; p: number }> }) {
 function Holders({ t }: { t: TokenDetail }) {
   return (
     <section className="rv-card p-4">
-      <h2 className="rv-display text-[16px] font-bold text-[var(--rv-ink)]">
+      <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
         Top holders
       </h2>
-      <p className="rv-body text-[11px] text-[var(--rv-ink-3)]">
+      <p className="text-[11px] text-[var(--rv-ink-3)]">
         Pool, burn and launchpad contracts excluded.
       </p>
       {t.topHolders.length === 0 ? (
-        <p className="rv-body mt-2 text-[13px] text-[var(--rv-ink-2)]">
+        <p className="mt-2 text-[13px] text-[var(--rv-ink-2)]">
           {t.holderHistory === "partial" || t.holderHistory === "too_long"
             ? "Riven is still loading this token's holder history."
             : "Almost no wallets hold this token — nearly all of the supply is back in the pool."}
@@ -1005,7 +1005,7 @@ function Holders({ t }: { t: TokenDetail }) {
           {t.topHolders.map((h, i) => (
             <li
               key={h.address}
-              className="rv-body flex items-center gap-2 text-[12px]"
+              className="flex items-center gap-2 text-[12px]"
             >
               <span className="rv-num w-4 text-[var(--rv-ink-3)]">{i + 1}</span>
               <a
@@ -1042,7 +1042,7 @@ function Trades({ t, now }: { t: TokenDetail; now: number }) {
   if (t.trades.length === 0) return null
   return (
     <section className="rv-card p-4">
-      <h2 className="rv-display text-[16px] font-bold text-[var(--rv-ink)]">
+      <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
         Latest trades
       </h2>
       <ul className="mt-2">

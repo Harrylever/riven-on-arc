@@ -25,10 +25,10 @@ export function TokenCard({ t, now }: { t: TokenSummary; now: number }) {
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <span className="rv-body truncate text-[15px] font-semibold text-[var(--rv-ink)]">
+            <span className="truncate text-[15px] font-semibold text-[var(--rv-ink)]">
               {t.symbol}
             </span>
-            <span className="rv-body truncate text-[12px] text-[var(--rv-ink-3)]">
+            <span className="truncate text-[12px] text-[var(--rv-ink-3)]">
               {t.name}
             </span>
             <CopyBadge copies={t.copies} />
@@ -44,7 +44,7 @@ export function TokenCard({ t, now }: { t: TokenSummary; now: number }) {
             </span>
           </div>
           <p
-            className="rv-body mt-1 line-clamp-1 text-[12px]"
+            className="mt-1 line-clamp-1 text-[12px]"
             style={{
               color:
                 t.fake || t.dangers[0] ? "var(--rv-risk)" : "var(--rv-ink-2)",

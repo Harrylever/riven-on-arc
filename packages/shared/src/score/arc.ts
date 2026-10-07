@@ -371,7 +371,7 @@ export function computeArcScore(input: ArcScoreInput): ArcScoreResult {
     } else {
       sub.creator += c.soldPct < 25 ? 5 : c.soldPct < 75 ? 2 : 0;
       if (c.soldPct >= 75) {
-        caps.push([49, "the creator has dumped their tokens"]);
+        caps.push([49, "the creator has sold out"]);
         flag("danger", "creator", `Creator sold ${pct(c.soldPct)} of the tokens they received`, "CREATOR_DUMP");
       }
       else if (c.soldPct >= 25) flag("warning", "creator", `Creator has sold ${pct(c.soldPct)} of their tokens`);

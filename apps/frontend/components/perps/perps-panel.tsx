@@ -68,33 +68,33 @@ const OUTCOME_META: Record<
 > = {
   pending: {
     label: "Active / Pending",
-    color: "var(--score-unknown)",
-    tint: "var(--score-unknown-tint)",
+    color: "var(--rv-unscored)",
+    tint: "rgba(255,255,255,0.06)",
   },
   t1_hit: {
     label: "Target 1 Hit",
-    color: "var(--score-healthy)",
-    tint: "var(--score-healthy-tint)",
+    color: "var(--rv-healthy)",
+    tint: "rgba(74,222,128,0.12)",
   },
   t2_hit: {
     label: "Target 2 Hit",
-    color: "var(--score-healthy)",
-    tint: "var(--score-healthy-tint)",
+    color: "var(--rv-healthy)",
+    tint: "rgba(74,222,128,0.12)",
   },
   t3_hit: {
     label: "Target 3 Hit",
-    color: "var(--score-healthy)",
-    tint: "var(--score-healthy-tint)",
+    color: "var(--rv-healthy)",
+    tint: "rgba(74,222,128,0.12)",
   },
   sl_hit: {
     label: "Stop Loss Hit",
-    color: "var(--score-risk)",
-    tint: "var(--score-risk-tint)",
+    color: "var(--rv-risk)",
+    tint: "rgba(248,113,113,0.12)",
   },
   expired: {
     label: "Expired (48h)",
-    color: "var(--score-caution)",
-    tint: "var(--score-caution-tint)",
+    color: "var(--rv-caution)",
+    tint: "rgba(251,191,36,0.12)",
   },
 }
 
@@ -340,23 +340,23 @@ export function PerpsPanel() {
 
       {/* Track Record Stats Header */}
       {stats && (
-        <div className="rounded-none border border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
+        <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rv-stroke)] pb-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-heading text-sm font-extrabold text-[var(--text-primary)]">
+                <span className=" text-sm font-extrabold text-[var(--rv-ink)]">
                   Statistical Engine Track Record
                 </span>
-                <span className="rounded-none border border-[var(--brand)]/30 bg-[var(--brand)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--brand)]">
+                <span className="rounded-md border border-[var(--rv-blue)]/30 bg-[var(--rv-blue)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--rv-blue)]">
                   Read-Only Verified
                 </span>
               </div>
-              <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+              <p className="mt-1 text-[11px] text-[var(--rv-ink-3)]">
                 {stats.criteria}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+              <div className="flex items-center gap-1.5 text-xs text-[var(--rv-ink-3)]">
                 <span className="text-[10px] font-bold tracking-wider uppercase">
                   Auto-Refresh:
                 </span>
@@ -372,7 +372,7 @@ export function PerpsPanel() {
                       )
                     }
                   }}
-                  className="cursor-pointer rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] px-2 py-1 text-xs text-[var(--text-primary)] transition-colors outline-none hover:border-[var(--brand)] focus:border-[var(--brand)]"
+                  className="cursor-pointer rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2 py-1 text-xs text-[var(--rv-ink)] transition-colors outline-none hover:border-[var(--rv-blue)] focus:border-[var(--rv-blue)]"
                 >
                   <option value={600000}>10m (Default)</option>
                   <option value={300000}>5m</option>
@@ -391,26 +391,26 @@ export function PerpsPanel() {
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
                 Win Rate
               </div>
               <div
                 className="mt-1 text-lg font-extrabold"
                 style={{
                   color:
-                    stats.winRate >= 60 ? "var(--up)" : "var(--text-primary)",
+                    stats.winRate >= 60 ? "var(--rv-up)" : "var(--rv-ink)",
                 }}
               >
                 {stats.winRate > 0 ? `${stats.winRate}%` : "—"}
               </div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+              <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
                 {stats.wins} wins / {stats.confirmedTrades} confirmed
               </div>
             </div>
 
-            <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
                 Stop-Loss Rate
               </div>
               <div
@@ -418,80 +418,80 @@ export function PerpsPanel() {
                 style={{
                   color:
                     stats.stopLossRate > 35
-                      ? "var(--score-risk)"
-                      : "var(--text-primary)",
+                      ? "var(--rv-risk)"
+                      : "var(--rv-ink)",
                 }}
               >
                 {stats.stopLossRate > 0 ? `${stats.stopLossRate}%` : "—"}
               </div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+              <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
                 {stats.slHits} stops hit
               </div>
             </div>
 
-            <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
                 Missed Entries
               </div>
-              <div className="mt-1 text-lg font-extrabold text-[var(--score-caution)]">
+              <div className="mt-1 text-lg font-extrabold text-[var(--rv-caution)]">
                 {stats.missedEntries}
               </div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+              <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
                 Unfilled (Excluded)
               </div>
             </div>
 
-            <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
                 Target Hits
               </div>
-              <div className="mt-1 font-mono text-xs font-bold text-[var(--text-primary)]">
+              <div className="mt-1 font-mono text-xs font-bold text-[var(--rv-ink)]">
                 T1: {stats.perTargetHit.t1} · T2: {stats.perTargetHit.t2} · T3:{" "}
                 {stats.perTargetHit.t3}
               </div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+              <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
                 T1: {stats.perTargetHit.t1Rate}% hit rate
               </div>
             </div>
 
-            <div className="col-span-2 rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            <div className="col-span-2 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
                 Conviction Bands
               </div>
               <div className="mt-1 flex items-center justify-between font-mono text-[11px]">
                 <div>
-                  <span className="text-[var(--text-muted)]">
+                  <span className="text-[var(--rv-ink-3)]">
                     High (8-10):{" "}
                   </span>
-                  <span className="font-bold text-[var(--up)]">
+                  <span className="font-bold text-[var(--rv-up)]">
                     {stats.confidenceBands.high.total > 0
                       ? `${stats.confidenceBands.high.winRate}%`
                       : "—"}
                   </span>
-                  <span className="text-[10px] text-[var(--text-muted)]">
+                  <span className="text-[10px] text-[var(--rv-ink-3)]">
                     {" "}
                     ({stats.confidenceBands.high.wins}/
                     {stats.confidenceBands.high.total})
                   </span>
                 </div>
                 <div>
-                  <span className="text-[var(--text-muted)]">Med (5-7): </span>
-                  <span className="font-bold text-[var(--text-primary)]">
+                  <span className="text-[var(--rv-ink-3)]">Med (5-7): </span>
+                  <span className="font-bold text-[var(--rv-ink)]">
                     {stats.confidenceBands.medium.total > 0
                       ? `${stats.confidenceBands.medium.winRate}%`
                       : "—"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[var(--text-muted)]">Low (1-4): </span>
-                  <span className="font-bold text-[var(--text-muted)]">
+                  <span className="text-[var(--rv-ink-3)]">Low (1-4): </span>
+                  <span className="font-bold text-[var(--rv-ink-3)]">
                     {stats.confidenceBands.low.total > 0
                       ? `${stats.confidenceBands.low.winRate}%`
                       : "—"}
                   </span>
                 </div>
               </div>
-              <div className="mt-1 text-[10px] text-[var(--text-muted)]">
+              <div className="mt-1 text-[10px] text-[var(--rv-ink-3)]">
                 Total resolved: {stats.totalResolved} calls
               </div>
             </div>
@@ -500,18 +500,18 @@ export function PerpsPanel() {
       )}
 
       {/* Filter Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-none border border-[var(--border)] bg-[var(--surface)] p-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-3">
         {/* Left: Status & Exchanges */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Status Switcher */}
-          <div className="flex border border-[var(--border)]">
+          <div className="flex border border-[var(--rv-stroke)]">
             <button
               type="button"
               onClick={() => setStatusFilter("all")}
               className={`px-3 py-1.5 text-xs font-bold transition-colors ${
                 statusFilter === "all"
-                  ? "bg-[var(--brand)] text-black"
-                  : "text-[var(--text-secondary)] hover:text-white"
+                  ? "bg-[var(--rv-blue)] text-black"
+                  : "text-[var(--rv-ink-2)] hover:text-white"
               }`}
             >
               All Signals
@@ -519,10 +519,10 @@ export function PerpsPanel() {
             <button
               type="button"
               onClick={() => setStatusFilter("open")}
-              className={`border-l border-[var(--border)] px-3 py-1.5 text-xs font-bold transition-colors ${
+              className={`border-l border-[var(--rv-stroke)] px-3 py-1.5 text-xs font-bold transition-colors ${
                 statusFilter === "open"
-                  ? "bg-[var(--brand)] text-black"
-                  : "text-[var(--text-secondary)] hover:text-white"
+                  ? "bg-[var(--rv-blue)] text-black"
+                  : "text-[var(--rv-ink-2)] hover:text-white"
               }`}
             >
               Open Calls
@@ -530,10 +530,10 @@ export function PerpsPanel() {
             <button
               type="button"
               onClick={() => setStatusFilter("resolved")}
-              className={`border-l border-[var(--border)] px-3 py-1.5 text-xs font-bold transition-colors ${
+              className={`border-l border-[var(--rv-stroke)] px-3 py-1.5 text-xs font-bold transition-colors ${
                 statusFilter === "resolved"
-                  ? "bg-[var(--brand)] text-black"
-                  : "text-[var(--text-secondary)] hover:text-white"
+                  ? "bg-[var(--rv-blue)] text-black"
+                  : "text-[var(--rv-ink-2)] hover:text-white"
               }`}
             >
               Resolved
@@ -542,7 +542,7 @@ export function PerpsPanel() {
 
           {/* Exchange Filter */}
           <div className="flex items-center gap-1">
-            <span className="px-1 text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            <span className="px-1 text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
               Venue:
             </span>
             {(["ALL", "BYBIT", "MEXC", "BINANCE"] as const).map((ex) => (
@@ -550,10 +550,10 @@ export function PerpsPanel() {
                 key={ex}
                 type="button"
                 onClick={() => setExchangeFilter(ex)}
-                className={`rounded-none px-2 py-1 text-[11px] font-bold transition-colors ${
+                className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
                   exchangeFilter === ex
-                    ? "border border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]"
-                    : "border border-[var(--border)] text-[var(--text-muted)] hover:text-white"
+                    ? "border border-[var(--rv-blue)] bg-[var(--rv-blue)]/10 text-[var(--rv-blue)]"
+                    : "border border-[var(--rv-stroke)] text-[var(--rv-ink-3)] hover:text-white"
                 }`}
               >
                 {ex}
@@ -563,7 +563,7 @@ export function PerpsPanel() {
 
           {/* Direction Filter */}
           <div className="flex items-center gap-1">
-            <span className="px-1 text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            <span className="px-1 text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
               Bias:
             </span>
             {(["ALL", "LONG", "SHORT"] as const).map((b) => (
@@ -571,14 +571,14 @@ export function PerpsPanel() {
                 key={b}
                 type="button"
                 onClick={() => setBiasFilter(b)}
-                className={`rounded-none px-2 py-1 text-[11px] font-bold transition-colors ${
+                className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
                   biasFilter === b
                     ? b === "LONG"
-                      ? "border border-[var(--up)] bg-[var(--up)]/10 text-[var(--up)]"
+                      ? "border border-[var(--rv-up)] bg-[var(--rv-up)]/10 text-[var(--rv-up)]"
                       : b === "SHORT"
-                        ? "border border-[var(--down)] bg-[var(--down)]/10 text-[var(--down)]"
-                        : "border border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]"
-                    : "border border-[var(--border)] text-[var(--text-muted)] hover:text-white"
+                        ? "border border-[var(--rv-down)] bg-[var(--rv-down)]/10 text-[var(--rv-down)]"
+                        : "border border-[var(--rv-blue)] bg-[var(--rv-blue)]/10 text-[var(--rv-blue)]"
+                    : "border border-[var(--rv-stroke)] text-[var(--rv-ink-3)] hover:text-white"
                 }`}
               >
                 {b}
@@ -594,7 +594,7 @@ export function PerpsPanel() {
             placeholder="Filter ticker (e.g. $SOL, BTC, ETH)…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-52 rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] px-2.5 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--brand)]"
+            className="w-52 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-1 text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
           />
         </div>
       </div>
@@ -613,8 +613,8 @@ export function PerpsPanel() {
           }
           const list = groups[marketGroup]
           return (
-            <div className="border border-[var(--border)] bg-[var(--surface)]">
-              <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
+            <div className="border border-[var(--rv-stroke)] bg-[var(--rv-card)]">
+              <div className="flex items-center justify-between border-b border-[var(--rv-stroke)] px-3 py-2">
                 <div className="flex flex-wrap items-center gap-1.5">
                   {(
                     [
@@ -632,24 +632,24 @@ export function PerpsPanel() {
                       className="px-2.5 py-1 text-[11px] font-bold"
                       style={{
                         color:
-                          marketGroup === id ? "#fff" : "var(--text-muted)",
+                          marketGroup === id ? "#fff" : "var(--rv-ink-3)",
                         background:
-                          marketGroup === id ? "var(--brand)" : "transparent",
+                          marketGroup === id ? "var(--rv-blue)" : "transparent",
                         boxShadow:
                           marketGroup === id
                             ? "none"
-                            : "inset 0 0 0 1px var(--border)",
+                            : "inset 0 0 0 1px var(--rv-stroke)",
                       }}
                     >
                       {label} ({groups[id].length})
                     </button>
                   ))}
                 </div>
-                <span className="hidden text-[10px] text-[var(--text-muted)] sm:inline">
+                <span className="hidden text-[10px] text-[var(--rv-ink-3)] sm:inline">
                   Signals first, then by volume · click to open
                 </span>
               </div>
-              <div className="grid gap-px bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-px bg-[var(--rv-stroke)] sm:grid-cols-2 lg:grid-cols-4">
                 {(showAllMarkets || search || marketGroup !== "all"
                   ? list
                   : list.slice(0, 24)
@@ -662,7 +662,7 @@ export function PerpsPanel() {
                         setSelectedSymbol(m.symbol)
                         window.scrollTo({ top: 0, behavior: "smooth" })
                       }}
-                      className="flex items-center justify-between bg-[var(--surface)] px-3 py-2 text-left hover:bg-[var(--surface-sunken)]"
+                      className="flex items-center justify-between bg-[var(--rv-card)] px-3 py-2 text-left hover:bg-[var(--rv-sunken)]"
                     >
                       <div>
                         <div className="flex items-center gap-1.5 text-xs font-extrabold">
@@ -673,26 +673,26 @@ export function PerpsPanel() {
                               style={{
                                 borderColor:
                                   sig.bias === "LONG"
-                                    ? "var(--up)"
-                                    : "var(--down)",
+                                    ? "var(--rv-up)"
+                                    : "var(--rv-down)",
                                 color:
                                   sig.bias === "LONG"
-                                    ? "var(--up)"
-                                    : "var(--down)",
+                                    ? "var(--rv-up)"
+                                    : "var(--rv-down)",
                               }}
                             >
                               {sig.bias} {sig.confidence}/10
                             </span>
                           )}
                         </div>
-                        <div className="font-mono text-[10px] text-[var(--text-muted)]">
+                        <div className="font-mono text-[10px] text-[var(--rv-ink-3)]">
                           {priceUsd(m.markPrice)}
                         </div>
                       </div>
                       <span
                         className="font-mono text-xs font-bold"
                         style={{
-                          color: m.change24h >= 0 ? "var(--up)" : "var(--down)",
+                          color: m.change24h >= 0 ? "var(--rv-up)" : "var(--rv-down)",
                         }}
                       >
                         {m.change24h >= 0 ? "+" : ""}
@@ -708,13 +708,13 @@ export function PerpsPanel() {
                 list.length > 24 && (
                   <button
                     onClick={() => setShowAllMarkets(true)}
-                    className="w-full border-t border-[var(--border)] py-2 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    className="w-full border-t border-[var(--rv-stroke)] py-2 text-[11px] font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
                   >
                     Show all {list.length} markets
                   </button>
                 )}
               {list.length === 0 && (
-                <div className="px-3 py-6 text-center text-[11px] text-[var(--text-muted)]">
+                <div className="px-3 py-6 text-center text-[11px] text-[var(--rv-ink-3)]">
                   {marketGroup === "signal"
                     ? "No open sakz-bot calls match a Hyperliquid market right now."
                     : "No markets in this group."}
@@ -725,6 +725,15 @@ export function PerpsPanel() {
         })()}
 
       {/* Signals Content Grid */}
+      <div id="perp-signals" className="flex scroll-mt-28 items-end justify-between gap-2 pt-2">
+        <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
+          Scanner calls
+          {displayedSignals ? (
+            <span className="rv-num ml-2 text-[12px] font-semibold text-[var(--rv-ink-3)]">{displayedSignals.length}</span>
+          ) : null}
+        </h2>
+        <span className="text-[11.5px] text-[var(--rv-ink-3)]">From sakz-bot · tap a call to see the plan</span>
+      </div>
       {loading && signals === null ? (
         <PerpsSignalsSkeleton />
       ) : displayedSignals && displayedSignals.length > 0 ? (
@@ -738,11 +747,11 @@ export function PerpsPanel() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-none border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
-          <div className="font-heading text-sm font-bold text-[var(--text-primary)]">
+        <div className="flex flex-col items-center justify-center rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-12 text-center">
+          <div className=" text-sm font-bold text-[var(--rv-ink)]">
             No perpetual signals found
           </div>
-          <p className="mt-1 max-w-md text-xs text-[var(--text-muted)]">
+          <p className="mt-1 max-w-md text-xs text-[var(--rv-ink-3)]">
             {statusFilter === "open"
               ? "There are currently no active open calls matching your filter criteria. Try toggling to 'Full History' or changing venue filters."
               : "No historical perpetual signals found in database. Signals generated by sakz-bot will automatically mirror here after scan cycles."}
@@ -751,12 +760,9 @@ export function PerpsPanel() {
       )}
 
       {/* Regulatory / Safe Terminal Disclaimer */}
-      <div className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] p-3 text-[11px] text-[var(--text-muted)]">
-        <span className="font-bold text-[var(--text-secondary)]">
-          ClawDex Safe Intelligence Terminal:
-        </span>{" "}
-        {DISCLAIMER} Read-only terminal mirroring statistical perpetual signals.
-        ClawDex never custody funds or execute orders.
+      <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-3 text-[11px] text-[var(--rv-ink-3)]">
+        <span className="font-bold text-[var(--rv-ink-2)]">Paper trading only:</span> {DISCLAIMER} Riven mirrors
+        sakz-bot&apos;s scanner calls read-only. It never holds funds or places orders for you.
       </div>
 
       {/* Signal Detail & Order Modal */}
@@ -777,7 +783,7 @@ function PerpCard({
   onSelect: (signal: PerpSignal) => void
 }) {
   const outcomeMeta = OUTCOME_META[signal.outcome] ?? OUTCOME_META.pending
-  const biasColor = signal.bias === "LONG" ? "var(--up)" : "var(--down)"
+  const biasColor = signal.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)"
 
   return (
     <div
@@ -790,19 +796,19 @@ function PerpCard({
           onSelect(signal)
         }
       }}
-      className="group cursor-pointer rounded-none border border-[var(--border)] bg-[var(--surface)] p-4 transition-all hover:border-[var(--brand)]/80 hover:bg-[var(--surface-raised)]"
+      className="group cursor-pointer rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-4 transition-all hover:border-[var(--rv-blue)]/80 hover:bg-[var(--rv-card-hover)]"
     >
       {/* Header: Symbol, Venue, Bias, Outcome */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)]/60 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rv-stroke)]/60 pb-3">
         <div className="flex items-center gap-2">
-          <span className="font-heading text-base font-extrabold text-[var(--text-primary)] group-hover:text-[var(--brand)]">
+          <span className=" text-base font-extrabold text-[var(--rv-ink)] group-hover:text-[var(--rv-blue)]">
             {signal.symbol}
           </span>
-          <span className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)] uppercase">
+          <span className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
             {signal.exchange}
           </span>
           <span
-            className="rounded-none border px-1.5 py-0.5 text-[10px] font-extrabold"
+            className="rounded-md border px-1.5 py-0.5 text-[10px] font-extrabold"
             style={{ borderColor: biasColor, color: biasColor }}
           >
             {signal.bias}
@@ -812,7 +818,7 @@ function PerpCard({
         <div className="flex items-center gap-1.5">
           {signal.entryConfirmed === 0 && (
             <span
-              className="rounded-none border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400"
+              className="rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400"
               title="Price did not trade in entry zone before call concluded"
             >
               ⚠ Missed Entry
@@ -820,13 +826,13 @@ function PerpCard({
           )}
 
           {signal.slAfterTarget === 1 && (
-            <span className="rounded-none border border-[var(--border)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
+            <span className="rounded-md border border-[var(--rv-stroke)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--rv-ink-3)]">
               SL after target
             </span>
           )}
 
           <span
-            className="rounded-none border px-2 py-0.5 text-[10px] font-bold"
+            className="rounded-md border px-2 py-0.5 text-[10px] font-bold"
             style={{
               borderColor: outcomeMeta.color,
               color: outcomeMeta.color,
@@ -902,21 +908,21 @@ function PerpCard({
       </div>
 
       {/* Timestamp & Timing */}
-      <div className="mt-3 flex items-center justify-between text-[10px] text-[var(--text-muted)]">
+      <div className="mt-3 flex items-center justify-between text-[10px] text-[var(--rv-ink-3)]">
         <span>Scanned {ago(signal.scanTime)} ago</span>
         {signal.resolvedAt ? (
           <span>Resolved {ago(signal.resolvedAt)} ago</span>
         ) : (
-          <span className="text-[var(--brand)]">Tracking live</span>
+          <span className="text-[var(--rv-blue)]">Tracking live</span>
         )}
       </div>
 
       {/* Interactive Action Prompt */}
-      <div className="mt-3 flex items-center justify-between border-t border-[var(--border)]/60 pt-2.5">
-        <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--brand)] group-hover:underline">
+      <div className="mt-3 flex items-center justify-between border-t border-[var(--rv-stroke)]/60 pt-2.5">
+        <span className="flex items-center gap-1 text-[11px] font-bold text-[var(--rv-blue)] group-hover:underline">
           View Details & Trade (Limit / Market / Spot) →
         </span>
-        <span className="rounded-none border border-[var(--border)] bg-[var(--surface-sunken)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--text-muted)] uppercase">
+        <span className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--rv-ink-3)] uppercase">
           Interactive
         </span>
       </div>
@@ -930,7 +936,7 @@ function PerpsSignalsSkeleton() {
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          className="rounded-none border border-[var(--border)] bg-[var(--surface)] p-4"
+          className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-4"
         >
           <div className="flex items-center justify-between">
             <Skeleton className="h-4 w-32" />

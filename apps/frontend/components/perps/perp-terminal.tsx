@@ -39,9 +39,9 @@ export function PerpTerminal({
   const [view, setView] = useState<"chart" | "trade">("chart")
 
   return (
-    <div className="border border-[var(--border)] bg-[var(--surface)]">
+    <div className="border border-[var(--rv-stroke)] bg-[var(--rv-card)]">
       {/* Stats strip */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[var(--border)] px-3 py-2.5">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[var(--rv-stroke)] px-3 py-2.5">
         <PerpMarketPicker
           market={market}
           markets={markets}
@@ -54,7 +54,7 @@ export function PerpTerminal({
           </span>{" "}
           <span
             className="font-mono text-xs font-bold"
-            style={{ color: up ? "var(--up)" : "var(--down)" }}
+            style={{ color: up ? "var(--rv-up)" : "var(--rv-down)" }}
           >
             {up ? "+" : ""}
             {market.change24h.toFixed(2)}%
@@ -68,15 +68,15 @@ export function PerpTerminal({
         <Stat
           label="Funding (APR)"
           value={`${market.fundingApr.toFixed(1)}%`}
-          color={market.fundingApr >= 0 ? "var(--up)" : "var(--down)"}
+          color={market.fundingApr >= 0 ? "var(--rv-up)" : "var(--rv-down)"}
         />
         <Stat label="Max Leverage" value={`${market.maxLeverage}x`} />
         {signal && (
           <span
             className="border px-2 py-0.5 text-[10px] font-extrabold"
             style={{
-              borderColor: signal.bias === "LONG" ? "var(--up)" : "var(--down)",
-              color: signal.bias === "LONG" ? "var(--up)" : "var(--down)",
+              borderColor: signal.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)",
+              color: signal.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)",
             }}
           >
             SIGNAL {signal.bias} {signal.confidence}/10
@@ -86,7 +86,7 @@ export function PerpTerminal({
 
       {/* Two sections per market: Chart (TradingView, with drawing tools) and Trade */}
       <div
-        className="flex border-b border-[var(--border)]"
+        className="flex border-b border-[var(--rv-stroke)]"
         role="tablist"
         aria-label={`${market.symbol} sections`}
       >
@@ -97,17 +97,17 @@ export function PerpTerminal({
             role="tab"
             aria-selected={view === v}
             onClick={() => setView(v)}
-            className="rv-body flex-1 py-2.5 text-[13px] font-bold tracking-wide uppercase transition-colors sm:flex-none sm:px-8"
+            className="flex-1 py-2.5 text-[13px] font-bold tracking-wide uppercase transition-colors sm:flex-none sm:px-8"
             style={{
-              color: view === v ? "#fff" : "var(--text-muted)",
+              color: view === v ? "#fff" : "var(--rv-ink-3)",
               background: view === v ? "rgba(124, 196, 232, 0.16)" : "transparent",
-              boxShadow: view === v ? "inset 0 -2px 0 var(--brand)" : "none",
+              boxShadow: view === v ? "inset 0 -2px 0 var(--rv-blue)" : "none",
             }}
           >
             {v === "chart" ? "Chart" : "Trade"}
           </button>
         ))}
-        <span className="rv-body ml-auto hidden self-center px-3 text-[11px] text-[var(--text-muted)] sm:block">
+        <span className="ml-auto hidden self-center px-3 text-[11px] text-[var(--rv-ink-3)] sm:block">
           {view === "chart"
             ? "Draw trendlines, fibs and more with the toolbar on the left"
             : "Paper account · USDC or USDT"}
@@ -123,7 +123,7 @@ export function PerpTerminal({
         </div>
       ) : (
         <div className="grid lg:grid-cols-[280px_minmax(0,1fr)]">
-          <div className="h-[420px] overflow-hidden border-b border-[var(--border)] lg:h-[640px] lg:border-r lg:border-b-0">
+          <div className="h-[420px] overflow-hidden border-b border-[var(--rv-stroke)] lg:h-[640px] lg:border-r lg:border-b-0">
             <OrderBook coin={market.symbol} markPrice={market.markPrice} />
           </div>
           <div className="mx-auto w-full max-w-[560px] lg:max-h-[640px] lg:overflow-y-auto">
@@ -152,7 +152,7 @@ function Stat({
 }) {
   return (
     <div>
-      <div className="text-[10px] text-[var(--text-muted)]">{label}</div>
+      <div className="text-[10px] text-[var(--rv-ink-3)]">{label}</div>
       <div className="font-mono text-xs font-bold" style={{ color }}>
         {value}
       </div>
@@ -187,7 +187,7 @@ function OrderBook({ coin, markPrice }: { coin: string; markPrice: number }) {
 
   if (!book) {
     return (
-      <div className="p-3 text-xs text-[var(--text-muted)]">
+      <div className="p-3 text-xs text-[var(--rv-ink-3)]">
         Loading order book…
       </div>
     )
@@ -218,22 +218,22 @@ function OrderBook({ coin, markPrice }: { coin: string; markPrice: number }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-[var(--border)] px-3 py-2 text-xs font-bold">
+      <div className="border-b border-[var(--rv-stroke)] px-3 py-2 text-xs font-bold">
         Order Book
       </div>
-      <div className="flex justify-between px-3 py-1 text-[10px] text-[var(--text-muted)]">
+      <div className="flex justify-between px-3 py-1 text-[10px] text-[var(--rv-ink-3)]">
         <span>Price</span>
         <span>Size ({coin})</span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {rows(asks, "var(--down)")}
-        <div className="border-y border-[var(--border)] px-3 py-1.5 font-mono text-sm font-extrabold">
+        {rows(asks, "var(--rv-down)")}
+        <div className="border-y border-[var(--rv-stroke)] px-3 py-1.5 font-mono text-sm font-extrabold">
           {priceUsd(markPrice)}
-          <span className="ml-2 text-[10px] font-normal text-[var(--text-muted)]">
+          <span className="ml-2 text-[10px] font-normal text-[var(--rv-ink-3)]">
             spread {book.spreadPct.toFixed(3)}%
           </span>
         </div>
-        {rows(book.bids, "var(--up)")}
+        {rows(book.bids, "var(--rv-up)")}
       </div>
     </div>
   )
@@ -256,13 +256,13 @@ function BottomTabs({ coin }: { coin: string }) {
     { id: "history", label: "Trade History", count: hist.length },
   ]
 
-  const th = "px-3 py-1.5 text-left font-normal text-[var(--text-muted)]"
+  const th = "px-3 py-1.5 text-left font-normal text-[var(--rv-ink-3)]"
   const td = "px-3 py-1.5 font-mono"
-  const sideCol = (s: string) => (s === "SHORT" ? "var(--down)" : "var(--up)")
+  const sideCol = (s: string) => (s === "SHORT" ? "var(--rv-down)" : "var(--rv-up)")
 
   return (
-    <div className="border-t border-[var(--border)]">
-      <div className="flex items-center justify-between border-b border-[var(--border)] pr-3">
+    <div className="border-t border-[var(--rv-stroke)]">
+      <div className="flex items-center justify-between border-b border-[var(--rv-stroke)] pr-3">
         <div className="flex">
           {tabs.map((t) => (
             <button
@@ -270,15 +270,15 @@ function BottomTabs({ coin }: { coin: string }) {
               onClick={() => setTab(t.id)}
               className={`px-4 py-2 text-xs font-bold ${
                 tab === t.id
-                  ? "border-b-2 border-[var(--brand)] text-[var(--text-primary)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  ? "border-b-2 border-[var(--rv-blue)] text-[var(--rv-ink)]"
+                  : "text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
               }`}
             >
               {t.label} ({t.count})
             </button>
           ))}
         </div>
-        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-[var(--rv-ink-3)]">
           <input
             type="checkbox"
             checked={onlyThisPair}
@@ -318,7 +318,7 @@ function BottomTabs({ coin }: { coin: string }) {
                 {pos.map((p) => {
                   const tps = p.tps ?? (p.tp ? [p.tp] : [])
                   return (
-                    <tr key={p.id} className="border-t border-[var(--border)]">
+                    <tr key={p.id} className="border-t border-[var(--rv-stroke)]">
                       <td className={td}>{p.market}</td>
                       <td className={td} style={{ color: sideCol(p.side) }}>
                         {p.side} {p.leverage}x
@@ -329,7 +329,7 @@ function BottomTabs({ coin }: { coin: string }) {
                       <td
                         className={td}
                         style={{
-                          color: p.pnl >= 0 ? "var(--up)" : "var(--down)",
+                          color: p.pnl >= 0 ? "var(--rv-up)" : "var(--rv-down)",
                         }}
                       >
                         {p.pnl >= 0 ? "+" : ""}
@@ -345,7 +345,7 @@ function BottomTabs({ coin }: { coin: string }) {
                       <td className={td}>
                         <button
                           onClick={() => closePosition(p.id)}
-                          className="border border-[var(--border)] px-2 py-0.5 font-sans font-bold hover:border-[var(--down)] hover:text-[var(--down)]"
+                          className="border border-[var(--rv-stroke)] px-2 py-0.5 font-sans font-bold hover:border-[var(--rv-down)] hover:text-[var(--rv-down)]"
                         >
                           Close
                         </button>
@@ -384,7 +384,7 @@ function BottomTabs({ coin }: { coin: string }) {
                 {ord.map((o) => {
                   const tps = o.tps ?? (o.tp ? [o.tp] : [])
                   return (
-                    <tr key={o.id} className="border-t border-[var(--border)]">
+                    <tr key={o.id} className="border-t border-[var(--rv-stroke)]">
                       <td className={td}>{o.market}</td>
                       <td className={td}>{o.type}</td>
                       <td className={td} style={{ color: sideCol(o.side) }}>
@@ -401,7 +401,7 @@ function BottomTabs({ coin }: { coin: string }) {
                       <td className={td}>
                         <button
                           onClick={() => cancelOrder(o.id)}
-                          className="border border-[var(--border)] px-2 py-0.5 font-sans font-bold hover:border-[var(--down)] hover:text-[var(--down)]"
+                          className="border border-[var(--rv-stroke)] px-2 py-0.5 font-sans font-bold hover:border-[var(--rv-down)] hover:text-[var(--rv-down)]"
                         >
                           Cancel
                         </button>
@@ -437,7 +437,7 @@ function BottomTabs({ coin }: { coin: string }) {
               </thead>
               <tbody>
                 {hist.map((t) => (
-                  <tr key={t.id} className="border-t border-[var(--border)]">
+                  <tr key={t.id} className="border-t border-[var(--rv-stroke)]">
                     <td className={td}>
                       {new Date(t.timestamp).toLocaleString()}
                     </td>
@@ -451,7 +451,7 @@ function BottomTabs({ coin }: { coin: string }) {
                     <td
                       className={td}
                       style={{
-                        color: t.pnl >= 0 ? "var(--up)" : "var(--down)",
+                        color: t.pnl >= 0 ? "var(--rv-up)" : "var(--rv-down)",
                       }}
                     >
                       {t.pnl.toFixed(2)}
@@ -468,7 +468,7 @@ function BottomTabs({ coin }: { coin: string }) {
 
 function Empty({ text }: { text: string }) {
   return (
-    <div className="px-3 py-6 text-center text-xs text-[var(--text-muted)]">
+    <div className="px-3 py-6 text-center text-xs text-[var(--rv-ink-3)]">
       {text}
     </div>
   )

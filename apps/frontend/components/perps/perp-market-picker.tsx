@@ -71,20 +71,20 @@ export function PerpMarketPicker({
       }}
     >
       <DialogTrigger
-        className="flex cursor-pointer items-center gap-2 border border-[var(--border)] bg-[var(--surface-sunken)] px-2.5 py-1 font-heading text-sm font-black text-[var(--text-primary)] hover:border-[var(--brand)]"
+        className="flex cursor-pointer items-center gap-2 border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-1 text-sm font-black text-[var(--rv-ink)] hover:border-[var(--rv-blue)]"
         aria-label="Select market"
       >
         {market.symbol}-PERP
-        <span className="text-[10px] text-[var(--text-muted)]">▼</span>
+        <span className="text-[10px] text-[var(--rv-ink-3)]">▼</span>
       </DialogTrigger>
 
       <DialogContent
         showCloseButton={false}
-        className="max-w-xl gap-0 border border-[var(--border)] bg-[var(--surface)] p-0 sm:max-w-xl"
+        className="max-w-xl gap-0 border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-0 sm:max-w-xl"
       >
         <DialogTitle className="sr-only">Select market</DialogTitle>
 
-        <div className="border-b border-[var(--border)] p-3">
+        <div className="border-b border-[var(--rv-stroke)] p-3">
           <input
             autoFocus
             type="text"
@@ -94,7 +94,7 @@ export function PerpMarketPicker({
               if (e.key === "Enter" && results[0]) pick(results[0].symbol)
             }}
             placeholder="Search pairs (e.g. SOL, $BTC, PEPE)…"
-            className="w-full border border-[var(--border)] bg-[var(--surface-sunken)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand)]"
+            className="w-full border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 py-2 text-sm text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
           />
           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
             {(
@@ -109,14 +109,14 @@ export function PerpMarketPicker({
                 onClick={() => setSort(id)}
                 className={`border px-2 py-0.5 font-bold ${
                   sort === id
-                    ? "border-[var(--brand)] text-[var(--text-primary)]"
-                    : "border-[var(--border)] text-[var(--text-muted)]"
+                    ? "border-[var(--rv-blue)] text-[var(--rv-ink)]"
+                    : "border-[var(--rv-stroke)] text-[var(--rv-ink-3)]"
                 }`}
               >
                 {label}
               </button>
             ))}
-            <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-[var(--text-muted)]">
+            <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-[var(--rv-ink-3)]">
               <input
                 type="checkbox"
                 checked={signalsOnly}
@@ -127,7 +127,7 @@ export function PerpMarketPicker({
           </div>
         </div>
 
-        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 px-3 py-1.5 text-[10px] text-[var(--text-muted)]">
+        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 px-3 py-1.5 text-[10px] text-[var(--rv-ink-3)]">
           <span>Pair</span>
           <span className="text-right">Price</span>
           <span className="w-16 text-right">24h</span>
@@ -136,7 +136,7 @@ export function PerpMarketPicker({
 
         <div className="max-h-[50vh] overflow-y-auto">
           {results.length === 0 ? (
-            <div className="px-3 py-8 text-center text-xs text-[var(--text-muted)]">
+            <div className="px-3 py-8 text-center text-xs text-[var(--rv-ink-3)]">
               No pairs match “{query}”
             </div>
           ) : (
@@ -147,13 +147,13 @@ export function PerpMarketPicker({
                 <button
                   key={m.symbol}
                   onClick={() => pick(m.symbol)}
-                  className={`grid w-full grid-cols-[1fr_auto_auto_auto] items-center gap-x-4 border-t border-[var(--border)] px-3 py-2 text-left text-xs hover:bg-[var(--surface-sunken)] ${
-                    active ? "bg-[var(--surface-sunken)]" : ""
+                  className={`grid w-full grid-cols-[1fr_auto_auto_auto] items-center gap-x-4 border-t border-[var(--rv-stroke)] px-3 py-2 text-left text-xs hover:bg-[var(--rv-sunken)] ${
+                    active ? "bg-[var(--rv-sunken)]" : ""
                   }`}
                 >
                   <span className="flex items-center gap-1.5 font-extrabold">
                     {m.symbol}
-                    <span className="font-normal text-[var(--text-muted)]">
+                    <span className="font-normal text-[var(--rv-ink-3)]">
                       {m.maxLeverage}x
                     </span>
                     {sig && (
@@ -161,9 +161,9 @@ export function PerpMarketPicker({
                         className="border px-1 text-[9px] font-bold"
                         style={{
                           borderColor:
-                            sig.bias === "LONG" ? "var(--up)" : "var(--down)",
+                            sig.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)",
                           color:
-                            sig.bias === "LONG" ? "var(--up)" : "var(--down)",
+                            sig.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)",
                         }}
                       >
                         {sig.bias} {sig.confidence}/10
@@ -174,13 +174,13 @@ export function PerpMarketPicker({
                   <span
                     className="w-16 text-right font-mono font-bold"
                     style={{
-                      color: m.change24h >= 0 ? "var(--up)" : "var(--down)",
+                      color: m.change24h >= 0 ? "var(--rv-up)" : "var(--rv-down)",
                     }}
                   >
                     {m.change24h >= 0 ? "+" : ""}
                     {m.change24h.toFixed(2)}%
                   </span>
-                  <span className="w-14 text-right font-mono text-[var(--text-muted)]">
+                  <span className="w-14 text-right font-mono text-[var(--rv-ink-3)]">
                     ${compact(m.volume24h)}
                   </span>
                 </button>

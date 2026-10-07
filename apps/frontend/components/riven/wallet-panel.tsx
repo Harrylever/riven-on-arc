@@ -64,10 +64,10 @@ export function WalletPanel() {
   if (!wallet.address) {
     return (
       <section className="rv-card flex flex-col items-center gap-3 px-6 py-10 text-center">
-        <p className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+        <p className="text-[20px] font-bold text-[var(--rv-ink)]">
           Connect your wallet
         </p>
-        <p className="rv-body max-w-md text-[13px] text-[var(--rv-ink-2)]">
+        <p className="max-w-md text-[13px] text-[var(--rv-ink-2)]">
           See your balance, deposit, withdraw, convert, and buy or sell Arc
           tokens through Uniswap — with Riven&apos;s rug check before every buy.
           Your keys stay in your wallet; Riven never holds funds.
@@ -75,14 +75,14 @@ export function WalletPanel() {
         <button
           type="button"
           onClick={() => void wallet.connect()}
-          className="rv-body rounded-lg bg-[var(--rv-blue)] px-6 py-3 text-[15px] font-bold text-white"
+          className="rounded-lg bg-[var(--rv-blue)] px-6 py-3 text-[15px] font-bold text-[var(--rv-on-blue)]"
         >
           {wallet.hasWallet
             ? "Connect wallet"
             : "Connect wallet (MetaMask / Rabby)"}
         </button>
         {wallet.error && (
-          <p className="rv-body text-[12px] text-[var(--rv-risk)]">
+          <p className="text-[12px] text-[var(--rv-risk)]">
             {wallet.error}
           </p>
         )}
@@ -97,10 +97,10 @@ export function WalletPanel() {
       <section className="rv-card p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="rv-body text-[11px] font-semibold tracking-[0.14em] text-[var(--rv-ink-3)] uppercase">
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--rv-ink-3)] uppercase">
               Wallet balance
             </p>
-            <p className="rv-display mt-1 text-[36px] leading-none font-extrabold text-[var(--rv-ink)]">
+            <p className="mt-1 text-[36px] leading-none font-extrabold text-[var(--rv-ink)]">
               {/* EURC isn't a dollar: it's shown on its own line, not added at 1:1. */}
               {data ? usd(data.usdc + tokensValue) : "…"}
             </p>
@@ -120,7 +120,7 @@ export function WalletPanel() {
               <button
                 type="button"
                 onClick={() => void wallet.ensureArc()}
-                className="rv-body mt-1 text-[12px] font-semibold text-[var(--rv-caution)]"
+                className="mt-1 text-[12px] font-semibold text-[var(--rv-caution)]"
               >
                 Switch to Arc
               </button>
@@ -128,13 +128,13 @@ export function WalletPanel() {
             <button
               type="button"
               onClick={wallet.disconnect}
-              className="rv-body mt-1 block text-[12px] text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+              className="mt-1 block text-[12px] text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
             >
               Disconnect
             </button>
           </div>
         </div>
-        <p className="rv-body mt-2 text-[11px] text-[var(--rv-ink-3)]">
+        <p className="mt-2 text-[11px] text-[var(--rv-ink-3)]">
           EURC counted at 1:1 for the total; token values use live prices.
         </p>
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -147,7 +147,7 @@ export function WalletPanel() {
               type="button"
               onClick={() => setPanel(panel === p ? null : p)}
               aria-expanded={panel === p}
-              className="rv-body h-11 rounded-lg text-[14px] font-semibold capitalize"
+              className="h-11 rounded-lg text-[14px] font-semibold capitalize"
               style={{
                 background:
                   panel === p ? "var(--rv-blue)" : "rgba(255,255,255,0.04)",
@@ -170,7 +170,7 @@ export function WalletPanel() {
       </section>
 
       {data && data.atRisk > 0 && (
-        <div className="rv-card rv-body px-4 py-3 text-[13px] text-[var(--rv-ink)]">
+        <div className="rv-card px-4 py-3 text-[13px] text-[var(--rv-ink)]">
           <span className="font-semibold text-[var(--rv-risk)]">Anti-rug:</span>{" "}
           {data.atRisk} of your tokens are risky or caught faking. Consider
           selling before liquidity disappears.
@@ -178,15 +178,15 @@ export function WalletPanel() {
       )}
 
       <section className="rv-card">
-        <h2 className="rv-display px-4 pt-4 text-[16px] font-bold text-[var(--rv-ink)]">
+        <h2 className="px-4 pt-4 text-[16px] font-bold text-[var(--rv-ink)]">
           Your tokens
         </h2>
         {!data ? (
-          <p className="rv-body px-4 py-4 text-[13px] text-[var(--rv-ink-3)]">
+          <p className="px-4 py-4 text-[13px] text-[var(--rv-ink-3)]">
             Loading…
           </p>
         ) : data.holdings.length === 0 ? (
-          <p className="rv-body px-4 py-4 text-[13px] text-[var(--rv-ink-2)]">
+          <p className="px-4 py-4 text-[13px] text-[var(--rv-ink-2)]">
             No tokens Riven tracks yet. Find one in the{" "}
             <Link href="/" className="text-[var(--rv-ice)] underline">
               screener
@@ -211,7 +211,7 @@ export function WalletPanel() {
                     size={34}
                   />
                   <div className="min-w-0">
-                    <p className="rv-body truncate font-semibold text-[var(--rv-ink)]">
+                    <p className="truncate font-semibold text-[var(--rv-ink)]">
                       {h.token.symbol}
                     </p>
                     <p className="rv-num text-[12px] text-[var(--rv-ink-3)]">
@@ -229,14 +229,14 @@ export function WalletPanel() {
                     <button
                       type="button"
                       onClick={() => setTrade({ token: h.token, side: "buy" })}
-                      className="rv-body rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-up)] ring-1 ring-[rgba(74,222,128,0.4)]"
+                      className="rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-up)] ring-1 ring-[rgba(74,222,128,0.4)]"
                     >
                       Buy
                     </button>
                     <button
                       type="button"
                       onClick={() => setTrade({ token: h.token, side: "sell" })}
-                      className="rv-body rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-down)] ring-1 ring-[rgba(248,113,113,0.4)]"
+                      className="rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-down)] ring-1 ring-[rgba(248,113,113,0.4)]"
                     >
                       Sell
                     </button>
@@ -264,7 +264,7 @@ export function WalletPanel() {
 function Deposit({ address }: { address: string }) {
   const [copied, setCopied] = useState(false)
   return (
-    <div className="rv-body mt-3 flex flex-col gap-2 rounded-lg border border-[var(--rv-stroke)] p-3 text-[13px] text-[var(--rv-ink-2)]">
+    <div className="mt-3 flex flex-col gap-2 rounded-lg border border-[var(--rv-stroke)] p-3 text-[13px] text-[var(--rv-ink-2)]">
       <p>
         Send <b className="text-[var(--rv-ink)]">USDC on the Arc network</b>{" "}
         (chain 5042) to your address. Sending from another network means
@@ -282,7 +282,7 @@ function Deposit({ address }: { address: string }) {
               setTimeout(() => setCopied(false), 1500)
             })
           }
-          className="rounded-md bg-[var(--rv-blue)] px-3 py-2 text-[12px] font-semibold text-white"
+          className="rounded-md bg-[var(--rv-blue)] px-3 py-2 text-[12px] font-semibold text-[var(--rv-on-blue)]"
         >
           {copied ? "Copied" : "Copy"}
         </button>
@@ -344,7 +344,7 @@ function Withdraw({
   }
 
   return (
-    <div className="rv-body mt-3 grid gap-2 rounded-lg border border-[var(--rv-stroke)] p-3 text-[13px]">
+    <div className="mt-3 grid gap-2 rounded-lg border border-[var(--rv-stroke)] p-3 text-[13px]">
       <select
         value={asset}
         onChange={(e) => setAsset(e.target.value)}
@@ -391,7 +391,7 @@ function Withdraw({
         type="button"
         disabled={!valid}
         onClick={() => void submit()}
-        className="h-10 rounded-lg bg-[var(--rv-blue)] font-semibold text-white disabled:opacity-40"
+        className="h-10 rounded-lg bg-[var(--rv-blue)] font-semibold text-[var(--rv-on-blue)] disabled:opacity-40"
       >
         Withdraw
       </button>
@@ -424,7 +424,7 @@ function Convert({ onPick }: { onPick: (t: TradeToken) => void }) {
     return () => clearTimeout(t)
   }, [q])
   return (
-    <div className="rv-body mt-3 grid gap-2 rounded-lg border border-[var(--rv-stroke)] p-3 text-[13px]">
+    <div className="mt-3 grid gap-2 rounded-lg border border-[var(--rv-stroke)] p-3 text-[13px]">
       <p className="text-[var(--rv-ink-2)]">
         Convert USDC into another Arc token — search a ticker or paste its
         contract.

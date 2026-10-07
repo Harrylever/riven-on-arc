@@ -6,10 +6,10 @@ export default function TokenNotFound() {
       <span className="text-4xl" aria-hidden>
         🔭
       </span>
-      <h1 className="rv-display text-xl font-bold text-[var(--rv-ink)]">
+      <h1 className="text-xl font-bold text-[var(--rv-ink)]">
         Riven isn&apos;t tracking this token
       </h1>
-      <p className="rv-body text-sm text-[var(--rv-ink-2)]">
+      <p className="text-sm text-[var(--rv-ink-2)]">
         Riven scores every token launched on Argus and Tolly on Arc. This
         address wasn&apos;t launched there, or it&apos;s not a valid Arc token
         address.
@@ -17,13 +17,13 @@ export default function TokenNotFound() {
       <div className="mt-2 flex gap-2">
         <Link
           href="/search"
-          className="rv-body rounded-full bg-[var(--rv-blue)] px-4 py-2 text-sm font-semibold text-white"
+          className="rounded-full bg-[var(--rv-blue)] px-4 py-2 text-sm font-semibold text-[var(--rv-on-blue)]"
         >
           Search again
         </Link>
         <Link
           href="/"
-          className="rv-body rounded-full px-4 py-2 text-sm font-semibold text-[var(--rv-ice)] ring-1 ring-[var(--rv-stroke-strong)]"
+          className="rounded-full px-4 py-2 text-sm font-semibold text-[var(--rv-ice)] ring-1 ring-[var(--rv-stroke-strong)]"
         >
           All launches
         </Link>

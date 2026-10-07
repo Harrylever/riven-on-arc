@@ -1,5 +1,6 @@
 "use client"
 
+import { PageHero } from "./page-hero"
 import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 import type { TokenSummary } from "@/lib/arc-data"
@@ -26,16 +27,17 @@ export function PortfolioClient() {
   const [tab, setTab] = useState<"mine" | "any">("mine")
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="rv-display text-[28px] font-extrabold text-[var(--rv-ink)]">
-            Portfolio
-          </h1>
-          <p className="rv-body text-[13px] text-[var(--rv-ink-2)]">
-            Your balance, deposits, withdrawals, conversions and trades on Arc.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-white/[0.04] p-1">
+      <PageHero
+        eyebrow="Non-custodial · you sign everything"
+        title="Portfolio"
+        lines={[
+          "Connect a wallet and I'll score everything you hold.",
+          "I never hold your keys. You sign everything.",
+          "Paste any 0x address to check someone else's bags.",
+        ]}
+        greet="Show me your bags — I'll rug-check every one."
+        actions={
+        <div className="rv-seg">
           {(
             [
               ["mine", "My wallet"],
@@ -47,17 +49,15 @@ export function PortfolioClient() {
               type="button"
               onClick={() => setTab(id)}
               aria-pressed={tab === id}
-              className="rv-body rounded-md px-3 py-1.5 text-[13px] font-semibold"
-              style={{
-                background: tab === id ? "var(--rv-blue)" : "transparent",
-                color: tab === id ? "#fff" : "var(--rv-ink-2)",
-              }}
             >
               {label}
             </button>
           ))}
         </div>
-      </header>
+        }
+      >
+        Your balance, deposits, withdrawals, conversions and trades on Arc — every token scored for rug risk.
+      </PageHero>
       {tab === "mine" ? <WalletPanel /> : <WalletLookup />}
     </div>
   )
@@ -103,7 +103,7 @@ function WalletLookup() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="rv-body text-[13px] text-[var(--rv-ink-2)]">
+      <p className="text-[13px] text-[var(--rv-ink-2)]">
         Paste any Arc wallet address. Riven shows what it holds and flags
         anything that looks like a rug. Read-only — never share a private key or
         seed phrase with anyone.
@@ -125,13 +125,13 @@ function WalletLookup() {
         />
         <button
           type="submit"
-          className="rv-body rounded-lg bg-[var(--rv-blue)] px-5 text-[14px] font-semibold text-white"
+          className="rounded-lg bg-[var(--rv-blue)] px-5 text-[14px] font-semibold text-[var(--rv-on-blue)]"
         >
           {loading ? "Checking…" : "Check"}
         </button>
       </form>
       {error && (
-        <p className="rv-body text-[13px] text-[var(--rv-risk)]">{error}</p>
+        <p className="text-[13px] text-[var(--rv-risk)]">{error}</p>
       )}
       {data && (
         <>
@@ -145,7 +145,7 @@ function WalletLookup() {
             />
           </section>
           {data.atRisk > 0 && (
-            <div className="rv-card rv-body px-4 py-3 text-[13px] text-[var(--rv-ink)]">
+            <div className="rv-card px-4 py-3 text-[13px] text-[var(--rv-ink)]">
               <span className="font-semibold text-[var(--rv-risk)]">
                 Warning:
               </span>{" "}
@@ -173,7 +173,7 @@ function WalletLookup() {
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="rv-body font-semibold text-[var(--rv-ink)]">
+                        <span className="font-semibold text-[var(--rv-ink)]">
                           {h.token.symbol}
                         </span>
                         {h.token.fake && (
@@ -216,7 +216,7 @@ function Stat({
 }) {
   return (
     <div className="rv-card px-3 py-2.5">
-      <div className="rv-body text-[10px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
+      <div className="text-[10px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
         {label}
       </div>
       <div

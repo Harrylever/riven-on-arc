@@ -38,7 +38,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
 
   if (!signal) return null
 
-  const biasColor = signal.bias === "LONG" ? "var(--up)" : "var(--down)"
+  const biasColor = signal.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)"
   const currentPrice = Number(price) || signal.entryPrice || 1
   const numUsdSize = Number(usdSize) || 0
   const coinUnits =
@@ -119,7 +119,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[#162a27] bg-[#0c1a18] px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="font-heading text-lg font-black text-white">
+            <span className=" text-lg font-black text-white">
               {signal.symbol}
             </span>
             <span className="border border-[#1d3834] bg-[#091514] px-2 py-0.5 text-[11px] font-bold text-[#7d9b96] uppercase">
@@ -226,7 +226,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                 </span>
               </div>
               {signal.entryConfirmed === 0 && (
-                <div className="mt-1 rounded-none border border-amber-500/30 bg-amber-500/10 p-2 text-[10px] text-amber-300">
+                <div className="mt-1 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-[10px] text-amber-300">
                   ⚠ Note: Price did not confirm inside entry zone during scan
                   period.
                 </div>

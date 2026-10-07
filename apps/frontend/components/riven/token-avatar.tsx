@@ -36,7 +36,7 @@ export function TokenAvatar({
   return (
     <div
       aria-hidden
-      className="rv-display grid shrink-0 place-items-center rounded-lg font-extrabold text-white ring-1 ring-[var(--rv-stroke-strong)]"
+      className="grid shrink-0 place-items-center rounded-lg font-extrabold text-white ring-1 ring-[var(--rv-stroke-strong)]"
       style={{
         ...style,
         fontSize: size * 0.36,

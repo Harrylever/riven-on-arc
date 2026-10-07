@@ -658,7 +658,8 @@ export async function getAlerts(
   return list.map((a) => ({
     id: a.id,
     type: a.type,
-    message: a.message,
+    // evidence wording, also for alerts stored before the wording change
+    message: a.message.replace(/\bdumped\b/g, "sold"),
     createdAt: a.createdAt.toISOString(),
     token: {
       address: a.token.mint,

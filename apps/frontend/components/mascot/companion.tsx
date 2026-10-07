@@ -78,14 +78,10 @@ export function Companion() {
     setHidden(h)
   }, [])
 
-  // Home and token pages have a full-size Riven already; the agent page is his.
-  if (
-    hidden ||
-    path === "/" ||
-    path.startsWith("/token/") ||
-    path.startsWith("/agent") ||
-    path.startsWith("/mascot-lab")
-  ) {
+  // Pages that already feature a full-size Riven (home, token, agent and the
+  // section headers) don't need the corner one too.
+  const featured = ["/token/", "/agent", "/perps", "/alerts", "/markets", "/portfolio", "/watchlist"]
+  if (hidden || path === "/" || featured.some((p) => path.startsWith(p))) {
     return hidden && path !== "/" && !path.startsWith("/token/") ? (
       <button
         type="button"

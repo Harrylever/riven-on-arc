@@ -11,10 +11,10 @@ export default function TokenError({
 }) {
   return (
     <div className="rv-card mx-auto my-10 w-full max-w-lg px-6 py-10 text-center">
-      <p className="rv-display text-lg font-bold text-[var(--rv-ink)]">
+      <p className="text-lg font-bold text-[var(--rv-ink)]">
         Couldn&apos;t load this token
       </p>
-      <p className="rv-body mt-2 text-sm text-[var(--rv-ink-2)]">
+      <p className="mt-2 text-sm text-[var(--rv-ink-2)]">
         Riven couldn&apos;t read this token&apos;s data right now. Its score
         hasn&apos;t changed — try again in a moment.
       </p>
@@ -27,13 +27,13 @@ export default function TokenError({
         <button
           type="button"
           onClick={() => reset()}
-          className="rv-body rounded-lg bg-[var(--rv-blue)] px-4 py-2 text-sm font-semibold text-white"
+          className="rounded-lg bg-[var(--rv-blue)] px-4 py-2 text-sm font-semibold text-[var(--rv-on-blue)]"
         >
           Try again
         </button>
         <Link
           href="/"
-          className="rv-body rounded-lg px-4 py-2 text-sm font-semibold text-[var(--rv-ink-2)] ring-1 ring-[var(--rv-stroke)]"
+          className="rounded-lg px-4 py-2 text-sm font-semibold text-[var(--rv-ink-2)] ring-1 ring-[var(--rv-stroke)]"
         >
           Back to tokens
         </Link>

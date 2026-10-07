@@ -44,7 +44,7 @@ export function ScoreBadge({
     <span className="inline-flex shrink-0 flex-col items-end gap-0.5">
       {chip}
       <span
-        className="rv-body text-[10px] font-semibold tracking-wide uppercase"
+        className="text-[10px] font-semibold tracking-wide uppercase"
         style={{ color: m.color }}
       >
         {m.short}

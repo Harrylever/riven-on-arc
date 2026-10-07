@@ -32,7 +32,7 @@ export function Freshness({
   return (
     <div className="flex items-center gap-2 sm:ml-auto">
       <span
-        className="cdx-num text-[11px] text-[var(--text-muted)]"
+        className="cdx-num text-[11px] text-[var(--rv-ink-3)]"
         aria-live="polite"
       >
         {label}
@@ -40,7 +40,7 @@ export function Freshness({
       <button
         onClick={onRefresh}
         disabled={refreshing}
-        className="rounded-none border border-[var(--border)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-50"
+        className="rounded-md border border-[var(--rv-stroke)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--rv-ink-3)] transition-colors hover:text-[var(--rv-ink)] disabled:opacity-50"
         title={`Auto-refreshes every ${REFRESH_MS / 1000}s while this tab is open`}
       >
         Refresh

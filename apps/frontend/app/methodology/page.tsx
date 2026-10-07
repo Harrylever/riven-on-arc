@@ -11,7 +11,7 @@ const PARTS = [
   {
     name: "Contract",
     max: 25,
-    color: "var(--rv-cyan)",
+    color: "var(--rv-blue)",
     what: "What the token's code lets someone do to holders.",
     checks: [
       "Can anyone still create new tokens (mint)?",
@@ -98,12 +98,12 @@ const CAPS = [
 
 export default function MethodologyPage() {
   return (
-    <article className="rv-body flex flex-col gap-4 text-[15px] leading-relaxed text-[var(--rv-ink-2)]">
+    <article className="flex flex-col gap-4 text-[15px] leading-relaxed text-[var(--rv-ink-2)]">
       <header className="rv-card p-5 sm:p-7">
-        <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--rv-cyan)] uppercase">
+        <p className="text-[12px] font-semibold tracking-[0.18em] text-[var(--rv-blue)] uppercase">
           Methodology · arc-v5
         </p>
-        <h1 className="rv-display mt-2 text-[32px] leading-tight font-extrabold text-[var(--rv-ink)] sm:text-[40px]">
+        <h1 className="mt-2 text-[32px] leading-tight font-extrabold text-[var(--rv-ink)] sm:text-[40px]">
           How Riven scores a launch
         </h1>
         <p className="mt-3 max-w-2xl">
@@ -131,7 +131,7 @@ export default function MethodologyPage() {
         {PARTS.map((p) => (
           <section key={p.name} className="rv-card p-5">
             <div className="flex items-baseline justify-between">
-              <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+              <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
                 {p.name}
               </h2>
               <span
@@ -158,7 +158,7 @@ export default function MethodologyPage() {
           </section>
         ))}
         <section className="rv-card p-5 sm:col-span-2">
-          <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+          <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
             Automatic red flags
           </h2>
           <p className="mt-1 text-[14px]">
@@ -185,7 +185,7 @@ export default function MethodologyPage() {
       </div>
 
       <section className="rv-card p-5 sm:p-6">
-        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+        <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
           Why a token isn&apos;t called safe early
         </h2>
         <p className="mt-2 text-[14px]">
@@ -201,7 +201,7 @@ export default function MethodologyPage() {
       </section>
 
       <section className="rv-card p-5 sm:p-6">
-        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+        <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
           What changed in arc-v5
         </h2>
         <p className="mt-2 text-[14px]">
@@ -238,7 +238,7 @@ export default function MethodologyPage() {
       </section>
 
       <section id="disputes" className="rv-card scroll-mt-20 p-5 sm:p-6">
-        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+        <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
           Think a flag is wrong?
         </h2>
         <p className="mt-2 text-[14px]">
@@ -253,7 +253,7 @@ export default function MethodologyPage() {
       </section>
 
       <section className="rv-card p-5 sm:p-6">
-        <h2 className="rv-display text-[20px] font-bold text-[var(--rv-ink)]">
+        <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
           What Riven can&apos;t see
         </h2>
         <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-[14px]">
