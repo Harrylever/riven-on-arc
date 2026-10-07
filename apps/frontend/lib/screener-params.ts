@@ -19,6 +19,8 @@ export type PadFilter = "all" | "ARGUS" | "TOLLY" | "OTHER"
 export type ViewFilter = "listed" | "caught" | "all"
 /** Window for the volume / change columns and the trending sort. */
 export type Timeframe = "5m" | "1h" | "6h" | "24h"
+/** DexScreener-style listing filters: enhanced profile, social links, paid boosts. */
+export type HasFilter = "all" | "profile" | "community" | "boosted"
 export const TIMEFRAMES: Timeframe[] = ["5m", "1h", "6h", "24h"]
 
 export interface ScreenerFilters {
@@ -33,6 +35,7 @@ export interface ScreenerFilters {
   minScore: number
   view: ViewFilter
   tf: Timeframe
+  has: HasFilter
   page: number
 }
 
@@ -51,6 +54,7 @@ export const DEFAULT_FILTERS: ScreenerFilters = {
   minScore: 0,
   view: "all",
   tf: "6h",
+  has: "all",
   page: 1,
 }
 
@@ -103,6 +107,7 @@ export function parseFilters(
         ? "all"
         : pick(sp.view, ["listed", "caught", "all"] as const, "all"),
     tf: pick(sp.tf, TIMEFRAMES, "6h"),
+    has: pick(sp.has, ["all", "profile", "community", "boosted"] as const, "all"),
     page: Math.max(1, Math.floor(n(sp.page)) || 1),
   }
 }

@@ -97,6 +97,10 @@ export function useRivenVoice(opts: { topic: () => Topic; onThinking: () => void
   const optsRef = useRef(opts)
   optsRef.current = opts
   const replyRef = useRef<ReplyMode>("robot")
+  // What Riven last talked about + the recent turns, so follow-ups ("and its holders?") work.
+  const subjectRef = useRef<string | undefined>(undefined)
+  const msgsRef = useRef<VoiceChat["msgs"]>([])
+  msgsRef.current = chat.msgs
 
   useEffect(() => {
     let reply: ReplyMode = "robot"
@@ -120,9 +124,15 @@ export function useRivenVoice(opts: { topic: () => Topic; onThinking: () => void
       const res = await fetch("/api/arc/agent", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question: q, topic: optsRef.current.topic() }),
+        body: JSON.stringify({
+          question: q,
+          topic: optsRef.current.topic(),
+          subject: subjectRef.current,
+          history: msgsRef.current.slice(-6).map((m) => ({ who: m.who, text: m.text })),
+        }),
       })
-      const d = (await res.json()) as { text?: string; error?: string; mode?: string }
+      const d = (await res.json()) as { text?: string; error?: string; mode?: string; tokens?: Array<{ address: string }> }
+      if (d.tokens?.length === 1) subjectRef.current = d.tokens[0]!.address
       text = d.text ?? d.error ?? "I couldn't answer that right now."
       mode = d.mode
     } catch {
@@ -308,7 +318,7 @@ export function VoicePanel({
       <div className="flex max-h-[42vh] min-h-[90px] flex-col gap-2 overflow-y-auto px-3 py-2.5">
         {chat.msgs.length === 0 && !chat.listening && (
           <p className="text-[var(--rv-ink-3)]">
-            Tap the mic and ask — “why is SOL pumping?”, “is this token safe?”, “any news on bitcoin?”. Double-tap me again to close.
+            Tap the mic and ask anything — “what's happening on Arc?”, “is this token safe?”, “tokens under $50K with socials”, “why is SOL pumping?”, “what does funding mean?”. Double-tap me again to close.
           </p>
         )}
         {chat.msgs.map((m, i) => (

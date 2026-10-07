@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { ArcBand } from "@clawdex/shared"
 import { BAND_META, change, changeColor, usd } from "@/lib/riven-format"
 import { TokenAvatar } from "./token-avatar"
@@ -20,18 +20,34 @@ interface Tick {
 /** Scrolling strip of the most-traded Arc tokens, each with its Riven score. */
 export function TickerStrip() {
   const [ticks, setTicks] = useState<Tick[]>([])
+  // which tokens' numbers just changed: flashed for a moment
+  const [moved, setMoved] = useState<Set<string>>(new Set())
+  const prev = useRef(new Map<string, number | null>())
   useEffect(() => {
     let alive = true
     const load = () =>
-      fetch("/api/arc/ticker")
+      fetch("/api/arc/ticker", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
-        .then((d: { tokens: Tick[] } | null) => alive && d && setTicks(d.tokens))
+        .then((d: { tokens: Tick[] } | null) => {
+          if (!alive || !d) return
+          const changed = new Set(
+            d.tokens.filter((t) => prev.current.has(t.address) && prev.current.get(t.address) !== t.marketCap).map((t) => t.address),
+          )
+          prev.current = new Map(d.tokens.map((t) => [t.address, t.marketCap]))
+          setTicks(d.tokens)
+          setMoved(changed)
+          if (changed.size) window.setTimeout(() => alive && setMoved(new Set()), 1600)
+        })
         .catch(() => {})
     load()
-    const id = setInterval(load, 30_000)
+    // refresh while the tab is visible; catch up right away when it comes back
+    const id = setInterval(() => document.visibilityState === "visible" && load(), 15_000)
+    const onVis = () => document.visibilityState === "visible" && load()
+    document.addEventListener("visibilitychange", onVis)
     return () => {
       alive = false
       clearInterval(id)
+      document.removeEventListener("visibilitychange", onVis)
     }
   }, [])
   if (ticks.length === 0) return <div className="h-9 border-t border-[var(--rv-stroke)]" />
@@ -44,7 +60,12 @@ export function TickerStrip() {
     >
       <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={20} />
       <span className="text-[12px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
-      <span className="rv-num text-[12px] text-[var(--rv-ink-2)]">{usd(t.marketCap)}</span>
+      <span
+        className="rv-num rounded px-0.5 text-[12px] text-[var(--rv-ink-2)] transition-colors duration-700"
+        style={moved.has(t.address) ? { background: "rgba(124,196,232,0.25)", color: "var(--rv-ink)" } : undefined}
+      >
+        {usd(t.marketCap)}
+      </span>
       <span className="rv-num text-[12px] font-semibold" style={{ color: changeColor(t.change24h) }}>
         {change(t.change24h)}
       </span>

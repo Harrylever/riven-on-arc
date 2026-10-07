@@ -27,7 +27,14 @@ interface DexPair {
   priceChange?: { m5?: number; h1?: number; h6?: number; h24?: number };
   txns?: { h24?: { buys?: number; sells?: number } };
   pairCreatedAt?: number;
-  info?: { imageUrl?: string; websites?: Array<{ url: string }>; socials?: Array<{ type: string; url: string }> };
+  info?: {
+    imageUrl?: string;
+    header?: string;
+    websites?: Array<{ url: string }>;
+    socials?: Array<{ type: string; url: string }>;
+  };
+  /** Paid DexScreener boosts currently running on this pair. */
+  boosts?: { active?: number };
 }
 
 /** Best pair per token: deepest USDC pair, else deepest pair of any quote. */
@@ -148,6 +155,10 @@ export class MarketSyncService {
                 usdcInPool: p.quoteToken?.address?.toLowerCase() === USDC.toLowerCase() ? p.liquidity?.quote ?? null : null,
                 websites: (p.info?.websites ?? []).map((w) => w.url),
                 socials: (p.info?.socials ?? []).map((s) => ({ type: s.type, url: s.url })),
+                // DexScreener listing extras, for the screener's Profile / Community / Boosted filters
+                profile: !!(p.info?.imageUrl || p.info?.header),
+                community: (p.info?.socials ?? []).length > 0,
+                boosts: p.boosts?.active ?? 0,
               },
               pairCreatedAt: p.pairCreatedAt ? new Date(p.pairCreatedAt) : null,
             }

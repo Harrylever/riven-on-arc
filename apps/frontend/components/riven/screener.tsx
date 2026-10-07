@@ -12,6 +12,7 @@ import {
   filtersToQuery,
   type AgeFilter,
   type BandFilter,
+  type HasFilter,
   type SortKey,
   type PadFilter,
   type ScreenerFilters,
@@ -168,6 +169,25 @@ export function Screener({
 
       {/* Filters: users narrow the full list down to what they want */}
       <div className="scrollbar-hidden -mx-4 flex items-center gap-1.5 overflow-x-auto px-4">
+        {(
+          [
+            ["profile", "Profile", "Tokens with an enhanced DexScreener profile"],
+            ["community", "Community", "Tokens with Telegram / X / socials listed"],
+            ["boosted", "⚡ Boosted", "Tokens with paid DexScreener boosts running"],
+          ] as Array<[HasFilter, string, string]>
+        ).map(([id, label, hint]) => (
+          <button
+            key={id}
+            type="button"
+            title={hint}
+            aria-pressed={filters.has === id}
+            onClick={() => go({ has: filters.has === id ? "all" : id })}
+            className="rv-chip shrink-0"
+          >
+            {label}
+          </button>
+        ))}
+        <span className="mx-0.5 h-5 w-px shrink-0 bg-[var(--rv-stroke)]" aria-hidden />
         <Select label="Which tokens" value={filters.view} onChange={(v) => go({ view: v as ViewFilter })} options={VIEWS} />
         <Select label="Riven score" value={filters.band} onChange={(v) => go({ band: v as BandFilter })} options={BANDS} />
         <Select label="Source" value={filters.pad} onChange={(v) => go({ pad: v as PadFilter })} options={PADS} />
@@ -346,6 +366,15 @@ function Pagination({ page, pages, onPage }: { page: number; pages: number; onPa
   )
 }
 
+/** Paid DexScreener boosts running on this token. */
+function Boosts({ n }: { n: number }) {
+  return (
+    <span className="rv-num shrink-0 text-[11px] font-bold text-[#fbbf24]" title={`${n} active DexScreener boost${n === 1 ? "" : "s"}`}>
+      ⚡{n}
+    </span>
+  )
+}
+
 /** Flagged rows get a red edge, like a warning stripe. */
 function rowStyle(t: TokenSummary) {
   return t.fake ? { boxShadow: "inset 2px 0 0 var(--rv-risk)" } : undefined
@@ -473,6 +502,7 @@ function DesktopTable({
                     <span className="min-w-0">
                       <span className="flex items-center gap-1.5">
                         <span className="max-w-[130px] truncate text-[13.5px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
+                        {t.boosts > 0 && <Boosts n={t.boosts} />}
                         <span className="text-[12px] text-[var(--rv-ink-3)]">/USDC</span>
                         <span className="max-w-[150px] truncate text-[12px] text-[var(--rv-ink-3)]">{t.name}</span>
                       </span>
@@ -556,6 +586,7 @@ function MobileList({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1">
                   <span className="truncate text-[14px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
+                  {t.boosts > 0 && <Boosts n={t.boosts} />}
                   <span className="text-[11px] text-[var(--rv-ink-3)]">/USDC</span>
                 </div>
                 <div className="rv-num mt-0.5 flex flex-wrap gap-x-2 text-[10.5px] text-[var(--rv-ink-3)]">

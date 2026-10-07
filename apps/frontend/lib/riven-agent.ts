@@ -1,7 +1,10 @@
 // Server-only: answers questions from Riven's own data. Never invents numbers,
 // never says buy or sell, always ends with the disclaimer (AGENTS.md agent rules).
+import { getDb } from "@clawdex/shared"
 import {
   getAlerts,
+  getArcPulse,
+  getMarketTotals,
   getCreatorRecord,
   getScreener,
   getTokenDetail,
@@ -13,6 +16,7 @@ import { usd, times } from "./riven-format"
 import { getHyperliquidMarkets } from "./hyperliquid"
 import { coinsIn, getNews } from "./news"
 import { getPerpInsight, insightFacts } from "./perp-insight"
+import { comparePair, explainConcept, FOLLOW_UP, parseScreenerQuery, type ParsedQuery } from "./agent-intent"
 
 /** What "this" refers to on the page the question was asked from. */
 export type AgentTopic = { kind: "token"; address: string } | { kind: "perp"; coin: string }
@@ -42,7 +46,7 @@ export interface AgentReply {
 }
 
 const ADDRESS = /0x[0-9a-fA-F]{40}/
-const TICKER = /\$([A-Za-z0-9]{2,15})/
+const TICKER = /\$([A-Za-z][A-Za-z0-9]{1,14})/
 
 function line(t: TokenSummary) {
   const s = t.score === null ? "not scored yet" : `${t.score.toFixed(1)}/10`
@@ -118,11 +122,154 @@ async function explainTicker(ticker: string): Promise<AgentReply> {
   }
 }
 
+const pct = (n: number | null) => (n === null ? "—" : `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`)
+
+/** "What's happening on Arc?" — the whole market in a few lines. */
+async function marketOverview(): Promise<AgentReply> {
+  const [pulse, totals, hot, alerts] = await Promise.all([
+    getArcPulse(),
+    getMarketTotals(),
+    getScreener({ ...DEFAULT_FILTERS, view: "listed", tf: "24h", sort: "trending" }, 4),
+    getAlerts({ limit: 3 }),
+  ])
+  return {
+    text: [
+      "Arc right now:",
+      `• ${totals.trading} tokens traded in the last 24h — ${usd(totals.volume24h)} volume over ${totals.txns24h.toLocaleString()} trades.`,
+      `• ${usd(pulse.realUsdcInTradingPools)} of real USDC sits in ${pulse.tradingPools} trading pools.`,
+      `• Last 24h: ${pulse.liquidityPulls24h} liquidity pulls, ${pulse.creatorSells24h} big creator sales, ${pulse.whaleSells24h} whale sales caught; ${pulse.scoresComputed24h} score updates.`,
+      pulse.livePerpCalls ? `• ${pulse.livePerpCalls} live perp calls from the scanner.` : "",
+      hot.tokens.length ? `Trending: ${hot.tokens.map((t) => `${t.symbol} (${t.score === null ? "unscored" : `${t.score.toFixed(1)}/10`})`).join(", ")}.` : "",
+      alerts.length ? `Latest alerts: ${alerts.map((a) => `${a.token.symbol} — ${a.message}`).join("; ")}.` : "",
+      `Source: Riven's Arc mainnet index, refreshed every few seconds. ${DISCLAIMER}`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    tokens: hot.tokens,
+  }
+}
+
+/** "Which perps are moving?" / "any signals?" — markets + scanner calls. */
+async function perpsOverview(lower: string): Promise<AgentReply> {
+  const [markets, db] = [await getHyperliquidMarkets().catch(() => []), getDb()]
+  const calls = await db.perpSignal
+    .findMany({ where: { outcome: "pending" }, orderBy: [{ confidence: "desc" }, { scanTime: "desc" }], take: 5 })
+    .catch(() => [])
+  const liquid = markets.filter((m) => m.volume24h > 5e6)
+  const sorted = /loser|down|dump|falling/.test(lower)
+    ? [...liquid].sort((a, b) => a.change24h - b.change24h)
+    : /funding/.test(lower)
+      ? [...liquid].sort((a, b) => Math.abs(b.fundingApr) - Math.abs(a.fundingApr))
+      : /gainer|up|pump|rising/.test(lower)
+        ? [...liquid].sort((a, b) => b.change24h - a.change24h)
+        : [...liquid].sort((a, b) => Math.abs(b.change24h) - Math.abs(a.change24h))
+  const parts = [
+    /funding/.test(lower) ? "Perps with the most extreme funding (24h volume over $5M):" : "Biggest perp moves in the last 24h (volume over $5M):",
+    ...sorted
+      .slice(0, 6)
+      .map((m) => `• ${m.symbol}: ${pct(m.change24h)}, volume ${usd(m.volume24h)}, funding ${m.fundingApr.toFixed(1)}% a year${m.fundingBias !== "NEUTRAL" ? ` (${m.fundingBias === "LONG_HEAVY" ? "longs crowded" : "shorts crowded"})` : ""}`),
+  ]
+  if (calls.length)
+    parts.push(
+      "Open scanner calls:",
+      ...calls.map((c) => `• ${c.symbol} ${c.bias} — confidence ${c.confidence}/10${c.winProb != null ? `, calibrated hit chance ${Math.round(Number(c.winProb) * 100)}%` : ""}`),
+    )
+  else parts.push("No open scanner calls right now.")
+  parts.push(`Source: Hyperliquid market data and sakz-bot's scanner. Calls are data, not advice. ${DISCLAIMER}`)
+  return { text: parts.join("\n"), tokens: [] }
+}
+
+/** One token, found by address or ticker (first real match). */
+async function resolveToken(ref: string): Promise<TokenSummary | null> {
+  if (/^0x[0-9a-f]{40}$/i.test(ref)) return getTokenDetail(ref.toLowerCase())
+  const found = await searchTokens(ref)
+  const exact = found.filter((t) => t.symbol.toLowerCase() === ref.toLowerCase())
+  const pick = (exact.length ? exact : found).sort((a, b) => Number(a.fake) - Number(b.fake) || (b.liquidityUsd ?? 0) - (a.liquidityUsd ?? 0))[0]
+  return pick ? getTokenDetail(pick.address) : null
+}
+
+async function compareTokens(refs: string[]): Promise<AgentReply> {
+  const all = await Promise.all(refs.map(resolveToken))
+  const found = all.filter((t): t is TokenSummary => t !== null)
+  const missing = all.length - found.length
+  if (found.length < 2) {
+    return { text: `I could only find ${found.length} of those on Arc, so I can't compare them fairly. Try $TICKERS or 0x addresses. ${DISCLAIMER}`, tokens: found }
+  }
+  const row = (t: TokenSummary) =>
+    `• ${t.symbol}: score ${t.score === null ? "pending" : `${t.score.toFixed(1)}/10 (${t.verdict})`}, MC ${usd(t.marketCap)}, liquidity ${usd(t.liquidityUsd)}, 24h vol ${usd(t.volume.h24)}, 24h ${pct(t.change.h24)}, holders ${t.holders ?? "—"}${t.fake ? `, flagged: ${t.fakeReasons[0]}` : ""}`
+  const scored = found.filter((t) => t.score !== null).sort((a, b) => b.score! - a.score!)
+  const lines = ["Side by side:", ...found.map(row)]
+  if (scored.length >= 2 && scored[0]!.score! - scored[1]!.score! >= 0.5)
+    lines.push(`${scored[0]!.symbol} has the stronger risk score — that's about how safe its setup looks, not where its price goes.`)
+  for (const t of found) {
+    const d = t.dangers.slice(0, 2)
+    if (d.length) lines.push(`${t.symbol} risks: ${d.join("; ")}.`)
+  }
+  if (missing) lines.push(`(${missing} more I couldn't find.)`)
+  lines.push(`Source: Riven scores and Arc market data. ${DISCLAIMER}`)
+  return { text: lines.join("\n"), tokens: found }
+}
+
+async function screenerAnswer(p: ParsedQuery): Promise<AgentReply> {
+  const res = await getScreener(p.filters, p.riskiest ? 40 : 6)
+  let list = res.tokens
+  if (p.riskiest) list = [...list].sort((a, b) => (a.score ?? 99) - (b.score ?? 99)).slice(0, 6)
+  const what = p.understood.join(", ")
+  if (list.length === 0)
+    return {
+      text: `No real tokens on Arc match that right now (${what}). Try loosening one condition. ${DISCLAIMER}`,
+      tokens: [],
+    }
+  return {
+    text: [
+      `Tokens on Arc — ${what}. ${res.total} found, top ${list.length}:`,
+      ...list.map((t) => {
+        const ch = t.change[({ "5m": "m5", "1h": "h1", "6h": "h6", "24h": "h24" } as const)[p.filters.tf]]
+        return `${line(t)}${ch !== null && /gainer|loser/.test(p.filters.sort) ? `, ${p.filters.tf} ${pct(ch)}` : ""}`
+      }),
+      `${p.filters.view === "listed" ? "Flagged tokens are hidden. " : ""}Open the Tokens page for the full list with these filters. ${DISCLAIMER}`,
+    ].join("\n"),
+    tokens: list,
+  }
+}
+
+const HELP = [
+  "Things you can ask me:",
+  "• “Is $TICKER safe?” · paste any 0x address · “Who created 0x…?”",
+  "• “Find tokens under $50K market cap with socials” · “Newest launches on Argus” · “Biggest gainers in the last hour”",
+  "• “Compare $A vs $B” · “What does wash trading mean?” · “How is the score calculated?”",
+  "• “What's happening on Arc?” · “What rugged today?”",
+  "• “Why is SOL pumping?” · “Which perps are moving?” · “Any news on bitcoin?”",
+].join("\n")
+
+export interface AskContext {
+  /** The token or perp pair on the page the question came from. */
+  topic?: AgentTopic
+  /** The token Riven last answered about (for "and its holders?"). */
+  subject?: string
+}
+
 /** Routes a plain-English question to the right lookup. */
-export async function answer(question: string, topic?: AgentTopic): Promise<AgentReply> {
+export async function answer(question: string, topicOrCtx?: AgentTopic | AskContext): Promise<AgentReply> {
+  const ctx: AskContext = topicOrCtx && "kind" in topicOrCtx ? { topic: topicOrCtx } : (topicOrCtx ?? {})
+  const topic = ctx.topic
   const q = question.trim()
   const lower = q.toLowerCase()
   const addr = q.match(ADDRESS)?.[0]?.toLowerCase()
+
+  if (/^(?:hi|hey|hello|yo|gm|sup|help|\?|what can you do\??|commands?)\W*$/i.test(q))
+    return { text: `Hey, I'm Riven. I read Arc's chain and the perp markets and explain what I see — I never tell you to buy or sell.\n${HELP}\n${DISCLAIMER}`, tokens: [] }
+
+  if (/happening|going on|overview|summary|pulse|how(?:'s| is) (?:the )?(?:market|arc|everything)|market today|status/.test(lower) && !parseScreenerQuery(q))
+    return marketOverview()
+
+  // "What is liquidity?" — definitions don't need data.
+  const concept = explainConcept(q)
+  if (concept) return { text: `${concept}\n${DISCLAIMER}`, tokens: [] }
+
+  // "$A vs $B"
+  const pair = comparePair(q)
+  if (pair) return compareTokens(pair)
 
   // Perp pairs and the news that moves them.
   if (!addr && !TICKER.test(q)) {
@@ -131,6 +278,7 @@ export async function answer(question: string, topic?: AgentTopic): Promise<Agen
     if (coin && (named || /pump|dump|moving|move|why|news|funding|long|short|signal|call|price|up|down|this|it\b/.test(lower))) {
       return explainPerp(coin)
     }
+    if (/\bperps?\b|perpetual|futures|funding|\bpairs?\b|scanner|signals?|calls?\b/.test(lower)) return perpsOverview(lower)
     if (/\bnews|headline/.test(lower)) {
       const news = await getNews({ limit: 6 }).catch(() => [])
       return {
@@ -141,9 +289,12 @@ export async function answer(question: string, topic?: AgentTopic): Promise<Agen
       }
     }
   }
-  // "Is this safe?" on a token page means that token.
-  if (!addr && !TICKER.test(q) && topic?.kind === "token" && /this|it\b|safe|score|rug|risk|why|holder|liquid|creator|scan/.test(lower)) {
-    return explainToken(topic.address)
+  // "Is this safe?" on a token page means that token; "and its holders?" means the last one.
+  if (!addr && !TICKER.test(q)) {
+    const here = topic?.kind === "token" ? topic.address : null
+    if (here && (FOLLOW_UP.test(q) || /safe|score|rug|risk|why|holder|liquid|creator|scan|dev|buy|sell|price|volume/.test(lower)))
+      return explainToken(here)
+    if (!here && ctx.subject && FOLLOW_UP.test(q) && !parseScreenerQuery(q)) return explainToken(ctx.subject)
   }
 
   if (addr) {
@@ -172,11 +323,11 @@ export async function answer(question: string, topic?: AgentTopic): Promise<Agen
   const dollar = q.match(TICKER)?.[1]
   if (dollar) return explainTicker(dollar)
 
-  if (/rug|alert|dump|pulled/.test(lower)) {
+  if (/\brug|alert|liquidity pull|pulled|creator sol|whale sol|score drop/.test(lower)) {
     const alerts = await getAlerts({ limit: 8 })
     if (alerts.length === 0)
       return {
-        text: `No rugs, dumps or score drops caught recently. ${DISCLAIMER}`,
+        text: `No liquidity pulls, big sales or score drops caught recently. ${DISCLAIMER}`,
         tokens: [],
       }
     return {
@@ -189,80 +340,36 @@ export async function answer(question: string, topic?: AgentTopic): Promise<Agen
     }
   }
 
-  if (/safe|healthy|low[- ]?risk|best|legit/.test(lower)) {
-    const list = (
-      await getScreener(
-        { ...DEFAULT_FILTERS, view: "listed", sort: "safest", band: "healthy" },
-        6,
-      )
-    ).tokens
-    if (list.length === 0) {
-      return {
-        text: `Right now Riven has no token on Arc scoring 7/10 or higher — most launches are flagged. That's the honest answer, not a gap in the data. ${DISCLAIMER}`,
-        tokens: [],
-      }
-    }
-    return {
-      text: [
-        "Highest-scoring real tokens on Arc right now:",
-        ...list.map(line),
-        `Ranked by Riven score. ${DISCLAIMER}`,
-      ].join("\n"),
-      tokens: list,
-    }
+  // "Find tokens under 5M market cap with socials", "safest new launches", "top gainers"…
+  const parsed = parseScreenerQuery(q)
+  if (parsed) {
+    const reply = await screenerAnswer(parsed)
+    if (parsed.filters.band === "healthy" && reply.tokens.length === 0)
+      reply.text = `Right now no real token on Arc matching that scores 7/10 or higher — most launches are flagged. That's the honest answer, not a gap in the data. ${DISCLAIMER}`
+    return reply
   }
 
-  if (/trend|hot|volume|pump|moving|gainer/.test(lower)) {
-    const list = (
-      await getScreener(
-        {
-          ...DEFAULT_FILTERS,
-          view: "listed",
-          tf: "24h",
-          sort: /gainer|pump/.test(lower) ? "gainers" : "trending",
-        },
-        6,
-      )
-    ).tokens
-    return {
-      text: [
-        "Most traded tokens on Arc in the last 24h (fakes hidden):",
-        ...list.map(line),
-        `Market data from DexScreener, scores from Riven. ${DISCLAIMER}`,
-      ].join("\n"),
-      tokens: list,
-    }
-  }
-
-  if (/new|launch|just/.test(lower)) {
-    const list = (await getScreener({ ...DEFAULT_FILTERS, view: "listed", sort: "new" }, 6))
-      .tokens
-    return {
-      text: [
-        "Newest real launches on Arc:",
-        ...list.map(line),
-        DISCLAIMER,
-      ].join("\n"),
-      tokens: list,
-    }
-  }
+  if (/happening|overview|summary|market|today|going on|status|pulse|arc\b|ecosystem|how(?:'s| is) (?:it|everything)/.test(lower)) return marketOverview()
 
   const bare =
     q.split(/\s+/).length <= 3 ? q.replace(/[^A-Za-z0-9]/g, "") : null
-  if (bare) {
+  if (bare && bare.length >= 2) {
     const reply = await explainTicker(bare)
     if (reply.tokens.length > 0) return reply
   }
 
+  // Not sure what they meant: give the market picture (the AI voice can work
+  // with it) plus what I can do — never a dead end.
+  const overview = await marketOverview().catch(() => null)
   return {
     text: [
-      "I can answer from Riven's data on Arc. Try:",
-      "• “Is $TICKER safe?” or paste a 0x token address",
-      "• “Who created 0x…?” for a creator's launch history",
-      "• “What rugged today?” · “Safest tokens” · “What's trending?”",
-      "• “Why is SOL pumping?” · “Any news on bitcoin?” for perp pairs",
+      "I'm not sure exactly what you're after, so here's what I see right now.",
+      overview ? overview.text.replace(`\n${DISCLAIMER}`, "").replace(DISCLAIMER, "").trim() : "",
+      HELP,
       DISCLAIMER,
-    ].join("\n"),
-    tokens: [],
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    tokens: overview?.tokens ?? [],
   }
 }

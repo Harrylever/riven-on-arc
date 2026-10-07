@@ -800,6 +800,9 @@ function HudSlot({
 }
 
 // ── the robot ─────────────────────────────────────────────────────────────
+const noop = () => {}
+/** Stand-in for bot-sfx while he moves on his own: he stays silent. */
+const SILENT = { press: noop, holoUp: noop, compute: noop, servo: noop, scan: noop, sad: noop, notify: noop, move: noop }
 type Act =
   | "idle"
   | "inspect"
@@ -853,6 +856,7 @@ function Robot({
   command,
   onPhase,
   autoScan,
+  intro,
 }: {
   mood: Mood
   holos: Holo[]
@@ -861,6 +865,7 @@ function Robot({
   command?: { id: number; act: string; at?: number }
   onPhase?: (phase: "press" | "done") => void
   autoScan: boolean
+  intro: boolean
   pointer: React.MutableRefObject<{ x: number; y: number }>
   poke: number
   calm: boolean
@@ -907,12 +912,16 @@ function Robot({
   const emblem = useRef<THREE.Group>(null)
   // eyes: blink timing, quick glances, and a reaction after a tap
   const eye = useRef({ nextBlink: 2.5, blinkT: -1, double: false, glanceT: 1.5, gx: 0, gy: 0, pokeT: -9 })
-  const act = useRef<{ name: Act; t: number; dur: number; fired: Set<string> }>({
+  // `byUser`: started by a tap / a page action. Only those make sound — on his
+  // own he's silent.
+  const act = useRef<{ name: Act; t: number; dur: number; fired: Set<string>; byUser: boolean }>({
     name: "idle",
     t: 0,
     dur: 0,
     fired: new Set(),
+    byUser: false,
   })
+  const introDone = useRef(false)
   const next = useRef(2.0)
   const lastPoke = useRef(poke)
   const [holoOn, setHoloOn] = useState(false)
@@ -921,8 +930,8 @@ function Robot({
   const glow = useRef(0)
   const holoTimer = useRef<number | undefined>(undefined)
 
-  const start = (name: Exclude<Act, "idle">) => {
-    act.current = { name, t: 0, dur: DUR[name], fired: new Set() }
+  const start = (name: Exclude<Act, "idle">, byUser = false) => {
+    act.current = { name, t: 0, dur: DUR[name], fired: new Set(), byUser }
     onAct?.(name)
   }
   useEffect(() => () => window.clearTimeout(holoTimer.current), [])
@@ -962,12 +971,10 @@ function Robot({
 
     if (poke !== lastPoke.current) {
       lastPoke.current = poke
-      sfx.chirp()
       eye.current.pokeT = t
       if (a.name === "idle") {
-        if (autoScan && holos.length && Math.random() < 0.6) start("scan")
-        else if (mood === "danger" || mood === "warn") start("shake")
-        else start((["wave", "celebrate", "dance", "point", "hop"] as const)[Math.floor(Math.random() * 5)]!)
+        // a tap: he turns to you and waves (pages can turn taps into scans instead)
+        start(mood === "danger" || mood === "warn" ? "shake" : "wave", true)
       }
     }
 
@@ -975,14 +982,14 @@ function Robot({
     if (command && command.id !== lastCommand.current) {
       lastCommand.current = command.id
       const want = command.act as Exclude<Act, "idle">
-      if (want in DUR) start(want === "scan" && !holos.length ? "nodata" : want)
+      if (want in DUR) start(want === "scan" && !holos.length ? "nodata" : want, true)
     }
 
     // Dev only: window.__rivenAct = "scan" | "think" | … plays a move on demand.
     if (process.env.NODE_ENV !== "production") {
       const w = window as unknown as { __rivenAct?: Exclude<Act, "idle">; __rivenHold?: boolean }
       if (w.__rivenAct) {
-        start(w.__rivenAct)
+        start(w.__rivenAct, true)
         w.__rivenAct = undefined
       }
     }
@@ -993,18 +1000,15 @@ function Robot({
     if (!calm && !devHold && a.name === "idle") {
       next.current -= dt
       if (next.current <= 0) {
-        const r = Math.random()
-        if (autoScan && holos.length && !holoOn && r < 0.3) start("scan")
-        else if (r < 0.42) start("inspect")
-        else if (r < 0.52) start("look")
-        else if (r < 0.6) start("think")
-        else if (r < 0.67) start("wave")
-        else if (r < 0.74) start(mood === "danger" ? "shake" : "dance")
-        else if (r < 0.8) start(mood === "danger" ? "shake" : "nod")
-        else if (r < 0.87) start(mood === "danger" || mood === "warn" ? "point" : "celebrate")
-        else if (r < 0.94) start("hop")
-        else start("spin")
-        next.current = (lively ? 2.5 : 4) + Math.random() * (lively ? 3 : 4)
+        // The home intro: one full scan (wrist hologram + magnifier), once.
+        if (intro && !introDone.current && holos.length) {
+          introDone.current = true
+          start("scan")
+        } else {
+          // Left alone he just acts natural: checks himself out, looks around.
+          start(Math.random() < 0.55 ? "inspect" : "look")
+        }
+        next.current = (lively ? 4 : 6) + Math.random() * (lively ? 4 : 6)
       }
     }
     if (a.name !== "idle") {
@@ -1016,12 +1020,13 @@ function Robot({
       }
       if (a.t >= a.dur) {
         if (a.name === "scan") {
-          sfx.notify() // read it — the details are updated
+          if (a.byUser) sfx.notify() // read it — the details are updated
           onPhase?.("done")
         }
-        act.current = { name: "idle", t: 0, dur: 0, fired: new Set() }
+        act.current = { name: "idle", t: 0, dur: 0, fired: new Set(), byUser: false }
       }
     }
+    const snd = a.byUser ? sfx : SILENT
     const once = (key: string, at: number, fn: () => void) => {
       if (a.t >= at && !a.fired.has(key)) {
         a.fired.add(key)
@@ -1083,15 +1088,15 @@ function Robot({
         poleR = V(-0.05, 0.05, 0.6)
         once("press", 1.12, () => {
           onPhase?.("press")
-          sfx.press()
-          window.setTimeout(() => sfx.holoUp(), 70)
+          snd.press()
+          window.setTimeout(() => snd.holoUp(), 70)
           setBeamsOn(true)
           setHoloOn(true)
           window.clearTimeout(holoTimer.current)
           holoTimer.current = window.setTimeout(() => setHoloOn(false), 17_000)
         })
         glowTarget = s > 1.1 ? (s < 10.6 ? 1 : 0) : 0.3 * lUp
-        once("compute", 1.8, () => sfx.compute(1000))
+        once("compute", 1.8, () => snd.compute(1000))
         // 3. right hand pulls the magnifier from behind the back…
         const back = ease((s - 2.4) / 0.6) * (1 - ease((s - 3.0) / 0.7))
         const read = ease((s - 3.0) / 0.8) * (1 - ease((s - 9.4) / 0.7))
@@ -1116,10 +1121,10 @@ function Robot({
         }
         glassShow = s > 2.75 && s < 10.25 ? 1 : 0
         glassUp = read
-        once("servo1", 2.4, () => sfx.servo(0.4))
-        once("scan", 4.0, () => sfx.scan(3.2))
-        once("compute2", 7.2, () => sfx.compute(700))
-        once("servo2", 9.4, () => sfx.servo(0.4))
+        once("servo1", 2.4, () => snd.servo(0.4))
+        once("scan", 4.0, () => snd.scan(3.2))
+        once("compute2", 7.2, () => snd.compute(700))
+        once("servo2", 9.4, () => snd.servo(0.4))
         once("beamsOff", 10.6, () => setBeamsOn(false))
         break
       }
@@ -1136,7 +1141,7 @@ function Robot({
         crouch = 0.012 * up
         eyeShape = up > 0.3 ? "sad" : "dot"
         lookY = -0.2
-        once("womp", 0.25, () => sfx.sad())
+        once("womp", 0.25, () => snd.sad())
         break
       }
       case "inspect": {
@@ -1159,7 +1164,7 @@ function Robot({
           eyeShape = "happy"
         }
         lookY = ph < 2 ? -0.5 : lookY
-        once("chk", 0.6, () => sfx.compute(300))
+        once("chk", 0.6, () => snd.compute(300))
         break
       }
       case "think": {
@@ -1174,7 +1179,7 @@ function Robot({
         headPitch = -0.12 * up
         headYaw = 0.18 * up
         roll = 0.08 * up
-        once("hmm", 0.9, () => sfx.compute(600))
+        once("hmm", 0.9, () => snd.compute(600))
         break
       }
       case "celebrate": {
@@ -1187,7 +1192,7 @@ function Robot({
         lift += up * 0.06 * b
         crouch = 0.03 * up * (1 - b)
         eyeShape = "happy"
-        once("yay", 0.2, () => sfx.notify())
+        once("yay", 0.2, () => snd.notify())
         break
       }
       case "point": {
@@ -1200,7 +1205,7 @@ function Robot({
         lookX = 0
         lookY = 0
         eyeShape = up > 0.5 ? "wide" : "dot"
-        once("blip", 0.3, () => sfx.press())
+        once("blip", 0.3, () => snd.press())
         break
       }
       case "wave": {
@@ -1213,7 +1218,7 @@ function Robot({
         break
       }
       case "spin":
-        once("whirl", 0.05, () => sfx.move())
+        once("whirl", 0.05, () => snd.move())
         yaw += ease(k) * Math.PI * 2
         lift += bump(k) * 0.05
         break
@@ -1227,7 +1232,7 @@ function Robot({
         tmp.rT.y += 0.04 * bump(air)
         tmp.rT.z += 0.03 * bump(air)
         eyeShape = air > 0 && air < 1 ? "wide" : "dot"
-        once("boing", 0.15, () => sfx.move())
+        once("boing", 0.15, () => snd.move())
         break
       }
       case "dance": {
@@ -1243,7 +1248,7 @@ function Robot({
         headPitch += on * 0.08 * Math.sin(beat)
         headYaw = on * 0.2 * Math.sin(beat / 2)
         eyeShape = "happy"
-        once("bop", 0.2, () => sfx.move())
+        once("bop", 0.2, () => snd.move())
         break
       }
       case "look": {
@@ -1501,6 +1506,8 @@ export interface RivenMascotProps {
   onPhase?: (phase: "press" | "done") => void
   /** Let him pull up his hologram on his own now and then (off when docked: it needs room). */
   autoScan?: boolean
+  /** Play the full scan once on arrival (home page), then just idle. */
+  intro?: boolean
 }
 
 export default function RivenMascot({
@@ -1517,6 +1524,7 @@ export default function RivenMascot({
   command,
   onPhase,
   autoScan = true,
+  intro = false,
 }: RivenMascotProps) {
   const wrap = useRef<HTMLDivElement>(null)
   const pointer = useRef({ x: 0, y: 0 })
@@ -1568,6 +1576,7 @@ export default function RivenMascot({
             command={command}
             onPhase={onPhase}
             autoScan={autoScan}
+            intro={intro}
           />
         </Suspense>
       </Canvas>

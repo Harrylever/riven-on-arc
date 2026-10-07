@@ -1,43 +1,16 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Mascot, type Holo, type Mood } from "./mascot"
 import type { Framing } from "./riven-mascot"
 import * as sfx from "@/lib/bot-sfx"
 import { useRivenOptional } from "./riven-context"
 
-/** What he says while doing each of his moves. */
-const ACT_LINES: Record<string, string[]> = {
-  scan: [
-    "Riven… GO! Pulling up the numbers.",
-    "Hologram up. Let me take a closer look.",
-    "Scanning the chain…",
-  ],
-  wave: ["Hey there!", "Hi! Tap me for the numbers."],
-  inspect: [
-    "Still shiny.",
-    "Chrome check: ✓",
-    "Not a scratch on me.",
-    "Looking sharp, if I say so myself.",
-  ],
-  spin: ["Wheee!", "360° scan complete."],
-  hop: ["Boing.", "On it!"],
-  shake: ["Nope. Read the red flags.", "I wouldn't. Check why first."],
-  nod: ["Looking good so far.", "Clean on-chain."],
-  nodata: ["Nothing to read on this one yet — no trades or pool data.", "No data on this pair yet. Check back once it trades."],
-  think: ["Hmm… let me think about that one.", "Computing…"],
-  celebrate: ["Woo! Clean on-chain!", "That's what I like to see."],
-  point: ["You — check the score before you buy.", "Read the red flags first!"],
-  dance: ["Green candles make me dance.", "♪ beep boop ♪"],
-  look: ["Watching the chain…", "Anything new launching? Let me look."],
-}
-
-const pick = (xs: string[]) => xs[Math.floor(Math.random() * xs.length)]!
-
 /**
- * Riven, alive on a page: the 3D mascot plus a speech bubble. `lines` are
- * page-specific things he says (a token's verdict, a tip); he also comments
- * on his own moves. Click him and he reacts.
+ * Riven, alive on a page. He doesn't talk on his own (no speech bubbles): he
+ * checks himself out and looks around. Tap him for the page's action (e.g. a
+ * scan), double-tap to talk to him. `lines`, `greet`, `say` and `bubbleSide`
+ * are accepted for compatibility but no longer shown.
  */
 export function MascotStage({
   mood = "idle",
@@ -56,6 +29,7 @@ export function MascotStage({
   say: sayProp,
   autoScan,
   onDoubleTap,
+  intro,
 }: {
   mood?: Mood
   holos?: Holo[]
@@ -80,55 +54,19 @@ export function MascotStage({
   autoScan?: boolean
   /** Double-tap: defaults to "ask Riven out loud". */
   onDoubleTap?: () => void
+  /** Play the full scan once on arrival, then idle naturally (home page). */
+  intro?: boolean
 }) {
   const riven = useRivenOptional()
   const lastTap = useRef(0)
   const single = useRef<number | undefined>(undefined)
-  const [say, setSay] = useState<string | null>(greet ?? null)
   const [poke, setPoke] = useState(0)
   const [muted, setMutedState] = useState(false)
   useEffect(() => setMutedState(sfx.isMuted()), [])
-  const hideAt = useRef<number | undefined>(undefined)
-  const lastLine = useRef(0)
-
-  const speak = useCallback((text: string, ms = 3800) => {
-    setSay(text)
-    window.clearTimeout(hideAt.current)
-    hideAt.current = window.setTimeout(() => setSay(null), ms)
-  }, [])
-
-  useEffect(() => {
-    if (greet) speak(greet, 5200)
-    return () => window.clearTimeout(hideAt.current)
-  }, [greet, speak])
-
-  // Every so often, share something about the page.
-  useEffect(() => {
-    if (lines.length === 0) return
-    const id = window.setInterval(() => {
-      lastLine.current = (lastLine.current + 1) % lines.length
-      speak(lines[lastLine.current]!, 4500)
-    }, 14_000)
-    return () => window.clearInterval(id)
-  }, [lines, speak])
-
-  useEffect(() => {
-    if (sayProp?.text) speak(sayProp.text, sayProp.ms ?? 4200)
-  }, [sayProp, speak])
-
-  const onAct = useCallback(
-    (a: string) => {
-      const options = ACT_LINES[a]
-      if (options && Math.random() < 0.7) speak(pick(options))
-    },
-    [speak],
-  )
-
-  // Beside him (docked) or down by his feet (hero) — never across his visor.
-  const bubblePos =
-    bubbleSide === "outside-left"
-      ? "right-full top-[18%] mr-1 w-max max-w-[220px]"
-      : "left-1/2 bottom-1 -translate-x-1/2 w-max max-w-[min(260px,92%)]"
+  void lines
+  void greet
+  void sayProp
+  void bubbleSide
 
   return (
     <div className={`group relative select-none ${className}`}>
@@ -143,6 +81,7 @@ export function MascotStage({
           if (double && now - lastTap.current < 320) {
             window.clearTimeout(single.current)
             lastTap.current = 0
+            sfx.talk() // robot noises when you call him
             double()
             return
           }
@@ -151,11 +90,6 @@ export function MascotStage({
           single.current = window.setTimeout(() => {
             if (onTap) return onTap()
             setPoke((p) => p + 1)
-            speak(
-              lines.length
-                ? lines[Math.floor(Math.random() * lines.length)]!
-                : "Hey! I'm Riven. Double-tap me to ask a question.",
-            )
           }, double ? 300 : 0)
         }}
         className="absolute inset-0 z-10 cursor-pointer rounded-[inherit] focus-visible:outline-2 focus-visible:outline-[var(--rv-blue)]"
@@ -168,11 +102,11 @@ export function MascotStage({
         zoom={zoom}
         holoSize={holoSize}
         lively={lively}
-        onAct={onAct}
         poke={poke}
         command={command}
         onPhase={onPhase}
         autoScan={autoScan}
+        intro={intro}
       />
       <button
         type="button"
@@ -207,18 +141,6 @@ export function MascotStage({
           )}
         </svg>
       </button>
-      {say && (
-        <div
-          role="status"
-          className={`pointer-events-none absolute z-20 rounded-xl border border-[rgba(124,196,232,0.35)] bg-[rgba(10,14,20,0.92)] px-3 py-2 text-[12.5px] leading-snug text-[var(--rv-ink)] shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur ${bubblePos}`}
-          style={{ animation: "rv-pop 180ms ease-out" }}
-        >
-          <span className="mb-0.5 block text-[10px] font-bold tracking-[0.12em] text-[var(--rv-blue)] uppercase">
-            Riven
-          </span>
-          {say}
-        </div>
-      )}
     </div>
   )
 }

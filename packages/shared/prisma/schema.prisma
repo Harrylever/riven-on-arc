@@ -71,6 +71,9 @@ model Token {
   executionLogs   ExecutionLog[]
   callouts        ArcCallout[]
 
+  @@index([launchTime])
+  @@index([deployerWallet])
+  @@index([holderHistory])
   @@map("tokens")
 }
 
@@ -138,6 +141,7 @@ model Pool {
   arcSwaps  ArcSwap[]
   lpEvents  ArcLpEvent[]
 
+  @@index([tokenId])
   @@map("pools")
 }
 
@@ -266,6 +270,7 @@ model ScoreRun {
   methodology    String?
   calculatedAt   DateTime @default(now()) @map("calculated_at")
 
+  @@index([tokenId, calculatedAt])
   @@map("score_runs")
 }
 
@@ -312,6 +317,8 @@ model Alert {
   details   Json // the actual before/after numbers behind the message
   createdAt DateTime  @default(now()) @map("created_at")
 
+  @@index([createdAt])
+  @@index([tokenId])
   @@map("alerts")
 }
 
@@ -494,6 +501,11 @@ model ArcMarket {
 
   @@index([liquidityUsd])
   @@index([volume24h])
+  @@index([volume1h])
+  @@index([volume6h])
+  @@index([volume5m])
+  @@index([marketCap])
+  @@index([updatedAt])
   @@map("arc_markets")
 }
 

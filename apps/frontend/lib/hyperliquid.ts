@@ -1,3 +1,4 @@
+import { cached } from "./memo"
 /**
  * Hyperliquid Info API client for ClawDex Perpetual Intelligence Terminal.
  * Hyperliquid's Info API is 100% public, permissionless, and does NOT require an API key.
@@ -131,7 +132,7 @@ export async function queryHyperliquid<T>(
 /**
  * Fetch all perpetual markets, parse their metadata and 24h stats.
  */
-export async function getHyperliquidMarkets(): Promise<PerpMarket[]> {
+async function getHyperliquidMarketsRaw(): Promise<PerpMarket[]> {
   const [meta, assetCtxs] = await queryHyperliquid<
     [{ universe: HyperliquidAssetMeta[] }, HyperliquidAssetCtx[]]
   >({ type: "metaAndAssetCtxs" })
@@ -308,3 +309,6 @@ export async function getHyperliquidOrderbook(
     spreadPct,
   }
 }
+
+/** Shared for 5s: every page and Riven's analysis read the same snapshot. */
+export const getHyperliquidMarkets = () => cached("hl:markets", 5_000, getHyperliquidMarketsRaw)

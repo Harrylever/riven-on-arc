@@ -16,10 +16,12 @@ interface Msg {
 }
 
 const STARTERS = [
+  "What's happening on Arc?",
+  "Tokens under $50K market cap with socials",
+  "Biggest gainers in the last hour",
   "What rugged today?",
-  "Safest tokens on Arc",
-  "What's trending?",
-  "Newest launches",
+  "Which perps are moving?",
+  "How is the score calculated?",
 ]
 
 export function AgentChat() {
@@ -53,7 +55,11 @@ export function AgentChat() {
       const res = await fetch("/api/arc/agent", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question: text }),
+        body: JSON.stringify({
+          question: text,
+          subject: msgs.findLast((m) => m.role === "riven" && m.tokens?.length === 1)?.tokens?.[0]?.address,
+          history: msgs.slice(-6).map((m) => ({ who: m.role === "user" ? "you" : "riven", text: m.text })),
+        }),
       })
       const d = await res.json()
       setMsgs((m) => [

@@ -31,9 +31,10 @@ const settle = <T,>(p: Promise<T>, fallback: T) =>
   })
 
 export default async function Home() {
-  const [stats, top, caught, alerts, callouts, pulse] = await Promise.all([
+  const [stats, topRaw, caught, alerts, callouts, pulse] = await Promise.all([
     settle(getStats(), null),
-    settle(getScreener({ ...DEFAULT_FILTERS, view: "all" }, 12), null),
+    // carousel: what's trading right now with real liquidity (flagged ones dropped below)
+    settle(getScreener({ ...DEFAULT_FILTERS, view: "all", minLiq: 1000, tf: "1h" }, 24), null),
     settle(
       getScreener({ ...DEFAULT_FILTERS, view: "caught", sort: "new" }, 6),
       null,
@@ -48,6 +49,8 @@ export default async function Home() {
     stats && stats.launches24h
       ? Math.round((stats.fake24h / stats.launches24h) * 100)
       : null
+  // results are shared from a cache: copy, never mutate
+  const top = topRaw ? { ...topRaw, tokens: topRaw.tokens.filter((t) => !t.fake).slice(0, 14) } : null
   const wall = (top?.tokens ?? []).filter((t) => t.image).slice(0, 12)
 
   // Holograms Riven pulls up in the hero — all live numbers.
@@ -168,6 +171,8 @@ export default async function Home() {
               lines={lines}
               greet="Hey, I'm Riven. I rug-check every token on Arc."
               lively
+              intro
+              autoScan={false}
               bubbleSide="bottom"
             />
           </div>

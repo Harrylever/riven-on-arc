@@ -1,4 +1,6 @@
-// Server-only module: imports Prisma via @clawdex/shared, never import from a client component.
+// Server-only module: imports Prisma via @clawdex/shared, never import
+// from a client component.
+import { cached } from "./memo"
 import {
   ARC_METHODOLOGY,
   FAKE_FLAG_CODES,
@@ -75,6 +77,12 @@ export interface TokenSummary {
   dexUrl: string | null
   pairAddress: string | null
   scoredAt: string | null
+  /** DexScreener listing extras: an enhanced profile, social links, active paid boosts. */
+  profile: boolean
+  community: boolean
+  boosts: number
+  socials: Array<{ type: string; url: string }>
+  websites: string[]
 }
 
 export interface CreatorToken {
@@ -294,6 +302,11 @@ function summarize(t: TokenRow): TokenSummary {
   const score = scoreOf(run)
   const socialsJson = (m?.socials ?? null) as {
     usdcInPool?: number | null
+    profile?: boolean
+    community?: boolean
+    boosts?: number
+    socials?: Array<{ type: string; url: string }>
+    websites?: string[]
   } | null
   const usdcInPool = sig.market?.poolUsdc ?? socialsJson?.usdcInPool ?? null
   const scored = scoredReasons(flags, run?.methodology)
@@ -343,6 +356,11 @@ function summarize(t: TokenRow): TokenSummary {
     dexUrl: m?.dexUrl ?? null,
     pairAddress: m?.pairAddress ?? null,
     scoredAt: run ? run.calculatedAt.toISOString() : null,
+    profile: !!socialsJson?.profile,
+    community: !!socialsJson?.community || (socialsJson?.socials?.length ?? 0) > 0,
+    boosts: socialsJson?.boosts ?? 0,
+    socials: (socialsJson?.socials ?? []).filter((x) => /^https:\/\//.test(x.url)).slice(0, 4),
+    websites: (socialsJson?.websites ?? []).filter((u) => /^https:\/\//.test(u)).slice(0, 2),
   }
 }
 
@@ -359,7 +377,7 @@ const AGE_MS: Record<Exclude<AgeFilter, "all">, number> = {
  * are hidden in the default "listed" view; "caught" shows only them, with
  * the evidence. Search always finds them.
  */
-export async function getScreener(
+async function getScreenerRaw(
   f: ScreenerFilters,
   pageSize = PAGE_SIZE,
 ): Promise<{
@@ -377,6 +395,10 @@ export async function getScreener(
       ...(f.maxMcap > 0 ? { lte: f.maxMcap } : {}),
     }
   const where: Record<string, unknown> = {}
+  // DexScreener listing extras (stored with the market snapshot)
+  if (f.has === "profile") market.socials = { path: ["profile"], equals: true }
+  else if (f.has === "community") market.socials = { path: ["community"], equals: true }
+  else if (f.has === "boosted") market.socials = { path: ["boosts"], gt: 0 }
   if (Object.keys(market).length) where.arcMarket = market
   if (f.pad !== "all") where.launchpad = f.pad
   if (f.age !== "all")
@@ -455,7 +477,7 @@ export async function getScreener(
 }
 
 /** Chain-wide totals for the screener header, DexScreener-style. */
-export async function getMarketTotals() {
+async function getMarketTotalsRaw() {
   const db = getDb()
   const [agg, tokens, trading] = await Promise.all([
     db.arcMarket.aggregate({ _sum: { volume24h: true, buys24h: true, sells24h: true, liquidityUsd: true } }),
@@ -482,7 +504,7 @@ export async function getSyncStatus() {
   }
 }
 
-export async function getStats() {
+async function getStatsRaw() {
   const db = getDb()
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
   const [recent, total, listed, cursor] = await Promise.all([
@@ -634,7 +656,7 @@ export async function getCreatorRecord(
   }
 }
 
-export async function getAlerts(
+async function getAlertsRaw(
   opts: { addresses?: string[]; limit?: number } = {},
 ): Promise<TokenAlert[]> {
   const where = opts.addresses?.length
@@ -860,7 +882,7 @@ export async function getCallouts(limit = 12, tokenAddress?: string): Promise<Ca
  * this way: every pool is quoted in USDC (Arc's gas token), so "real dollars a
  * seller can exit into" is one on-chain read per pool.
  */
-export async function getArcPulse() {
+async function getArcPulseRaw() {
   const db = getDb()
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
   const [byType, markets, liveCalls, rescans] = await Promise.all([
@@ -884,3 +906,18 @@ export async function getArcPulse() {
     scoresComputed24h: rescans,
   }
 }
+
+export const getStats = () => cached("stats", 30000, () => getStatsRaw())
+
+export const getArcPulse = () => cached("pulse", 30000, () => getArcPulseRaw())
+
+export const getMarketTotals = () => cached("totals", 30000, () => getMarketTotalsRaw())
+
+/** Screener lists, cached briefly per filter set (the list refreshes every ~15s anyway). */
+export const getScreener = (f: ScreenerFilters, pageSize = PAGE_SIZE) =>
+  cached(`screener:${JSON.stringify(f)}:${pageSize}`, 15_000, () => getScreenerRaw(f, pageSize))
+
+export const getAlerts = (
+  opts: { addresses?: string[]; limit?: number } = {},
+) =>
+  cached(`alerts:${JSON.stringify(opts)}`, 15_000, () => getAlertsRaw(opts))

@@ -11,7 +11,10 @@ const SYSTEM = `You are Riven, a friendly robot companion on a crypto market ter
 You will get a user's question and FACTS produced by Riven's own analysis engine (on-chain index, market data, news feeds).
 Your replies may be read aloud, so keep them conversational.
 Rules (non-negotiable):
-- Use only the FACTS. Never add numbers, tokens, prices or claims that aren't in them. If the facts don't answer the question, say so plainly.
+- Use only the FACTS for anything about specific tokens, pairs, prices, scores or the market. Never add numbers, tokens, prices or claims that aren't in them. If the facts don't answer the question, say so plainly and point to the closest thing they do cover.
+- You may explain general crypto concepts (what a rug pull, liquidity or funding is) in your own words, without numbers.
+- Answer the question that was asked first, then add only the facts that help. Skip facts that don't.
+- The conversation so far (if any) tells you what "it" or "that" refers to.
 - Never tell the user to buy, sell or hold. Explain risk; the user decides.
 - Plain English, casual but professional; explain jargon the first time. Under 150 words. Use short bullet points for risks.
 - Keep any "Source:" line from the facts.
@@ -20,7 +23,20 @@ Rules (non-negotiable):
 
 export type AnswerMode = "claude" | "gemini" | "rules"
 
-async function viaGemini(key: string, question: string, facts: string): Promise<string> {
+/** One earlier chat turn. */
+export interface Turn {
+  who: "you" | "riven"
+  text: string
+}
+
+function prompt(question: string, facts: string, history: Turn[]) {
+  const convo = history.length
+    ? `CONVERSATION SO FAR:\n${history.map((h) => `${h.who === "you" ? "User" : "Riven"}: ${h.text}`).join("\n")}\n\n`
+    : ""
+  return `${convo}QUESTION:\n${question}\n\nFACTS:\n${facts}`
+}
+
+async function viaGemini(key: string, text: string): Promise<string> {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`,
     {
@@ -28,11 +44,7 @@ async function viaGemini(key: string, question: string, facts: string): Promise<
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM }] },
-        contents: [{ role: "user", parts: [{ text: `QUESTION:
-${question}
-
-FACTS:
-${facts}` }] }],
+        contents: [{ role: "user", parts: [{ text }] }],
         generationConfig: { maxOutputTokens: 400, temperature: 0.4 },
       }),
       signal: AbortSignal.timeout(12_000),
@@ -46,12 +58,13 @@ ${facts}` }] }],
 export async function writeAnswer(
   question: string,
   grounded: AgentReply,
+  history: Turn[] = [],
 ): Promise<AgentReply & { mode: AnswerMode }> {
   const key = process.env.ANTHROPIC_API_KEY
   const gemini = process.env.GEMINI_API_KEY
   if (!key && gemini) {
     try {
-      let text = await viaGemini(gemini, question, grounded.text)
+      let text = await viaGemini(gemini, prompt(question, grounded.text, history))
       if (!text) throw new Error("empty reply")
       if (!text.endsWith(DISCLAIMER)) text = `${text}
 

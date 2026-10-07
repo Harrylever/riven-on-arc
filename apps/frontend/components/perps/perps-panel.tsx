@@ -326,10 +326,14 @@ export function PerpsPanel() {
     return null
   }
 
-  // Live calls first in the carousel: newest, then highest conviction.
+  // Carousel: the live calls most worth a look — highest calibrated
+  // conviction (then model win odds), newest first among equals.
   const liveCalls = (signals ?? [])
     .filter((s) => s.outcome === "pending")
-    .sort((a, b) => b.scanTime.localeCompare(a.scanTime) || b.confidence - a.confidence)
+    .sort(
+      (a, b) =>
+        b.confidence - a.confidence || (b.winProb ?? 0) - (a.winProb ?? 0) || b.scanTime.localeCompare(a.scanTime),
+    )
     .slice(0, 24)
   const marks = new Map((markets ?? []).map((m) => [m.symbol.toUpperCase(), m.markPrice]))
 
