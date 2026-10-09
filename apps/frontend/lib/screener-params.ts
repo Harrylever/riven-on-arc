@@ -12,6 +12,7 @@ export type SortKey =
   | "txns"
   | "volume"
   | "safest"
+  | "gap"
 export type BandFilter = "all" | ArcBand
 export type AgeFilter = "all" | "1h" | "6h" | "24h" | "7d"
 export type PadFilter = "all" | "ARGUS" | "TOLLY" | "OTHER"
@@ -68,6 +69,8 @@ export const SORTS: Array<{ id: SortKey; label: string }> = [
   { id: "mcap", label: "Market cap" },
   { id: "liquidity", label: "Liquidity" },
   { id: "safest", label: "Safest" },
+  // reported "liquidity" minus the USDC really in the pool: Riven's Arc-specific view
+  { id: "gap", label: "Liquidity gap" },
 ]
 
 const pick = <T extends string>(

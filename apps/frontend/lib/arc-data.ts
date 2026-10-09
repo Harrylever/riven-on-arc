@@ -441,7 +441,7 @@ async function getScreenerRaw(
   }
 
   // Fast path (the default view): the database pages over every token.
-  const needsScore = f.view !== "all" || f.band !== "all" || f.minScore > 0 || f.sort === "safest"
+  const needsScore = f.view !== "all" || f.band !== "all" || f.minScore > 0 || f.sort === "safest" || f.sort === "gap"
   if (!needsScore) {
     const db = getDb()
     const fullWhere = { pools: { some: {} }, ...where }
@@ -473,6 +473,12 @@ async function getScreenerRaw(
         (b.score ?? 0) - (a.score ?? 0) ||
         (b.volume.h24 ?? 0) - (a.volume.h24 ?? 0),
     )
+  }
+  if (f.sort === "gap") {
+    // How much of the headline "liquidity" is not real USDC: biggest gap first.
+    const gap = (t: TokenSummary) => (t.liquidityUsd ?? 0) - (t.usdcInPool ?? 0)
+    list = list.filter((t) => t.liquidityUsd !== null && t.usdcInPool !== null && gap(t) > 0)
+    list.sort((a, b) => gap(b) - gap(a))
   }
   const pages = Math.max(1, Math.ceil(list.length / pageSize))
   const page = Math.min(f.page ?? 1, pages)
@@ -898,7 +904,7 @@ async function getArcPulseRaw() {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
   const [byType, markets, liveCalls, rescans] = await Promise.all([
     db.alert.groupBy({ by: ["type"], where: { createdAt: { gte: since } }, _count: true }),
-    db.arcMarket.findMany({ where: { volume24h: { gt: 0 } }, select: { socials: true } }),
+    db.arcMarket.findMany({ where: { volume24h: { gt: 0 } }, select: { socials: true, liquidityUsd: true } }),
     db.perpSignal.count({ where: { outcome: "pending" } }).catch(() => 0),
     db.scoreRun.count({ where: { calculatedAt: { gte: since } } }),
   ])
@@ -907,7 +913,10 @@ async function getArcPulseRaw() {
     const v = (m.socials as { usdcInPool?: number | null } | null)?.usdcInPool
     return sum + (typeof v === "number" && Number.isFinite(v) ? v : 0)
   }, 0)
+  // What DexScreener-style feeds call "liquidity" for the same pools: the headline Riven contradicts.
+  const reportedLiquidity = markets.reduce((sum, m) => sum + (num(m.liquidityUsd) ?? 0), 0)
   return {
+    reportedLiquidityUsd: reportedLiquidity,
     liquidityPulls24h: count("RUG_PULL"),
     creatorSells24h: count("CREATOR_DUMP"),
     whaleSells24h: count("WHALE_DUMP"),

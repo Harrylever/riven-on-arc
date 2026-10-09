@@ -218,7 +218,11 @@ export default async function Home() {
             <PulseCard
               value={usd(pulse.realUsdcInTradingPools)}
               label="Real USDC in trading pools"
-              hint={`Across ${compact(pulse.tradingPools)} pools — what sellers can actually exit into`}
+              hint={
+                pulse.reportedLiquidityUsd > pulse.realUsdcInTradingPools
+                  ? `${usd(pulse.reportedLiquidityUsd)} is what other feeds call "liquidity" across ${compact(pulse.tradingPools)} pools — this is what sellers can actually exit into`
+                  : `Across ${compact(pulse.tradingPools)} pools — what sellers can actually exit into`
+              }
               color="var(--rv-blue)"
             />
             <PulseCard
