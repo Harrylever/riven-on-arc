@@ -18,6 +18,7 @@ import {
 } from "@/lib/riven-format"
 import { ScoreMeter } from "./score-badge"
 import { CalloutsRow } from "./home-sections"
+import { exitQuote, maxSellForImpact } from "@/lib/exit-quote"
 import type { Holo, Mood } from "@/components/mascot/mascot"
 import { useRiven, useRivenPage } from "@/components/mascot/riven-context"
 import { TokenAvatar } from "./token-avatar"
@@ -272,6 +273,8 @@ export function TokenView({
             that&apos;s all sellers can exit into.
           </p>
         )}
+
+      {t.usdcInPool !== null && <ExitCheck poolUsdc={t.usdcInPool} />}
 
       <CopycatWarning token={t} copies={t.copyList} now={now} />
 
@@ -579,6 +582,68 @@ function UnscoredChecklist({
         {busy ? "Asking Riven\u2026" : "Check again now"}
       </button>
     </div>
+  )
+}
+
+const EXIT_SIZES = [100, 1_000, 10_000]
+
+/** "If I sold $X right now?": best-case proceeds from the USDC that is really in the pool. */
+function ExitCheck({ poolUsdc }: { poolUsdc: number }) {
+  const [size, setSize] = useState(1_000)
+  const [custom, setCustom] = useState("")
+  const q = exitQuote(poolUsdc, size)
+  const safe = maxSellForImpact(poolUsdc, 0.05)
+  const tone =
+    !q ? "var(--rv-ink-2)" : q.exceedsPool || q.impact > 0.25 ? "var(--rv-risk)" : q.impact > 0.05 ? "var(--rv-caution)" : "var(--rv-healthy)"
+  return (
+    <section className="rv-card p-4" aria-label="Exit check">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[13px] font-bold text-[var(--rv-ink)]">Can you get out?</h2>
+        <span className="text-[11px] text-[var(--rv-ink-3)]">Best case from {usd(poolUsdc)} real USDC in the pool</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {EXIT_SIZES.map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={size === v && custom === ""}
+            onClick={() => {
+              setSize(v)
+              setCustom("")
+            }}
+            className="rv-chip"
+          >
+            Sell {usd(v)}
+          </button>
+        ))}
+        <label className="sr-only" htmlFor="exit-custom">Custom sale size in USD</label>
+        <input
+          id="exit-custom"
+          inputMode="decimal"
+          placeholder="Custom $"
+          value={custom}
+          onChange={(e) => {
+            const v = e.target.value.replace(/[^0-9.]/g, "").slice(0, 12)
+            setCustom(v)
+            const n = Number(v)
+            if (Number.isFinite(n) && n > 0) setSize(n)
+          }}
+          className="h-8 w-24 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2 text-[12px] text-[var(--rv-ink)]"
+        />
+      </div>
+      {q && (
+        <p className="mt-3 text-[13px] leading-snug text-[var(--rv-ink)]">
+          Selling <b>{usd(size)}</b> would return at most{" "}
+          <b style={{ color: tone }}>{usd(q.receive, { precise: true })}</b>{" "}
+          <span style={{ color: tone }}>({Math.round(q.impact * 100)}% lost to price impact)</span>
+          {q.exceedsPool && ". That is more than the pool holds: it cannot be sold in full."}
+        </p>
+      )}
+      <p className="mt-1.5 text-[11px] leading-snug text-[var(--rv-ink-3)]">
+        {safe !== null ? `Up to about ${usd(safe)} keeps the loss under 5%. ` : ""}
+        Estimate for a constant-product pool; concentrated liquidity moves price more, so real exits can be worse. Not financial advice.
+      </p>
+    </section>
   )
 }
 
