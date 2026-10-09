@@ -260,10 +260,12 @@ export default async function Home() {
         </section>
       )}
 
-      <section>
-        <SectionTitle title="Callouts" live />
-        <CalloutsRow callouts={callouts} now={now} />
-      </section>
+      {callouts.length > 0 && (
+        <section>
+          <SectionTitle title="Callouts" live />
+          <CalloutsRow callouts={callouts} now={now} />
+        </section>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section>

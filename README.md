@@ -83,7 +83,7 @@ bun run --filter frontend test          # swap encoder, paper-perp accounting, s
 
 | Variable | Default | Effect when `"false"` |
 |---|---|---|
-| `NEXT_PUBLIC_TRADING_ENABLED` | on | Read-only Riven: Buy/Sell/Convert hidden; `/api/arc/trade` returns 404 |
+| `NEXT_PUBLIC_TRADING_ENABLED` | off | Set to `"true"` to enable Buy/Sell/Convert; when off, Riven is read-only and `/api/arc/trade` returns 404 |
 | `NEXT_PUBLIC_PERPS_ENABLED` | on | `/perps` returns 404 and the nav link is hidden |
 | `NEXT_PUBLIC_DISPUTE_URL` | (none) | Where "Dispute a score" links; defaults to `/methodology#disputes` |
 

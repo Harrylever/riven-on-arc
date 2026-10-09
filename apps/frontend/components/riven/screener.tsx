@@ -63,6 +63,9 @@ const RANKS = SORTS.filter((s) => s.id !== "trending")
 const TF_KEY = { "5m": "m5", "1h": "h1", "6h": "h6", "24h": "h24" } as const
 const pick = (t: TokenSummary, tf: Timeframe) => ({ vol: t.volume[TF_KEY[tf]], chg: t.change[TF_KEY[tf]] })
 
+/** Flip once the market sync populates DexScreener profile / social fields. */
+const DEX_FILTERS_READY = false
+
 export function Screener({
   title = "Every token on Arc",
   filters,
@@ -169,7 +172,10 @@ export function Screener({
 
       {/* Filters: users narrow the full list down to what they want */}
       <div className="scrollbar-hidden -mx-4 flex items-center gap-1.5 overflow-x-auto px-4">
-        {(
+        {/* Profile / Community / Boosted need DexScreener fields the market sync has not
+            populated yet, and "Boosted" surfaces paid placement. Re-enable when the data exists. */}
+        {DEX_FILTERS_READY && (
+          (
           [
             ["profile", "Profile", "Tokens with an enhanced DexScreener profile"],
             ["community", "Community", "Tokens with Telegram / X / socials listed"],
@@ -186,7 +192,8 @@ export function Screener({
           >
             {label}
           </button>
-        ))}
+        ))
+        )}
         <span className="mx-0.5 h-5 w-px shrink-0 bg-[var(--rv-stroke)]" aria-hidden />
         <Select label="Which tokens" value={filters.view} onChange={(v) => go({ view: v as ViewFilter })} options={VIEWS} />
         <Select label="Riven score" value={filters.band} onChange={(v) => go({ band: v as BandFilter })} options={BANDS} />

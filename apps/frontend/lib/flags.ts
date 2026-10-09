@@ -10,8 +10,9 @@ export const PERPS_ENABLED = process.env.NEXT_PUBLIC_PERPS_ENABLED !== "false"
 
 /**
  * Non-custodial buy/sell of Arc tokens (the user signs every tx in their own
- * wallet). On by default; set NEXT_PUBLIC_TRADING_ENABLED="false" to ship a
- * read-only Riven — buttons hidden and /api/arc/trade returns 404.
+ * wallet). Off by default until the swap encoder has been exercised with real
+ * funds; set NEXT_PUBLIC_TRADING_ENABLED="true" to enable it. When off, Riven is
+ * read-only — buttons hidden and /api/arc/trade returns 404.
  */
 export const TRADING_ENABLED =
-  process.env.NEXT_PUBLIC_TRADING_ENABLED !== "false"
+  process.env.NEXT_PUBLIC_TRADING_ENABLED === "true"

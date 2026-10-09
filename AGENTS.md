@@ -22,8 +22,10 @@ This repo is **Riven**: Riven ported from Solana to **Arc mainnet** (chain 5042,
 - Pool USDC comes from on-chain `StateView` liquidity × price (`usdcInRange`). It is never derived from summed swaps.
 - "LP removed" is judged on the launch position only (`launchLiquidityPulled`).
 
+**Added 2026-10-09:** the ClawDex name is gone (package scope is `@riven/shared`; `RIVEN_DATABASE_URL` is the sakz mirror variable, with the old `CLAWDEX_DATABASE_URL` still passed through because the external sakz-bot module reads it). Deployment is Railway Infrastructure as Code (`.railway/railway.ts`, no `railway.toml`) plus Vercel for the frontend: see `docs/DEPLOY.md`. New surfaces: `/accuracy`, `/creator/[wallet]`, exit check on token pages, `/api/arc/tokens/[address]` and `/api/arc/badge/[address]`, "Liquidity gap" sort. Profile/Community/Boosted screener filters are hidden until the market sync fills their fields.
+
 **Owner decisions (2026-10-06), superseding "monitoring only" below:**
-- **Non-custodial buy/sell is allowed** behind `NEXT_PUBLIC_TRADING_ENABLED` (default on). The user signs every tx in their own wallet; Riven never holds keys, signs or broadcasts.
+- **Non-custodial buy/sell is allowed** behind `NEXT_PUBLIC_TRADING_ENABLED` (default off since 2026-10-09 until the swap encoder is exercised with real funds). The user signs every tx in their own wallet; Riven never holds keys, signs or broadcasts.
   - Approvals are exact-amount and short-lived.
   - `assertSafeTx` in `hooks/use-arc-wallet.ts` refuses unknown contract calls.
   - `apps/backend/src/trade/` (autonomous TradeService) stays **frozen**.

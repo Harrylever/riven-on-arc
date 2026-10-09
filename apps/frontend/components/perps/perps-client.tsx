@@ -74,10 +74,10 @@ export function PerpsClient() {
         />
         <div className="relative">
           <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 py-1 text-[12px] text-[var(--rv-ink-2)]">
-            <span className="rv-live-dot" /> USDC on Arc · Hyperliquid prices
+            <span className="rv-live-dot" /> Paper trading · Hyperliquid prices
           </p>
           <h1 className="text-[28px] leading-tight font-bold tracking-tight text-[var(--rv-ink)] sm:text-[34px]">
-            Trade perps with Arc USDC
+            Practise perps with Arc USDC
           </h1>
           <p className="mt-1.5 max-w-xl text-[13.5px] leading-relaxed text-[var(--rv-ink-2)]">
             Your Arc USDC is the margin: connect an Arc wallet and practise on 100+ live Hyperliquid markets with real
@@ -87,14 +87,6 @@ export function PerpsClient() {
           <div className="mt-4 flex flex-wrap gap-2">
             <a href="#perp-signals" className="rv-btn h-10 px-5">
               See open calls
-            </a>
-            <a
-              href="https://app.hyperliquid.xyz/trade"
-              target="_blank"
-              rel="noreferrer"
-              className="rv-btn-ghost h-10 px-5"
-            >
-              Trade live on Hyperliquid ↗
             </a>
           </div>
         </div>
