@@ -203,9 +203,13 @@ interface LaunchInfo {
   tickUpper: number | null;
 }
 
+/** ~30 minutes of Arc blocks (~0.5s each). */
+const MAX_ACTIVITY_LAG_BLOCKS = 3_600n;
+
 export class ArcScoringService {
   private readonly client: PublicClient;
   private readonly authorityCache = new Map<string, ArcAuthorityInput>();
+  private swapsFresh: { ok: boolean; at: number } | null = null;
 
   constructor(client?: PublicClient) {
     this.client =
@@ -372,6 +376,34 @@ export class ArcScoringService {
   }
 
   /** LP position id, launchpad helper contracts and the launch range, from the launch tx. */
+  /**
+   * Is the swap index caught up? If the activity indexer is more than ~30
+   * minutes of blocks behind the chain head, "no swaps in 24h" would wrongly
+   * read as a dead token, so the scorer uses live market counts instead.
+   * Re-checked at most once a minute.
+   */
+  private async indexedSwapsFresh(): Promise<boolean> {
+    if (this.swapsFresh && Date.now() - this.swapsFresh.at < 60_000) return this.swapsFresh.ok;
+    let ok = false;
+    let lag: bigint | null = null;
+    try {
+      const [cursor, head] = await Promise.all([
+        getDb().arcIndexerCursor.findUnique({ where: { source: "arc:activity" } }),
+        this.client.getBlockNumber(),
+      ]);
+      if (cursor) {
+        lag = head - cursor.lastBlock;
+        ok = lag < MAX_ACTIVITY_LAG_BLOCKS;
+      }
+    } catch {
+      ok = this.swapsFresh?.ok ?? false;
+    }
+    if (this.swapsFresh?.ok !== ok)
+      console.log(`[arc] swap index ${ok ? "caught up" : "behind"} (${lag ?? "?"} blocks); activity from ${ok ? "indexed swaps" : "market data"}`);
+    this.swapsFresh = { ok, at: Date.now() };
+    return ok;
+  }
+
   private async readLaunchReceipt(hash: Hex, launchpad: string) {
     const receipt = await this.client.getTransactionReceipt({ hash });
     const nft = receipt.logs.find(
@@ -699,7 +731,7 @@ export class ArcScoringService {
     const m = t.arcMarket;
     const marketUsdc = (m?.socials as { usdcInPool?: number | null } | null)?.usdcInPool ?? null;
     const poolUsdc = ctx.market.poolUsdc ?? marketUsdc;
-    const useIndexed = balancesReady && swapsAll.length > 0;
+    const useIndexed = balancesReady && swapsAll.length > 0 && (await this.indexedSwapsFresh());
     const volume24h = useIndexed
       ? swaps24h.reduce((s, g) => s + Number(g._sum.usdcAmount ?? 0), 0)
       : Number(m?.volume24h ?? 0);

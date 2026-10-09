@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "title": "What Riven is missing and where the last 7 days go",
+  "slug": "riven-gaps",
+  "dossier": 1,
+  "date": "2026-10-08",
+  "mode": "parallel",
+  "seats": [
+    {
+      "id": "grant-judge",
+      "title": "Arc Microgrants reviewer (ecosystem grants judge)",
+      "group": "Judges",
+      "weight": 2.0
+    },
+    {
+      "id": "arc-trader",
+      "title": "Active Arc memecoin trader (target user)",
+      "group": "Users",
+      "weight": 1
+    },
+    {
+      "id": "first-timer",
+      "title": "First-time crypto user on a phone (least voice)",
+      "group": "Users",
+      "weight": 1
+    },
+    {
+      "id": "rival-builder",
+      "title": "Competing Arc hackathon team (competitor archetype)",
+      "group": "Competitors",
+      "weight": 1
+    },
+    {
+      "id": "do-less",
+      "title": "Solo-builder capacity reviewer (argues do less / ship now)",
+      "group": "Inside",
+      "weight": 1
+    },
+    {
+      "id": "trust-safety",
+      "title": "Trust and safety / compliance reviewer",
+      "group": "Oversight",
+      "weight": 1
+    }
+  ]
+}
