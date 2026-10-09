@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # prisma generate only needs the variable to exist; no connection is made.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build:shared
+      - run: bunx tsc --noEmit -p apps/backend
+      - run: bunx tsc --noEmit -p apps/frontend
+      - run: bun run --filter @riven/shared test
+      - run: bun run --filter backend test
+      - run: bun run --filter frontend test

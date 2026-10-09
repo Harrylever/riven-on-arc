@@ -22,7 +22,9 @@ coverage
 .vercel
 
 # Railway CLI local link state
-.railway
+.railway/*
+!.railway/railway.ts
+!.railway/README.md
 
 # Build Outputs
 .next/

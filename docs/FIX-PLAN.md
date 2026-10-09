@@ -116,7 +116,7 @@ Later: wallet tracker and copy-trade, positions and PnL, limit and take-profit/s
 - Tokenize on ClawPump (sign in with Google at clawpump.tech, `npx clawpump launch` or the dashboard). Without the token there is no award eligibility.
 - Register on the Clawrena registry and post the X announcement following @clawpumptech (per `AGENTS.md` line 328; confirm with the organizers, the public page did not list these steps).
 - Get a `cpk_` key from `clawpump.tech/dashboard/api` only if the ClawPump/Hermes agent or ClawPump launch API will be used. It is not needed for the Claude-based agent or for the public `/api/tokens` poller.
-- Deploy the frontend (`docs/DEPLOY-FRONTEND.md`) and the backend (Railway) early; earlier shipping means a longer evaluation window. Real onchain volume and users are judged, so get the swap live and get real users on it.
+- Deploy the frontend (`docs/DEPLOY.md`) and the backend (Railway) early; earlier shipping means a longer evaluation window. Real onchain volume and users are judged, so get the swap live and get real users on it.
 - Prepare the demo narrative: risk gate before a swap, grounded agent, feed no one can pay to rank in, futures tab.
 
 ## 10. Suggested calendar (today is 2026-09-21)
