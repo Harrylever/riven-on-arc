@@ -9,7 +9,7 @@ const services = createServices();
 const app = createApp(services);
 // DISABLE_JOBS=true runs an API-only instance (e.g. a second replica, or a smoke test).
 const jobs = process.env.DISABLE_JOBS === 'true' ? [] : startJobs(services);
-const port = Number(process.env.PORT ?? 3000);
+const port = Number(process.env.PORT ?? 6053);
 
 logger.log(`Listening on :${port}, ${jobs.length} cron jobs scheduled`);
 // sakz-bot's perp scanner runs alongside (when SAKZ_DIR is set) so signals flow on their own.
