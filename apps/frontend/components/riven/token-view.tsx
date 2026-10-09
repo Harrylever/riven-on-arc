@@ -908,7 +908,17 @@ function Shield({ t }: { t: TokenDetail }) {
   )
 }
 
-function CreatorTrack({ record, now }: { record: CreatorRecord; now: number }) {
+export function CreatorTrack({
+  record,
+  now,
+  title = "Creator's other launches",
+  link = true,
+}: {
+  record: CreatorRecord
+  now: number
+  title?: string
+  link?: boolean
+}) {
   const statusColor = {
     alive: "var(--rv-healthy)",
     dead: "var(--rv-ink-3)",
@@ -918,8 +928,16 @@ function CreatorTrack({ record, now }: { record: CreatorRecord; now: number }) {
     <section className="rv-card p-4">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
-          Creator&apos;s other launches
+          {title}
         </h2>
+        {link && (
+          <Link
+            href={`/creator/${record.wallet}`}
+            className="text-[11px] font-semibold text-[var(--rv-ice)] hover:underline"
+          >
+            Full record →
+          </Link>
+        )}
         <a
           href={`${EXPLORER}/address/${record.wallet}`}
           target="_blank"
