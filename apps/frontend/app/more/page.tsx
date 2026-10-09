@@ -30,6 +30,11 @@ const LINKS = [
     label: "How the score works",
     hint: "The 1–10 score, every check and every red flag",
   },
+  {
+    href: "/accuracy",
+    label: "Does the score warn in time?",
+    hint: "Riven's own hit rate: how often rated tokens later saw liquidity pulled",
+  },
 ].filter((l) => PERPS_ENABLED || l.href !== "/perps")
 
 export default function MorePage() {

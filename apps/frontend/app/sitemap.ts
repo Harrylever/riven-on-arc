@@ -13,6 +13,7 @@ const STATIC_ROUTES: Array<{
   { path: "/markets", priority: 0.9, changeFrequency: "hourly" },
   { path: "/alerts", priority: 0.8, changeFrequency: "hourly" },
   { path: "/methodology", priority: 0.7, changeFrequency: "weekly" },
+  { path: "/accuracy", priority: 0.6, changeFrequency: "daily" },
   { path: "/agent", priority: 0.6, changeFrequency: "daily" },
   { path: "/ecosystem", priority: 0.6, changeFrequency: "daily" },
   { path: "/portfolio", priority: 0.4, changeFrequency: "weekly" },

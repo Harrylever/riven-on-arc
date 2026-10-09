@@ -927,6 +927,66 @@ async function getArcPulseRaw() {
   }
 }
 
+/**
+ * Does the score warn in time? For every token first scored under the current
+ * methodology: what band it got, and whether liquidity was pulled or the creator
+ * sold out AFTER that first score. Alerts that fired before the first score
+ * can't be "predicted", so they are counted apart and left out of the rates.
+ */
+export interface AccuracyRow {
+  band: "healthy" | "caution" | "risk"
+  scored: number
+  badAfter: number
+}
+async function getAccuracyRaw() {
+  const db = getDb()
+  const first = await db.scoreRun.findMany({
+    where: { methodology: ARC_METHODOLOGY, band: { in: ["healthy", "caution", "risk"] } },
+    orderBy: { calculatedAt: "asc" },
+    distinct: ["tokenId"],
+    select: { tokenId: true, band: true, calculatedAt: true },
+  })
+  const bad = await db.alert.findMany({
+    where: { type: { in: ["RUG_PULL", "CREATOR_DUMP"] } },
+    select: { tokenId: true, createdAt: true },
+  })
+  const firstBad = new Map<string, Date>()
+  for (const a of bad) {
+    const have = firstBad.get(a.tokenId)
+    if (!have || a.createdAt < have) firstBad.set(a.tokenId, a.createdAt)
+  }
+  const rows = new Map<string, AccuracyRow>(
+    (["risk", "caution", "healthy"] as const).map((band) => [band, { band, scored: 0, badAfter: 0 }]),
+  )
+  let alreadyHappened = 0
+  for (const r of first) {
+    const row = rows.get(r.band ?? "")
+    if (!row) continue
+    const hit = firstBad.get(r.tokenId)
+    if (hit && hit <= r.calculatedAt) {
+      alreadyHappened++
+      continue
+    }
+    row.scored++
+    if (hit) row.badAfter++
+  }
+  const bands = [...rows.values()]
+  const totalBad = bands.reduce((s, r) => s + r.badAfter, 0)
+  const warned = bands.filter((r) => r.band !== "healthy").reduce((s, r) => s + r.badAfter, 0)
+  return {
+    methodology: ARC_METHODOLOGY,
+    bands,
+    scored: bands.reduce((s, r) => s + r.scored, 0),
+    totalBad,
+    /** Share of later pulls/dumps that were already rated Caution or Risk at first score. */
+    caughtShare: totalBad > 0 ? warned / totalBad : null,
+    alreadyHappened,
+    since: first[0]?.calculatedAt.toISOString() ?? null,
+  }
+}
+
+export const getAccuracy = () => cached("accuracy", 300_000, () => getAccuracyRaw())
+
 export const getStats = () => cached("stats", 30000, () => getStatsRaw())
 
 export const getArcPulse = () => cached("pulse", 30000, () => getArcPulseRaw())
