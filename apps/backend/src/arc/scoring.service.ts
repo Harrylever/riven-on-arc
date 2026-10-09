@@ -29,7 +29,8 @@ import {
 import { scanBlockRange } from "./factory-log-indexer.service";
 
 const ACTIVITY_CURSOR = "arc:activity";
-const MAX_TOKENS_PER_RUN = 60;
+// Sized for a 5-minute tick (was 60 per minute).
+const MAX_TOKENS_PER_RUN = 300;
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const RESCORE_FRESH_MS = 2 * 60 * 1000;
 const RESCORE_OLD_MS = 15 * 60 * 1000;

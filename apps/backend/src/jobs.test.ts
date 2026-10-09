@@ -11,8 +11,8 @@ test("solana mode registers legacy cron jobs on the expected cadences", () => {
       jobs.map((j) => [j.name, j.getPattern()]),
     );
     expect(byName["scoring.scoreAll"]).toBe("0 */5 * * * *");
-    expect(byName["arcPipeline.runOnce"]).toBe("0 * * * * *");
-    expect(byName["arcScoring.scoreOnce"]).toBe("0 * * * * *");
+    expect(byName["arcPipeline.runOnce"]).toBe("0 */5 * * * *");
+    expect(byName["arcScoring.scoreOnce"]).toBe("0 */5 * * * *");
     expect(byName["telegram.tick"]).toBe("*/20 * * * * *");
     expect(byName["snapshot.computeSnapshots"]).toBe("0 * * * * *");
     expect(byName["retention.pruneOldRows"]).toBe("0 0 3 * * *");

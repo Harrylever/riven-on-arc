@@ -18,7 +18,7 @@ const CHUNK = BigInt(process.env.ARC_BACKFILL_CHUNK_BLOCKS ?? "50000");
 const MAX_SPAN = BigInt(process.env.ARC_BACKFILL_MAX_BLOCKS ?? "7000000");
 const MIN_LIQUIDITY_USD = Number(process.env.ARC_BACKFILL_MIN_LIQUIDITY ?? "1000");
 /** Tokens replayed per pipeline tick, most-traded first. */
-const TOKENS_PER_RUN = Number(process.env.ARC_BACKFILL_TOKENS_PER_RUN ?? "4");
+const TOKENS_PER_RUN = Number(process.env.ARC_BACKFILL_TOKENS_PER_RUN ?? "20");
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 const TRANSFER = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)");

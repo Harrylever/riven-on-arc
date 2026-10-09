@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic"
 
 /**
  * POST — "Riven, scan this token now": flags it for the scorer's next pass
- * (~30–60s) instead of its normal cadence. Repeat taps within 30s are no-ops.
+ * (runs every 5 minutes) instead of its normal cadence. Repeat taps within 30s are no-ops.
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ address: string }> }) {
   const { address } = await params

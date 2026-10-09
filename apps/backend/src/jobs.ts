@@ -22,11 +22,11 @@ export function startJobs(s: Services): Cron[] {
   const arcIndexing: Array<[string, string, () => Promise<unknown>]> = [
     // Launches → holder/swap activity → scores. `protect` skips a tick while
     // the previous one is still catching up.
-    ["arcPipeline.runOnce", EVERY_MINUTE, () => s.arcPipeline.runOnce({ score: false })],
+    ["arcPipeline.runOnce", EVERY_5_MINUTES, () => s.arcPipeline.runOnce({ score: false })],
     // Telegram: link /start codes and forward alerts/calls (no-op without a bot token).
     ["telegram.tick", EVERY_20_SECONDS, () => s.telegram.tick()],
     // Scores on their own loop so they stay live while slower indexing catches up.
-    ["arcScoring.scoreOnce", EVERY_MINUTE, () => s.arcScoring.scoreOnce()],
+    ["arcScoring.scoreOnce", EVERY_5_MINUTES, () => s.arcScoring.scoreOnce()],
   ];
   const legacySolanaJobs: Array<[string, string, () => Promise<unknown>]> = [
     [
