@@ -21,6 +21,10 @@ Built for **Arc Microgrants (DoraHacks)**.
 | **Rug radar** (`/alerts`) | Alerts when launch liquidity is pulled, a creator sells out, a whale sells 5%+ of supply, or a score collapses. Watchlisted tokens notify in the browser. |
 | **Ask Riven** (`/agent`) | Answers like "is $TICKER safe?" or "what rugged today?", grounded in Riven's own data and citing sources. Rule-based by default; uses Claude when `ANTHROPIC_API_KEY` is set. |
 | **Portfolio** | Connect any injected wallet (Riven never sees keys) to see your Arc holdings scored. Optional non-custodial buy/sell through Uniswap v4: you sign every transaction, approvals are exact-amount and short-lived. |
+| **Exit check** | On every token page: best-case proceeds of selling $100 / $1k / your size into the USDC really in the pool. |
+| **Track record** (`/accuracy`) | Riven's own hit rate: how often tokens first rated Risk / Caution / Healthy later saw liquidity pulled or a creator sell out, with small samples flagged. |
+| **Creator page** (`/creator/0x…`) | Every Arc token a wallet has launched and how each turned out. |
+| **Public API + badge** | `GET /api/arc/tokens/0x…` (score, flags, evidence as JSON) and `GET /api/arc/badge/0x…` (embeddable SVG) for launchpads and wallets. |
 | **Perps** (`/perps`) | Paper-trading terminal on Hyperliquid prices with a TradingView chart, sakz-bot signals, one-click TP1–3 / SL setup and price alerts. Paper money only. |
 
 **What the data says (local index, Oct 2026):** most Arc launches are seeded with the token alone. A typical flagged pool shows about $2.5k of "liquidity" on DexScreener but holds **under $2 of USDC**, while tens of thousands of dollars of volume pass through it. Riven measures the USDC on-chain (`StateView` liquidity × price) and shows it.
