@@ -122,6 +122,8 @@ export default async function Home() {
               src={t.image!}
               alt=""
               referrerPolicy="no-referrer"
+              loading="lazy"
+              decoding="async"
               className="aspect-square w-full rounded-xl object-cover"
             />
           ))}
