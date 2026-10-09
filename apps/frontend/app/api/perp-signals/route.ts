@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getDb } from "@clawdex/shared"
+import { getDb } from "@riven/shared"
 import { PERPS_ENABLED } from "@/lib/flags"
 import { getMockPerpSignals } from "@/lib/mock-perps"
 

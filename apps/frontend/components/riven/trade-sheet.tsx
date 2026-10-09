@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import type { ArcBand } from "@clawdex/shared"
+import type { ArcBand } from "@riven/shared"
 import type { TxRequest, useArcWallet } from "@/hooks/use-arc-wallet"
 import { BAND_META, compact } from "@/lib/riven-format"
 

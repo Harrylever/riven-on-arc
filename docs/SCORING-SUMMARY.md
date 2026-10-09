@@ -1,4 +1,4 @@
-# How the Clawdex rug score works
+# How the Riven rug score works
 
 Every token gets a score from 0 to 100. Higher means safer. The score refreshes every 5 minutes.
 

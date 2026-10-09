@@ -1,4 +1,4 @@
-import { getDb } from "@clawdex/shared"
+import { getDb } from "@riven/shared"
 import { NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"

@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto"
-import { getDb } from "@clawdex/shared"
+import { getDb } from "@riven/shared"
 
 /** Bot username without "@"; Telegram alerts are hidden when unset. */
 export const TELEGRAM_BOT = (process.env.TELEGRAM_BOT_USERNAME ?? "").replace(/^@/, "").trim()

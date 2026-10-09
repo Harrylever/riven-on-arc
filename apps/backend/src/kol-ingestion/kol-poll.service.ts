@@ -1,5 +1,5 @@
 import { Logger } from '../lib/logger';
-import { getDb, createKolProvider } from '@clawdex/shared';
+import { getDb, createKolProvider } from '@riven/shared';
 
 /**
  * REST polling, not streaming — MadeOnSol's WebSocket (kol:trades) is

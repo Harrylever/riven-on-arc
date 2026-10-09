@@ -1,7 +1,7 @@
 # Product & agent blueprint
 Where this conflicts with AGENTS.md, AGENTS.md wins.
 
-ClawDex is a Solana-only AI intelligence terminal. It explains tokens; it does not trade.
+Riven is a Solana-only AI intelligence terminal. It explains tokens; it does not trade.
 This document defines the product, frontend architecture, and agent implementation guidelines for the Product & Agent developer track on `apps/frontend`.
 
 ---
@@ -9,7 +9,7 @@ This document defines the product, frontend architecture, and agent implementati
 ## 1. Scope & Ownership
 
 - **Frontend scope:** All pages, client components, and UI-facing state in `apps/frontend`.
-- **Read layer:** Next.js API routes (`apps/frontend/app/api/`) query PostgreSQL directly via `@clawdex/shared` (`getDb()`).
+- **Read layer:** Next.js API routes (`apps/frontend/app/api/`) query PostgreSQL directly via `@riven/shared` (`getDb()`).
 - **Data flow:**
   - Ingestion, market aggregation, scoring jobs, and KOL polling run in the persistent NestJS worker (`apps/backend`) and write to PostgreSQL.
   - The frontend NEVER talks directly to Helius RPC or external data providers; it reads database state created by the backend.
@@ -66,7 +66,7 @@ Design principles: **Mobile-first**, normie-friendly (plain English), single-col
 
 ## 3. Active Scoring Formula & Math
 
-The scoring formula is defined in [`packages/shared/src/score/formula.ts`](file:///c:/dev/clawdex/packages/shared/src/score/formula.ts) and is gated on rug-detection fundamentals:
+The scoring formula is defined in [`packages/shared/src/score/formula.ts`](file:///c:/dev/riven/packages/shared/src/score/formula.ts) and is gated on rug-detection fundamentals:
 
 $$\text{Score} = \text{gate}(\text{mint}, \text{freeze}, \text{lp}) \times (40 \cdot C + 35 \cdot B_{\text{attr}} + 25 \cdot L)$$
 
@@ -85,12 +85,12 @@ $$\text{Score} = \text{gate}(\text{mint}, \text{freeze}, \text{lp}) \times (40 \
 
 ## 4. API Surface & Exact Response Shapes
 
-Frontend route handlers in `apps/frontend/app/api/` read directly from `@clawdex/shared`.
+Frontend route handlers in `apps/frontend/app/api/` read directly from `@riven/shared`.
 
 ### A. `GET /api/leaderboard`
 Returns the top 100 tokens sorted by each token's most recent score in descending order.
 
-**Route File:** [`apps/frontend/app/api/leaderboard/route.ts`](file:///c:/dev/clawdex/apps/frontend/app/api/leaderboard/route.ts)
+**Route File:** [`apps/frontend/app/api/leaderboard/route.ts`](file:///c:/dev/riven/apps/frontend/app/api/leaderboard/route.ts)
 
 **Exact Response JSON:**
 ```json
@@ -111,7 +111,7 @@ Returns the top 100 tokens sorted by each token's most recent score in descendin
 ### B. `GET /api/token/[mint]`
 Fetches full breakdown for a single token: token info, latest score, authority/LP status, and recent burns. If not found in the DB, falls back to on-demand RPC resolution via Helius (`resolveTokenByMint`).
 
-**Route File:** [`apps/frontend/app/api/token/[mint]/route.ts`](file:///c:/dev/clawdex/apps/frontend/app/api/token/%5Bmint%5D/route.ts)
+**Route File:** [`apps/frontend/app/api/token/[mint]/route.ts`](file:///c:/dev/riven/apps/frontend/app/api/token/%5Bmint%5D/route.ts)
 
 **Exact Response JSON:**
 ```json
@@ -188,7 +188,7 @@ Entities and relational keys:
 
 ## 6. AI Agent Design Rules
 
-The AI Agent is the core differentiator and moat of ClawDex. When building `POST /api/agent/analyze`:
+The AI Agent is the core differentiator and moat of Riven. When building `POST /api/agent/analyze`:
 
 1. **Non-Negotiable Behavioral Guardrails:**
    - Never provide specific buy or sell recommendations.

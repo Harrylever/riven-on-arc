@@ -390,12 +390,12 @@ enum PerpBias {
 
 /// Read-only mirror of sakz-bot-main's own `signal_outcomes` table — a separate,
 /// non-workspace Python trading-signal bot (see AGENTS.md "Perpetual futures
-/// signals" section for why it isn't rebuilt as ClawDex-native code). One row
+/// signals" section for why it isn't rebuilt as Riven-native code). One row
 /// per finalized perp-futures call sakz-bot registered for outcome tracking,
-/// written by sakz-bot's own best-effort `clawdex_sync.py` module. ClawDex's
+/// written by sakz-bot's own best-effort `clawdex_sync.py` module. Riven's
 /// own apps never write to this table, only read it.
 /// No FK to Token: these are CEX perp-futures symbols (e.g. BTCUSDT on Bybit),
-/// not ClawDex-indexed Solana tokens — nothing to relate them to.
+/// not Riven-indexed Solana tokens — nothing to relate them to.
 model PerpSignal {
   id         String       @id @default(uuid())
   exchange   PerpExchange

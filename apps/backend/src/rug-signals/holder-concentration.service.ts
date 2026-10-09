@@ -6,7 +6,7 @@ import {
   getHolderCount,
   getTokenLargestAccounts,
   getTokenSupply,
-} from '@clawdex/shared';
+} from '@riven/shared';
 
 /**
  * top10Pct = sum(top 10 largest NON-EXCLUDED holder balances) / total supply,

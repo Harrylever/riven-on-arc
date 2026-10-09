@@ -1,4 +1,4 @@
-# ClawDex
+# Riven
 ### AI-Native Solana Intelligence Terminal
 ### DexScreener + RugCheck + Birdeye + Autonomous Agents (Solana only)
 
@@ -42,7 +42,7 @@ Users assign tasks to agents.
 # Scope & Decisions
 
 - Solana only. No multi-chain.
-- Independent of DexScreener. No dependency on its API, and ClawDex is not a reseller of its data.
+- Independent of DexScreener. No dependency on its API, and Riven is not a reseller of its data.
 - Data source: Helius (RPC and webhooks). Market data is derived in-house from onchain events.
 - Launchpad-first: pump.fun, Raydium LaunchLab, ClawPump and other launchpads.
 - Free first. No payments at launch. The moat is transparency, trust and AI-powered insight on every token.
@@ -51,7 +51,7 @@ Users assign tasks to agents.
 
 ## Current Build Scope (Week 1)
 
-- Detection: Helius webhooks catch new launches on pump.fun, LaunchLab and ClawPump, stored in ClawDex's own database.
+- Detection: Helius webhooks catch new launches on pump.fun, LaunchLab and ClawPump, stored in Riven's own database.
 - Market data: price, market cap and liquidity derived from bonding-curve or pool reserves plus swap events. Cover pump.fun and PumpSwap first.
 - Token page: price, market cap, liquidity, holders with top-10 concentration, txns, KOL activity, Bubblemaps embed, and a 0-100 score with a plain-English AI explanation.
 - Feed: new launches, each with a score.
@@ -645,7 +645,7 @@ We become:
 
 # Branding
 
-Product name: ClawDex
+Product name: Riven
 
 X bio:
 

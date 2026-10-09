@@ -2,7 +2,7 @@
 // (Hyperliquid), sakz-bot's open call and the news, and writes a plain-English
 // read of what's moving the pair and why. Riven (and the optional AI voice)
 // only ever reads this back — it never advises a trade.
-import { getDb } from "@clawdex/shared"
+import { getDb } from "@riven/shared"
 import { getHyperliquidMarkets, type PerpMarket } from "./hyperliquid"
 import { getNews, type NewsItem } from "./news"
 import { signalCoinKey } from "./perp-symbols"

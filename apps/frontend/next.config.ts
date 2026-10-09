@@ -1,7 +1,7 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  // Old ClawDex (Solana) pages were removed in the Riven port; send old links home.
+  // Old Riven (Solana) pages were removed in the Riven port; send old links home.
   async redirects() {
     return ["/terminal", "/kol", "/landing", "/login"].map((source) => ({ source, destination: "/", permanent: false }))
   },

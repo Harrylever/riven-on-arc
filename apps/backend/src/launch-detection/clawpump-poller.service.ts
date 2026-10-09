@@ -1,5 +1,5 @@
 import { Logger } from '../lib/logger';
-import { deriveBondingCurve, getDb, readBondingCurves } from '@clawdex/shared';
+import { deriveBondingCurve, getDb, readBondingCurves } from '@riven/shared';
 
 interface ClawPumpToken {
   mintAddress?: string;

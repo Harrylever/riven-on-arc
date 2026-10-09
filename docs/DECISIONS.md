@@ -1,7 +1,7 @@
 # Decisions
 
 ## 2026-09-20 (proposed, pending repo owner confirmation)
-- Product: ClawDex is a Solana-only AI intelligence terminal. It explains tokens; it does not trade.
+- Product: Riven is a Solana-only AI intelligence terminal. It explains tokens; it does not trade.
 - Trade execution is PAUSED. The custody model (per-user wallet vs pooled treasury) is unresolved. TradeService stays log-only.
 - Stack is fixed: pnpm + Turborepo, Next.js, NestJS, Prisma/Postgres.
 - Data source: Helius (webhooks). Market data is derived in-house. No DexScreener dependency.
@@ -44,7 +44,7 @@
 - Model stack for the agent endpoint (Claude-only vs UsePod).
 
 ## 2026-09-21 (audit fixes: data honesty, feed, score inputs)
-- **Feed source:** the home feed is ClawDex's own index (`/api/leaderboard`, newest launch first, unscored tokens included). DexScreener enriches missing price/mcap/volume for display only and is a labelled fallback when the index is empty. "Trending" = 24h volume then score; "New" = launch time. Tokens created by on-demand CA resolution are excluded from the feed (their launch time is the lookup time).
+- **Feed source:** the home feed is Riven's own index (`/api/leaderboard`, newest launch first, unscored tokens included). DexScreener enriches missing price/mcap/volume for display only and is a labelled fallback when the index is empty. "Trending" = 24h volume then score; "New" = launch time. Tokens created by on-demand CA resolution are excluded from the feed (their launch time is the lookup time).
 - **API contract:** `/api/token/[mint]` and `/api/leaderboard` now map Prisma rows onto the BLUEPRINT section 4 shape (`lib/contract.ts`). Before this, the UI read fields that did not exist on DB rows and a fully revoked token rendered as "authority live".
 - **No fabricated UI data:** removed the canned agent replies, fake alert/stat cards and fake ecosystem numbers. The agent page now calls `POST /api/agent/analyze` (grounded facts; uses the Claude API when `ANTHROPIC_API_KEY` is set, otherwise returns a deterministic facts summary). Ecosystem stats are counted from the database.
 - **Score gate 0:** a token failing two or more authority/LP checks now scores its component total capped at 20. Previously `0 x total` made the documented cap of 20 dead code and every such token scored 0.
@@ -54,7 +54,7 @@
 - **ClawPump poller** uses the real public endpoint `GET https://clawpump.tech/api/tokens` (`mintAddress`, `imageUrl`, `createdAt`). The old `/tokens_list` path returned 404.
 - **Still open:** weights and thresholds are unvalidated (no backtest); burns carry 35% of the score; pump.fun/LaunchLab ingestion needs the Helius webhook on a public URL; trading, Privy login, watchlist and the sakzbot futures tab are unbuilt.
 
-## 2026-09-22 (ideas ported from C:\dev\clawdex, rebuilt on real data)
+## 2026-09-22 (ideas ported from C:\dev\riven, rebuilt on real data)
 - **Auth:** real Privy only (`components/auth/auth-provider.tsx`, `lib/privy-server.ts`). With no `NEXT_PUBLIC_PRIVY_APP_ID` the UI says sign-in is unavailable; the old fake localStorage login (hardcoded wallet, any email code accepted) was not ported. `/api/profile` verifies the Privy access token server-side and derives login method, email and wallet from Privy, never from the client; it returns 503 when `PRIVY_APP_SECRET` is not set.
 - **Onboarding:** "Where do you trade?" (FOMO / Padre / Jupiter / other) plus an optional public trading wallet, stored in the new `user_profiles` table (migration `20260921230000_user_profiles`, additive). Self-declared, optional, used for personalisation and market research.
 - **Terminal:** `/terminal` is master-detail (token list beside a detail panel with score, authority checks, market data, KOL trades and an inline agent box) plus KOL Intel and Signals views. KOL leaderboard ranks by MadeOnSol's 7d win rate and shows only volume seen in the feed (no PnL: not available). Coordination = 3+ distinct KOL wallets buying one token in an hour, computed from the feed. Signals = the `Alert` table.
@@ -84,7 +84,7 @@
   and every row still carries its true percentage. Excluded (bonding-curve, pool,
   incinerator) accounts are listed separately with the reason.
 - **No swap of our own yet, so trade links hand off** to pump.fun / Jupiter /
-  DexScreener / Solscan rather than implying ClawDex executes the trade.
+  DexScreener / Solscan rather than implying Riven executes the trade.
 - **Watchlist is real** (`hooks/use-watchlist.ts`, browser-local, every
   localStorage access guarded). Stars on every row; `/watchlist` was a dead
   placeholder before.
@@ -101,7 +101,7 @@
   real data.
 - **Token categories**, each ranked by the signal it is named after, and each
   dropping tokens that lack that signal instead of padding the list:
-  - *Crypto* — CoinGecko reference prices for majors. Explicitly not ClawDex-scored.
+  - *Crypto* — CoinGecko reference prices for majors. Explicitly not Riven-scored.
   - *Trending* — 6h volume first, then 24h, then score (the "2-48h" window).
   - *Most held* — wallet count, newly available: `holderCount` was always null
     until `HolderConcentrationService` started reading Helius DAS

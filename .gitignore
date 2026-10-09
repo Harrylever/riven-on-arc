@@ -30,7 +30,7 @@ out/
 build
 dist
 
-# Prisma generated client (regenerate with `pnpm --filter @clawdex/shared db:generate`)
+# Prisma generated client (regenerate with `pnpm --filter @riven/shared db:generate`)
 packages/shared/src/generated
 
 # Captured debug webhook payloads (DEBUG_SAVE_WEBHOOK_PAYLOADS=true) — local only

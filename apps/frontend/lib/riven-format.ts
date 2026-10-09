@@ -1,4 +1,4 @@
-import type { ArcBand } from "@clawdex/shared"
+import type { ArcBand } from "@riven/shared"
 
 export const BAND_META: Record<
   ArcBand,

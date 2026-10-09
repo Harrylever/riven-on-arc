@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { getDb } from "@clawdex/shared";
+import { getDb } from "@riven/shared";
 import type { Services } from "./container";
 import { createRateLimiter } from "./lib/rate-limit";
 import { isAddress } from "viem";
@@ -22,7 +22,7 @@ export function createApp(s: Services) {
     UNTHROTTLED.has(c.req.path) ? next() : limiter(c, next),
   );
 
-  app.get("/", (c) => c.json({ service: "clawdex-backend", status: "ok" }));
+  app.get("/", (c) => c.json({ service: "riven-backend", status: "ok" }));
 
   app.get("/health", async (c) => {
     try {
@@ -47,7 +47,7 @@ export function createApp(s: Services) {
       return c.json({
         status: "ok",
         db: "connected",
-        service: "clawdex-execution",
+        service: "riven-execution",
         dataFreshness: {
           totalTokens,
           scoredInLast15Min: freshlyScored,
@@ -142,7 +142,7 @@ export function createApp(s: Services) {
 
   /**
    * Receives Helius "enhanced" webhook payloads watching the pump.fun and
-   * Raydium LaunchLab program IDs (see @clawdex/shared's PROGRAM_IDS). One
+   * Raydium LaunchLab program IDs (see @riven/shared's PROGRAM_IDS). One
    * combined webhook covers launch detection (phase 1), swap ingestion
    * (phase 2), and burn ingestion (phase 3) — routed here by `type`.
    *

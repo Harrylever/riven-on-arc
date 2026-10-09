@@ -1,5 +1,5 @@
 import { Logger } from '../lib/logger';
-import { getDb, resolveTokenByMint } from '@clawdex/shared';
+import { getDb, resolveTokenByMint } from '@riven/shared';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { AuthorityCheckerService } from '../rug-signals/authority-checker.service';

@@ -1,6 +1,6 @@
-# ClawDex — Frontend Application (`apps/frontend`)
+# Riven — Frontend Application (`apps/frontend`)
 
-This is the Next.js frontend for ClawDex: the mobile-first, AI-native launch intelligence terminal for Arc.
+This is the Next.js frontend for Riven: the mobile-first, AI-native launch intelligence terminal for Arc.
 
 ---
 
@@ -11,7 +11,7 @@ Ensure dependencies are installed and the shared package is built from the repos
 ```bash
 # From repo root
 pnpm install
-pnpm --filter @clawdex/shared build
+pnpm --filter @riven/shared build
 
 # Start the frontend development server
 pnpm --filter frontend dev
@@ -26,7 +26,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 Create `.env.local` inside `apps/frontend/` (or set environment variables in your Vercel project settings).
 
 ### Required in Production
-- **`DATABASE_URL`**: PostgreSQL connection string (e.g. Railway/Neon). Next.js API routes query this directly through `@clawdex/shared` (`getDb()`).
+- **`DATABASE_URL`**: PostgreSQL connection string (e.g. Railway/Neon). Next.js API routes query this directly through `@riven/shared` (`getDb()`).
 - **`ARC_RPC_URL`**: Arc mainnet RPC endpoint for on-demand token resolution and launchpad verification.
 
 ### Optional & Feature Toggles
@@ -43,7 +43,7 @@ Create `.env.local` inside `apps/frontend/` (or set environment variables in you
 
 ## 3. Architecture & Data Flow
 
-- **Read-Only API Layer:** The Next.js App Router API handlers (`app/api/`) connect directly to PostgreSQL using `@clawdex/shared` (`getDb()`).
+- **Read-Only API Layer:** The Next.js App Router API handlers (`app/api/`) connect directly to PostgreSQL using `@riven/shared` (`getDb()`).
 - **Backend Separation:** Ingestion, market aggregations, scoring runs, and KOL syncing are handled by `apps/backend` (NestJS). The frontend never triggers on-chain writes or talks directly to Helius RPC except for on-demand metadata fallback via `resolveTokenByMint`.
 - **KOL Data Cadence:** KOL trade data is synced by the backend approximately every 30 minutes. All KOL UI components must display an "as of [time]" stamp and show buys and sells with equal prominence.
 
@@ -53,9 +53,9 @@ Create `.env.local` inside `apps/frontend/` (or set environment variables in you
 
 - **Pages & Routes:** Located in `app/`. Use React Server Components (RSC) where appropriate and client components (`"use client"`) for interactive widgets.
 - **Components:** Shared UI components in `components/`. Follow mobile-first styling principles with Tailwind CSS.
-- **Imports from `@clawdex/shared`:**
-  - Import the database client using `import { getDb } from "@clawdex/shared";` in server code only.
-  - In client components, import scoring utilities exclusively from `"@clawdex/shared/score"`. Never import from the package root in client components.
+- **Imports from `@riven/shared`:**
+  - Import the database client using `import { getDb } from "@riven/shared";` in server code only.
+  - In client components, import scoring utilities exclusively from `"@riven/shared/score"`. Never import from the package root in client components.
   - **Prisma Decimal Handling:** Prisma Decimal fields (e.g. `score`, `gateMultiplier`, `priceSol`) must be serialized or converted using `Number()` or `.toString()` before passing them across the server/client boundary or returning them in JSON responses.
 
 ---

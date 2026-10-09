@@ -9,7 +9,7 @@ import {
   deriveConcentrationScore,
   deriveBurnScore,
   deriveLiquidityScore,
-} from '@clawdex/shared';
+} from '@riven/shared';
 
 /**
  * Wires phases 1-3's data into computeScore() every 5 minutes (same cadence

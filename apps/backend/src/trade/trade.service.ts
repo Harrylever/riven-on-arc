@@ -1,5 +1,5 @@
 import { Logger } from '../lib/logger';
-import { getDb, scoreBand } from '@clawdex/shared';
+import { getDb, scoreBand } from '@riven/shared';
 import { getSwapQuote } from './jupiter.client';
 
 /**

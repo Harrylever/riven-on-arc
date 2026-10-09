@@ -1,4 +1,4 @@
-import { getDb } from "@clawdex/shared";
+import { getDb } from "@riven/shared";
 import { cleanText } from "./config";
 
 /**

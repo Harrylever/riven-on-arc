@@ -1,5 +1,5 @@
 {
-  "name": "clawdex",
+  "name": "riven",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
   "scripts": {
     "dev:frontend": "bun run --filter frontend dev",
     "dev:backend": "bun run --filter backend dev",
-    "build:shared": "bun run --filter @clawdex/shared build",
+    "build:shared": "bun run --filter @riven/shared build",
     "build": "bun run build:shared && bun run --filter frontend build",
     "test": "bun run --filter '*' test",
     "check-types": "bun run build:shared && bun run --filter '*' check-types",

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { SUB_SCORE_LABEL, type SubScoreKey } from "@clawdex/shared/score"
+import { SUB_SCORE_LABEL, type SubScoreKey } from "@riven/shared/score"
 import type { Callout, CreatorRecord, TokenDetail } from "@/lib/arc-data"
 import {
   BAND_META,

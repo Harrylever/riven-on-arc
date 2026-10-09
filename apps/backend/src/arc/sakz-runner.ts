@@ -17,7 +17,7 @@ export function startSakzRunner(opts: { databaseUrl?: string } = {}) {
     console.warn(`[sakz] SAKZ_DIR=${sakzDir} doesn't look like a sakz-bot checkout — not starting`);
     return { started: false, reason: "sakz-bot not found" };
   }
-  const db = opts.databaseUrl ?? process.env.CLAWDEX_DATABASE_URL ?? process.env.DATABASE_URL;
+  const db = opts.databaseUrl ?? process.env.RIVEN_DATABASE_URL ?? process.env.CLAWDEX_DATABASE_URL ?? process.env.DATABASE_URL;
   if (!db) return { started: false, reason: "no database URL" };
 
   const script = resolve(import.meta.dir, "../../../../scripts/perps/sakz_headless.py");
@@ -30,7 +30,7 @@ export function startSakzRunner(opts: { databaseUrl?: string } = {}) {
   const launch = () => {
     if (stopped) return;
     child = Bun.spawn([python, script, "--interval", interval], {
-      env: { ...process.env, CLAWDEX_DATABASE_URL: db, SAKZ_DIR: sakzDir, PYTHONIOENCODING: "utf-8", PYTHONUNBUFFERED: "1" },
+      env: { ...process.env, RIVEN_DATABASE_URL: db, CLAWDEX_DATABASE_URL: db, SAKZ_DIR: sakzDir, PYTHONIOENCODING: "utf-8", PYTHONUNBUFFERED: "1" },
       stdout: "pipe",
       stderr: "pipe",
     });

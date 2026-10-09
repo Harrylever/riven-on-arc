@@ -5,14 +5,14 @@ import { useCallback, useSyncExternalStore } from "react"
 // Browser-local watchlist. Every access is guarded: localStorage throws in
 // private windows and with site data blocked, and the page must still work.
 
-const KEY = "clawdex_watchlist_v1"
-const EVENT = "clawdex_watchlist_change"
+const KEY = "riven_watchlist_v1"
+const EVENT = "riven_watchlist_change"
 
 function read(): string[] {
   try {
     const raw = localStorage.getItem(KEY)
     const parsed = raw ? JSON.parse(raw) : []
-    // Riven is EVM-only: drop leftover Solana (base58) entries from ClawDex.
+    // Riven is EVM-only: drop leftover Solana (base58) entries from Riven.
     return Array.isArray(parsed)
       ? parsed.filter(
           (m): m is string =>

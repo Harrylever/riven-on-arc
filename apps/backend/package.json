@@ -10,7 +10,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@clawdex/shared": "workspace:*",
+    "@riven/shared": "workspace:*",
     "croner": "^9.0.0",
     "hono": "^4.7.0",
     "ioredis": "^6.0.0",

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next"
-import { getDb } from "@clawdex/shared"
+import { getDb } from "@riven/shared"
 import { getSiteUrl } from "@/lib/site"
 
 // Static, always-indexable routes. /watchlist is per-user, so it's left out.

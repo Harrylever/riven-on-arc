@@ -117,7 +117,7 @@ export function PerpsPanel() {
   // Custom refresh interval (defaults to 10 minutes = 600,000ms, persisted in localStorage)
   const [refreshIntervalMs, setRefreshIntervalMs] = useState<number>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("clawdex_perps_refresh_interval")
+      const saved = localStorage.getItem("riven_perps_refresh_interval")
       if (saved !== null) {
         const parsed = Number(saved)
         if (!isNaN(parsed)) return parsed
@@ -389,7 +389,7 @@ export function PerpsPanel() {
                     setRefreshIntervalMs(val)
                     if (typeof window !== "undefined") {
                       localStorage.setItem(
-                        "clawdex_perps_refresh_interval",
+                        "riven_perps_refresh_interval",
                         String(val),
                       )
                     }

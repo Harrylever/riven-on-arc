@@ -1,6 +1,6 @@
 // Server-only: answers questions from Riven's own data. Never invents numbers,
 // never says buy or sell, always ends with the disclaimer (AGENTS.md agent rules).
-import { getDb } from "@clawdex/shared"
+import { getDb } from "@riven/shared"
 import {
   getAlerts,
   getArcPulse,

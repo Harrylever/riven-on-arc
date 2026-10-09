@@ -1,4 +1,4 @@
-import { getDb } from "@clawdex/shared";
+import { getDb } from "@riven/shared";
 import { createPublicClient, http, parseAbi, type Address, type PublicClient } from "viem";
 import { arc, cleanText, USDC, arcTransport } from "./config";
 

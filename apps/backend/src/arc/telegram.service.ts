@@ -1,4 +1,4 @@
-import { getDb } from "@clawdex/shared";
+import { getDb } from "@riven/shared";
 
 /**
  * Riven's Telegram alerts. There are no accounts: a browser asks the frontend

@@ -1,4 +1,4 @@
-# ClawDex Frontend — Design Audit
+# Riven Frontend — Design Audit
 
 **Step 1 output only — no code changes made as part of this audit.** Screenshots live in
 `docs/design-audit/screenshots/` (20 images: 9 routes + `/token/[mint]`, each at 1440px and
@@ -114,7 +114,7 @@ not Step 2.**
   explicitly so a future token-color change doesn't miss it.
 
 ### 3.3 One global background layer dominates low-content pages (medium severity, single fix location)
-`app/globals.css`'s `body::before` renders `banner.jpg` (a large "CLAWDEX" wordmark image) plus
+`app/globals.css`'s `body::before` renders `banner.jpg` (a large "RIVEN" wordmark image) plus
 two radial gradients, `position: fixed`, `z-index: -1`, on **every** page. On content-dense pages
 (the `/` hero) it reads as a subtle ambient background. On `/login`, `/watchlist`'s empty state,
 and `/kol`'s empty state — see screenshots — it dominates the page, with "CLAW" and "DEX" sitting

@@ -2,7 +2,7 @@
 
 ## ⚡ Read this first: current state (October 2026). This section overrides everything below it.
 
-This repo is **Riven**: ClawDex ported from Solana to **Arc mainnet** (chain 5042, USDC gas) for **Arc Microgrants (DoraHacks)**. Everything below the line "Legacy ClawDex (Solana) guide" is the original Solana-era guide. Its rules still apply only where this section doesn't override them.
+This repo is **Riven**: Riven ported from Solana to **Arc mainnet** (chain 5042, USDC gas) for **Arc Microgrants (DoraHacks)**. Everything below the line "Legacy Riven (Solana) guide" is the original Solana-era guide. Its rules still apply only where this section doesn't override them.
 
 **Stack (actual):**
 - **Package manager:** bun workspaces (`bun.lock`). No pnpm and no Turborepo.
@@ -11,9 +11,9 @@ This repo is **Riven**: ClawDex ported from Solana to **Arc mainnet** (chain 504
 - **Chain mode:** Arc by default in both apps. Legacy Solana jobs run only with `CHAIN_MODE=solana`.
 
 **Commands:**
-- Tests: `bun run --filter @clawdex/shared test`, `bun run --filter backend test`, `bun run --filter frontend test`.
+- Tests: `bun run --filter @riven/shared test`, `bun run --filter backend test`, `bun run --filter frontend test`.
 - Types: `bunx tsc --noEmit -p apps/<app>`.
-- Schema: `DATABASE_URL=... bun run --filter @clawdex/shared build` (prisma generate + tsc). Rebuild after any change in `packages/shared`, because the backend reads its `dist`.
+- Schema: `DATABASE_URL=... bun run --filter @riven/shared build` (prisma generate + tsc). Rebuild after any change in `packages/shared`, because the backend reads its `dist`.
 
 **Scoring:**
 - The single source of truth is `packages/shared/src/score/arc.ts` (methodology `arc-v5`). The 1–10 score is built from 5 sub-scores, plus caps, flag codes and `FAKE_FLAG_CODES`.
@@ -44,7 +44,7 @@ The live APIs are `/api/arc/*`, `/api/perp-signals` and `/api/perps/*`. Design t
 
 ---
 
-# Legacy ClawDex (Solana) guide
+# Legacy Riven (Solana) guide
 
 One file for both: AI coding agents working in this repo (Claude Code, Cursor, etc. — many tools read `AGENTS.md` by convention) and the human developer reading it before writing code. This file is self-contained — no external doc access required. It supersedes any earlier version of this file.
 
@@ -54,29 +54,29 @@ One file for both: AI coding agents working in this repo (Claude Code, Cursor, e
 
 ## ✅ Resolved: trade execution is paused, not repurposed
 
-ClawDex is a **monitoring and alerting** product, not a trading agent: users say "watch this token" and the agent tracks liquidity/holders/burns/whales/volume and sends alert summaries — it never buys or sells anything. Confirmed from two independent directions: the final product spec (below), and `docs/DECISIONS.md` ("Trade execution is PAUSED... TradeService stays log-only").
+Riven is a **monitoring and alerting** product, not a trading agent: users say "watch this token" and the agent tracks liquidity/holders/burns/whales/volume and sends alert summaries — it never buys or sells anything. Confirmed from two independent directions: the final product spec (below), and `docs/DECISIONS.md` ("Trade execution is PAUSED... TradeService stays log-only").
 
-**`apps/backend/src/trade/`** (the earlier "ClawDex Trader" direction — autonomous trading via Jupiter) is **frozen, not repurposed**. Per `docs/DECISIONS.md`: leave `TradeService` untouched, don't delete it, don't wire up signing or execution, don't add custody/wallet-key handling. If a monitoring/alert loop is needed later, build it as new code (phase 7), don't mutate `TradeService` into it.
+**`apps/backend/src/trade/`** (the earlier "Riven Trader" direction — autonomous trading via Jupiter) is **frozen, not repurposed**. Per `docs/DECISIONS.md`: leave `TradeService` untouched, don't delete it, don't wire up signing or execution, don't add custody/wallet-key handling. If a monitoring/alert loop is needed later, build it as new code (phase 7), don't mutate `TradeService` into it.
 
 ---
 
 ## Perpetual futures signals — a second, non-workspace project mirrored in
 
-ClawDex now shows read-only perp-futures signals at `/perps` (`GET /api/perp-signals`, `PerpSignal` in `packages/shared/prisma/schema.prisma`). **Gated behind `NEXT_PUBLIC_PERPS_ENABLED` (`apps/frontend/lib/flags.ts`), off by default.** This is a deliberate branch off the core dex-screener product, held back until the screener itself has traction — while the flag is off (default), the nav links are hidden, `/perps` 404s, and `GET /api/perp-signals` returns before ever touching the DB, not just an empty result. Flip it to `"true"` when ready to launch this surface.
+Riven now shows read-only perp-futures signals at `/perps` (`GET /api/perp-signals`, `PerpSignal` in `packages/shared/prisma/schema.prisma`). **Gated behind `NEXT_PUBLIC_PERPS_ENABLED` (`apps/frontend/lib/flags.ts`), off by default.** This is a deliberate branch off the core dex-screener product, held back until the screener itself has traction — while the flag is off (default), the nav links are hidden, `/perps` 404s, and `GET /api/perp-signals` returns before ever touching the DB, not just an empty result. Flip it to `"true"` when ready to launch this surface.
 
 **The signal-generation logic itself lives outside this repo** — `sakz-bot-main`, a separate, mature Python Telegram trading-signal bot at a sibling path (`../sakz-bot-main`, not a pnpm workspace member, not even a git repo). It was evaluated for a perpetual-trading layer via Hyperliquid; Hyperliquid execution and reimplementing a trading engine natively in TypeScript were both rejected in favor of this.
 
-**What it is and why it's mirrored, not rewritten.** sakz-bot-main already has a real signal engine — multi-timeframe TA scoring, conviction/confidence scoring, correlation-based gating, Kelly position sizing, walk-forward and Monte Carlo statistical validation, and an ML layer (RF/XGBoost) trained on resolved outcomes — for Bybit, MEXC and Binance perpetuals. **It has no Hyperliquid support today** (its `ExchangeAdapter` interface in `exchange_adapters.py` is pluggable, so a `HyperliquidAdapter` could be added later, but that's unbuilt). Reimplementing this logic in TypeScript would be pure risk for no benefit — ClawDex only needs to *display* its output, not reproduce it. It deploys as its own Railway worker (`Procfile`: `worker: python sakz_bot.py`) and keeps its own SQLite/libsql DB for the Telegram bot's own state; none of that changes.
+**What it is and why it's mirrored, not rewritten.** sakz-bot-main already has a real signal engine — multi-timeframe TA scoring, conviction/confidence scoring, correlation-based gating, Kelly position sizing, walk-forward and Monte Carlo statistical validation, and an ML layer (RF/XGBoost) trained on resolved outcomes — for Bybit, MEXC and Binance perpetuals. **It has no Hyperliquid support today** (its `ExchangeAdapter` interface in `exchange_adapters.py` is pluggable, so a `HyperliquidAdapter` could be added later, but that's unbuilt). Reimplementing this logic in TypeScript would be pure risk for no benefit — Riven only needs to *display* its output, not reproduce it. It deploys as its own Railway worker (`Procfile`: `worker: python sakz_bot.py`) and keeps its own SQLite/libsql DB for the Telegram bot's own state; none of that changes.
 
-**The one-way mirror mechanism** (`sakz-bot-main/clawdex_sync.py`): best-effort, no-ops silently if `CLAWDEX_DATABASE_URL` is unset, never raises out of its own bot's scan/outcome loops. Two hooks:
+**The one-way mirror mechanism** (`sakz-bot-main/clawdex_sync.py`): best-effort, no-ops silently if `RIVEN_DATABASE_URL` is unset, never raises out of its own bot's scan/outcome loops. Two hooks:
 - `mirror_signals()` — called in `sakz_engine_scan.py` right after the existing `db_register_outcome()` loop, whenever a batch of signals is finalized. Independently dedups against Postgres (sakz-bot's own SQLite dedup only protects its own table) so a pair sitting in the top-20 across multiple ~10-minute scan cycles doesn't get a duplicate row.
-- `mirror_outcome_update()` — called in `sakz_engine_outcomes.py` right after its own `signal_outcomes` SQLite `UPDATE`, whenever a pending call resolves (`t1_hit`/`t2_hit`/`t3_hit`/`sl_hit`) or expires after 48h. Updates the matching ClawDex row in place rather than inserting a new one.
+- `mirror_outcome_update()` — called in `sakz_engine_outcomes.py` right after its own `signal_outcomes` SQLite `UPDATE`, whenever a pending call resolves (`t1_hit`/`t2_hit`/`t3_hit`/`sl_hit`) or expires after 48h. Updates the matching Riven row in place rather than inserting a new one.
 
 Both hooks generate their own `id` (Python `uuid.uuid4()`) rather than relying on a DB-side default — same as everywhere else in this schema, `PerpSignal.id`'s `@default(uuid())` is Prisma-client-side only, not a Postgres column default (confirmed in the migration SQL: plain `"id" TEXT NOT NULL`).
 
-**Signals-never-execution posture, restated.** This feature is read-only on the ClawDex side, exactly like `TradeService`'s freeze above — nothing here ever places, cancels or manages an order. sakz-bot's own `SAKZ_ALLOW_MAINNET` env var (defaults to `0`, paper/testnet only) is the precedent this mirrors, not a new pattern.
+**Signals-never-execution posture, restated.** This feature is read-only on the Riven side, exactly like `TradeService`'s freeze above — nothing here ever places, cancels or manages an order. sakz-bot's own `SAKZ_ALLOW_MAINNET` env var (defaults to `0`, paper/testnet only) is the precedent this mirrors, not a new pattern.
 
-**Railway topology.** Two independent services share one Postgres: `apps/backend` (NestJS, runs `prisma migrate deploy`) and `sakz-bot-main` (Python, set `CLAWDEX_DATABASE_URL` to the same database — copy the existing backend service's `DATABASE_URL`/`DATABASE_PUBLIC_URL` depending on whether they end up in the same Railway project or not, since Railway's internal `*.railway.internal` hostnames only resolve within one project). `sakz-bot-main` never runs a migration — it only INSERTs/UPDATEs into a table ClawDex's own migration created, consistent with this repo's "migrations run from exactly one place" rule (see Deployment, below).
+**Railway topology.** Two independent services share one Postgres: `apps/backend` (NestJS, runs `prisma migrate deploy`) and `sakz-bot-main` (Python, set `RIVEN_DATABASE_URL` to the same database — copy the existing backend service's `DATABASE_URL`/`DATABASE_PUBLIC_URL` depending on whether they end up in the same Railway project or not, since Railway's internal `*.railway.internal` hostnames only resolve within one project). `sakz-bot-main` never runs a migration — it only INSERTs/UPDATEs into a table Riven's own migration created, consistent with this repo's "migrations run from exactly one place" rule (see Deployment, below).
 
 ---
 
@@ -84,14 +84,14 @@ Both hooks generate their own `id` (Python `uuid.uuid4()`) rather than relying o
 
 Most crypto tools show users data — DexScreener shows charts, Birdeye shows transactions, RugCheck shows risks, Bubblemaps shows wallet relationships. Users still have to interpret everything themselves.
 
-ClawDex is **the first AI-native market terminal for Solana**: an autonomous agent that watches tokens, explains market movements, detects risks, finds opportunities, monitors wallets, tracks launchpads, generates reports, and sends intelligent alerts. Users don't just browse charts — they assign tasks to agents. Agents gather intelligence; humans make the decisions.
+Riven is **the first AI-native market terminal for Solana**: an autonomous agent that watches tokens, explains market movements, detects risks, finds opportunities, monitors wallets, tracks launchpads, generates reports, and sends intelligent alerts. Users don't just browse charts — they assign tasks to agents. Agents gather intelligence; humans make the decisions.
 
 Positioning: **the AI Operating System for Solana markets** / **the Bloomberg Terminal for Solana, powered by autonomous AI agents.**
 
 ## Scope & decisions (locked)
 
 - **Solana only.** No multi-chain.
-- **Independent of DexScreener** — no dependency on its API, not a reseller of its data. **One deliberate, narrow exception (2026-09-21):** `apps/frontend/lib/api.ts`'s `getLeaderboard`/`getTokenByMint` fall back to a direct DexScreener fetch (`apps/frontend/lib/dexscreener.ts`) when ClawDex's own DB has no scored tokens yet for a mint — a display-only fallback so the feed/token page aren't empty before the real ingestion pipeline has caught up, not a data dependency the scoring pipeline relies on. It never fabricates a score, authority check, or burn data for these tokens — `score`/`authorityCheck` are returned `null` and rendered as "Unscored"/"Not yet scored", matching the backend's own rule of skipping a token rather than guessing missing inputs. If this fallback is ever promoted beyond a demo convenience, revisit — it's real production data flowing outside the locked architecture.
+- **Independent of DexScreener** — no dependency on its API, not a reseller of its data. **One deliberate, narrow exception (2026-09-21):** `apps/frontend/lib/api.ts`'s `getLeaderboard`/`getTokenByMint` fall back to a direct DexScreener fetch (`apps/frontend/lib/dexscreener.ts`) when Riven's own DB has no scored tokens yet for a mint — a display-only fallback so the feed/token page aren't empty before the real ingestion pipeline has caught up, not a data dependency the scoring pipeline relies on. It never fabricates a score, authority check, or burn data for these tokens — `score`/`authorityCheck` are returned `null` and rendered as "Unscored"/"Not yet scored", matching the backend's own rule of skipping a token rather than guessing missing inputs. If this fallback is ever promoted beyond a demo convenience, revisit — it's real production data flowing outside the locked architecture.
 - **Data source: Helius** (RPC and webhooks) is primary. Market data (price, market cap, liquidity) is derived in-house from bonding-curve/pool reserves and swap events — not pulled from a third party.
 - **Launchpad-first**: pump.fun, Raydium LaunchLab, ClawPump, and other launchpads.
 - **Free first.** No payments at launch. The moat is transparency, trust, and AI-powered insight on every token.
@@ -100,7 +100,7 @@ Positioning: **the AI Operating System for Solana markets** / **the Bloomberg Te
 
 ## Current build scope (Week 1 — this is what to actually build first)
 
-- **Detection**: Helius webhooks catch new launches on pump.fun, LaunchLab, and ClawPump, stored in ClawDex's own DB.
+- **Detection**: Helius webhooks catch new launches on pump.fun, LaunchLab, and ClawPump, stored in Riven's own DB.
 - **Market data**: price, market cap, liquidity derived from bonding-curve or pool reserves plus swap events. Cover pump.fun and PumpSwap first.
 - **Token page**: price, market cap, liquidity, holders with top-10 concentration, txns, KOL activity, Bubblemaps embed, and a 0–100 score with a plain-English AI explanation.
 - **Feed**: new launches, each with a score.
@@ -351,10 +351,10 @@ When adding or upgrading any dependency: use the **latest stable, widely-adopted
 - Generator provider is `"prisma-client"`, **not** `"prisma-client-js"` (that's the old v6 generator).
 - The datasource `url` does **not** go in `schema.prisma` — it lives in `packages/shared/prisma.config.ts`.
 - `PrismaClient` requires a driver adapter — we use `@prisma/adapter-pg` (see `packages/shared/src/db/client.ts`). Don't instantiate `PrismaClient` without `{ adapter }`.
-- Regenerate after any schema change: `pnpm --filter @clawdex/shared db:generate`. Migrate (dev, interactive): `db:migrate`. Migrate (CI/production, non-interactive): `db:migrate:deploy`.
+- Regenerate after any schema change: `pnpm --filter @riven/shared db:generate`. Migrate (dev, interactive): `db:migrate`. Migrate (CI/production, non-interactive): `db:migrate:deploy`.
 
 ### `packages/shared` compiles to `dist/` — this matters for production builds
-`@clawdex/shared`'s `package.json` (`main`/`types`/`exports`) points at `./dist`, not `./src`. In dev, `nest start --watch` and `next dev` are TS-aware enough to not care, but a real production run (`node dist/main.js`, no ts-node) needs the compiled output to actually exist first. `pnpm --filter @clawdex/shared build` runs `prisma generate && tsc`. `turbo.json`'s `dev` and `build` tasks both `dependsOn: ["^build"]`, so `pnpm dev` / `pnpm build` from the root build `packages/shared` automatically — but if you ever run an app directly with `pnpm --filter <app> build` in isolation, build `@clawdex/shared` first or you'll ship stale or missing `dist` output.
+`@riven/shared`'s `package.json` (`main`/`types`/`exports`) points at `./dist`, not `./src`. In dev, `nest start --watch` and `next dev` are TS-aware enough to not care, but a real production run (`node dist/main.js`, no ts-node) needs the compiled output to actually exist first. `pnpm --filter @riven/shared build` runs `prisma generate && tsc`. `turbo.json`'s `dev` and `build` tasks both `dependsOn: ["^build"]`, so `pnpm dev` / `pnpm build` from the root build `packages/shared` automatically — but if you ever run an app directly with `pnpm --filter <app> build` in isolation, build `@riven/shared` first or you'll ship stale or missing `dist` output.
 
 ## Deployment
 
@@ -363,10 +363,10 @@ When adding or upgrading any dependency: use the **latest stable, widely-adopted
 ```toml
 [build]
 builder = "NIXPACKS"
-buildCommand = "pnpm --filter @clawdex/shared build && pnpm --filter backend build"
+buildCommand = "pnpm --filter @riven/shared build && pnpm --filter backend build"
 
 [deploy]
-preDeployCommand = "pnpm --filter @clawdex/shared db:migrate:deploy"
+preDeployCommand = "pnpm --filter @riven/shared db:migrate:deploy"
 startCommand = "node apps/backend/dist/main"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
@@ -396,9 +396,9 @@ If `pnpm install` ever changes `pnpm-lock.yaml` (adds/updates the leading `packa
 
 **Why these files live at the repo root and not `apps/backend/`:** the original setup (documented in an earlier version of this file) had `apps/backend/railway.toml` with an explicit "Config File" path set in the Railway dashboard, Root Directory left blank. That actually worked for a while — until the Root Directory was accidentally toggled to `apps/backend` while debugging a `workspace:*` resolution failure (Root Directory scopes the *build context* Railway hands the builder, so `apps/backend` as Root Directory meant `packages/shared` and the root lockfile were never present in the container — a `pnpm-workspace.yaml` `packages: ["apps/*", "packages/*"]` glob can't match directories that were never copied in). Clearing Root Directory back to blank fixed workspace visibility, but the dashboard's "Config File" override silently stopped saving — turns out Railway deprecated per-service "Config as Code" (the explicit config-file-path override) in favor of "Infrastructure as Code" (`.railway/railway.ts`, applied via `railway config apply`), and **blocks new opt-ins** for any service that never used the override before 2026-08-28 (confirmed directly via `railway api`: `serviceInstanceUpdate` on `railwayConfigFile` returns `BAD_USER_INPUT`, "Config as Code ... is deprecated ... cannot opt in"). Root-level `railway.toml`/`nixpacks.toml` sidesteps the deprecated override entirely — it's the *default* auto-discovery path, not the deprecated one — and also keeps the build context at the true repo root, fixing both problems with one change. If another service ever needs its own distinct Railway config in this repo, it'll need the `.railway/railway.ts` Infrastructure-as-Code path (`railway config init` / `railway config apply`), not a per-service `railway.toml`.
 
-**Frontend → the product spec calls for Vercel**, not Railway (`Hosting: Vercel (frontend) + a long-running worker for streaming ingestion` — the backend above *is* that worker). So `apps/frontend` does **not** need a `railway.toml` by default. If you deploy it to Vercel: Vercel's zero-config Next.js detection doesn't know about the monorepo's shared package, so set a custom Build Command in the Vercel project settings — `pnpm --filter @clawdex/shared build && pnpm --filter frontend build` — same reasoning as the backend. **Do not** also run `db:migrate:deploy` from the frontend's build — migrations should run from exactly one place (the backend) to avoid two deploy pipelines racing on the same migration history.
+**Frontend → the product spec calls for Vercel**, not Railway (`Hosting: Vercel (frontend) + a long-running worker for streaming ingestion` — the backend above *is* that worker). So `apps/frontend` does **not** need a `railway.toml` by default. If you deploy it to Vercel: Vercel's zero-config Next.js detection doesn't know about the monorepo's shared package, so set a custom Build Command in the Vercel project settings — `pnpm --filter @riven/shared build && pnpm --filter frontend build` — same reasoning as the backend. **Do not** also run `db:migrate:deploy` from the frontend's build — migrations should run from exactly one place (the backend) to avoid two deploy pipelines racing on the same migration history.
 
-If frontend ever does move to Railway instead of Vercel: a second service can't reuse the same root-level `railway.toml` (that file is already the backend's config, and per-service Config File overrides pointing elsewhere are the deprecated path — see above), so it would need Railway's Infrastructure-as-Code flow instead (`railway config init` / `.railway/railway.ts` / `railway config apply`), with `buildCommand = "pnpm --filter @clawdex/shared build && pnpm --filter frontend build"` and `startCommand = "pnpm --filter frontend start"` — same shared-monorepo reasoning, still no migration step.
+If frontend ever does move to Railway instead of Vercel: a second service can't reuse the same root-level `railway.toml` (that file is already the backend's config, and per-service Config File overrides pointing elsewhere are the deprecated path — see above), so it would need Railway's Infrastructure-as-Code flow instead (`railway config init` / `.railway/railway.ts` / `railway config apply`), with `buildCommand = "pnpm --filter @riven/shared build && pnpm --filter frontend build"` and `startCommand = "pnpm --filter frontend start"` — same shared-monorepo reasoning, still no migration step.
 
 ## API contracts already built (chain & data side)
 
@@ -419,7 +419,7 @@ If frontend ever does move to Railway instead of Vercel: a second service can't 
 
 Entry: **AnsemHack Clawrena** ($350K prize pool). Registration requires: register on the Clawrena registry, post an X announcement following @clawpumptech, and tokenize on ClawPump — the token itself is the entry, no tokenization means no award eligibility.
 
-**Primary track: ClawPump × pump.fun.** "Novel tooling" fits what ClawDex is; scored on new tech (the spec's "ClawPump agent (Hermes-based)" stack choice directly targets this track's "new technology on the Hermes DeFi harness" scoring factor), onchain volume, and risk management. **Overall Winner** comes automatically with ClawPump tokenization. **Inference Markets (UsePod)** is a stretch, only if the agent's inference is made genuinely load-bearing through UsePod. **EasyA Kickstart** doesn't fit — different tokenize platform, different (utility-token-adoption) scoring metric.
+**Primary track: ClawPump × pump.fun.** "Novel tooling" fits what Riven is; scored on new tech (the spec's "ClawPump agent (Hermes-based)" stack choice directly targets this track's "new technology on the Hermes DeFi harness" scoring factor), onchain volume, and risk management. **Overall Winner** comes automatically with ClawPump tokenization. **Inference Markets (UsePod)** is a stretch, only if the agent's inference is made genuinely load-bearing through UsePod. **EasyA Kickstart** doesn't fit — different tokenize platform, different (utility-token-adoption) scoring metric.
 
 **Early deployment timing is itself a judging criterion** — launching sooner earns a longer evaluation window. Don't hold tokenization for a "finished" product; ship a minimum tokenizable product early and keep shipping in public afterward.
 
@@ -430,14 +430,14 @@ Entry: **AnsemHack Clawrena** ($350K prize pool). Registration requires: registe
 ```bash
 pnpm install
 pnpm dev                                     # frontend + backend in parallel, via turbo
-pnpm --filter @clawdex/shared db:generate    # regenerate Prisma client after a schema change
-pnpm --filter @clawdex/shared db:migrate     # apply migrations
+pnpm --filter @riven/shared db:generate    # regenerate Prisma client after a schema change
+pnpm --filter @riven/shared db:migrate     # apply migrations
 pnpm --filter <app> exec tsc --noEmit        # type-check a single app (frontend | backend)
 ```
 
 ## Reuse before you add
 
-- DB access, table shapes, the score formula → `packages/shared` (`@clawdex/shared`). Never duplicate a Prisma model or re-implement `computeScore` locally in either app.
+- DB access, table shapes, the score formula → `packages/shared` (`@riven/shared`). Never duplicate a Prisma model or re-implement `computeScore` locally in either app.
 - UI primitives → `apps/frontend/components/ui` already has a full shadcn set. Check there before adding a new component or UI library.
 - Env vars → copy the nearest `.env.example`, don't invent a new var name for something already named elsewhere.
 

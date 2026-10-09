@@ -1,4 +1,4 @@
-# ClawDex fix and build path
+# Riven fix and build path
 
 > Status 2026-09-21: Phase 1 and most of Phase 2 done; agent endpoint (Phase 4) built without LLM verification; score fixes 3.1, 3.2, 3.4 done; see the 2026-09-21 audit entry in DECISIONS.md. Still open: backtest and reweighting (3.3, 3.6), extra rug signals (3.5), swap (Phase 5), futures (Phase 6), Privy/watchlist (Phase 8), webhook ingestion for pump.fun/LaunchLab.
 
@@ -11,7 +11,7 @@ Owners follow the README split: **C&D** = chain and data (`packages/shared`, `ap
 | # | Decision | Recommendation | Unblocks |
 |---|---|---|---|
 | D1 | Reverse "explains, doesn't trade" in `DECISIONS.md` and `BLUEPRINT.md` | Yes. Trading volume is a judging metric and the product is now "FOMO + DexScreener with AI" | Phase 4 |
-| D2 | Custody | Non-custodial. The user's wallet signs, ClawDex never holds keys. Privy embedded wallet for one-click | Phase 4 |
+| D2 | Custody | Non-custodial. The user's wallet signs, Riven never holds keys. Privy embedded wallet for one-click | Phase 4 |
 | D3 | Agent model stack | Start Claude-only behind `explainToken(facts, question)`. Add ClawPump/Hermes or UsePod later behind the same function | Phase 3 |
 | D4 | Futures (sakzbot) | Read-only scanner, separate tab, feeds an agent tool. No execution. Confirm venue (Drift, Jupiter Perps or CEX) | Phase 6 |
 | D5 | Score is "passes these checks", not "safe" | Adopt the wording change | Phase 2 |
@@ -28,7 +28,7 @@ Owners follow the README split: **C&D** = chain and data (`packages/shared`, `ap
 
 ### 2.1 Feed and search bugs (P&A + C&D)
 - **DB leaderboard drops market data.** `app/api/leaderboard/route.ts` returns only id, mint, name, symbol, score, calculatedAt. Cards then show `— — —`. Join the latest `PairSnapshot` per token and return price, market cap, liquidity, volume and 24h change, plus `imageUri`, `launchpad` and `firstSeenAt`. Also compute the latest score per token in SQL instead of loading every `scoreRun` row into JS.
-- **"Trending" is not trending.** The DexScreener fallback in `lib/api.ts` uses `token-profiles/latest`, which is a paid-profile feed and contradicts "no paid boosts". Replace it with ClawDex's own launches from the DB (Helius webhooks), ranked by volume growth, holder growth and score. Keep DexScreener only as an explicitly labeled temporary fallback until ingestion is live, or drop it.
+- **"Trending" is not trending.** The DexScreener fallback in `lib/api.ts` uses `token-profiles/latest`, which is a paid-profile feed and contradicts "no paid boosts". Replace it with Riven's own launches from the DB (Helius webhooks), ranked by volume growth, holder growth and score. Keep DexScreener only as an explicitly labeled temporary fallback until ingestion is live, or drop it.
 - **"New" tab is a no-op.** Fallback tokens all get `calculatedAt = now`. Sort by `firstSeenAt` / `pairCreatedAt`, and make "New" a real new-pairs list.
 - **Feed size and speed.** Only 9 cards, sequential per-token DexScreener calls (N+1). Batch (`/tokens/v1/solana/{a,b,c}`, up to 30 addresses) and cache. Add pagination or infinite scroll.
 - **Any string opens a token page.** `getTokenByMint` never returns null in live mode, so garbage renders a "Solana Token" page. Validate base58 and length, then confirm the mint exists on chain (mint account lookup) before rendering. Return the not-found page for real misses.

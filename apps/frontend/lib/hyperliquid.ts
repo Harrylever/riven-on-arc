@@ -1,6 +1,6 @@
 import { cached } from "./memo"
 /**
- * Hyperliquid Info API client for ClawDex Perpetual Intelligence Terminal.
+ * Hyperliquid Info API client for Riven Perpetual Intelligence Terminal.
  * Hyperliquid's Info API is 100% public, permissionless, and does NOT require an API key.
  * Base endpoint: https://api.hyperliquid.xyz/info
  */

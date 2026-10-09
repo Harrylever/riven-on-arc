@@ -8,7 +8,7 @@ import {
   getTokenSupply,
   INCINERATOR_ADDRESS,
   rpcCall,
-} from '@clawdex/shared';
+} from '@riven/shared';
 
 const LOCKER_PROGRAMS = new Set([
   'strmDQftQGddKoGV9fMkFDmLRCNFypJ5nWTS23j9886', // Streamflow

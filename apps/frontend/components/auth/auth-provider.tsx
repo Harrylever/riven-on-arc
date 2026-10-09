@@ -161,7 +161,7 @@ function PrivyBridge({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export function ClawDexAuthProvider({ children }: { children: ReactNode }) {
+export function RivenAuthProvider({ children }: { children: ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
   if (!appId)
     return (

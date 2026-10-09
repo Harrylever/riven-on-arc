@@ -1,6 +1,6 @@
 # Product & agent — phase breakdown
 
-For the frontend/agent side of ClawDex. Mirrors the chain-and-data side's phase structure (`AGENTS.md` → "Chain & data phase roadmap", `docs/PHASE-STATUS.md`) — one branch per phase, dependency-ordered, PR into a shared integration branch. Suggested branch naming to match: `product-agent/<n>-<slug>`.
+For the frontend/agent side of Riven. Mirrors the chain-and-data side's phase structure (`AGENTS.md` → "Chain & data phase roadmap", `docs/PHASE-STATUS.md`) — one branch per phase, dependency-ordered, PR into a shared integration branch. Suggested branch naming to match: `product-agent/<n>-<slug>`.
 
 **Read `AGENTS.md` first** — it has the full product spec, the resolved trade-vs-monitoring decision, and what's already built on the chain/data side. This file just breaks *your* side into phases.
 
@@ -11,8 +11,8 @@ Don't re-derive these — they're built, type-checked, and (as of this writing) 
 - `GET /api/leaderboard` → `{ tokens: [{ tokenId, mint, name, symbol, score, calculatedAt }] }`
 - `GET /api/token/[mint]` → `{ token, score, authorityCheck, z500Rank, recentBurns }` (resolves on-demand via Helius if not yet indexed — no 404 for a valid but undetected mint)
 - `POST /api/agent/analyze` → currently a `501` stub with a comment pointing here — **this is yours to build**, Phase 2 below
-- Prisma models available via `@clawdex/shared`: `Token` (with `launchpad`, `imageUri`, `decimals`, `metadataUri`), `ScoreRun`, `TokenAuthorityCheck`, `HolderSnapshot`, `Burn`, `Pool`/`Trade`/`PairSnapshot` (swap/price data), `KolTrade` (KOL feed, phase 5 just landed), `Watchlist`, `Alert`. Full schema: `packages/shared/prisma/schema.prisma`.
-- Score formula + sub-score derivation live in `@clawdex/shared` (`computeScore`, `deriveConcentrationScore`, etc.) if you ever need to explain the math, not just display the number.
+- Prisma models available via `@riven/shared`: `Token` (with `launchpad`, `imageUri`, `decimals`, `metadataUri`), `ScoreRun`, `TokenAuthorityCheck`, `HolderSnapshot`, `Burn`, `Pool`/`Trade`/`PairSnapshot` (swap/price data), `KolTrade` (KOL feed, phase 5 just landed), `Watchlist`, `Alert`. Full schema: `packages/shared/prisma/schema.prisma`.
+- Score formula + sub-score derivation live in `@riven/shared` (`computeScore`, `deriveConcentrationScore`, etc.) if you ever need to explain the math, not just display the number.
 
 **Not yet available:** `PairSnapshot.liquidityUsd`/`marketCapUsd` are null (SOL-denominated ratios are used internally for scoring, no USD feed wired up yet); z500 rank data (phase 6, blocked on confirming the real data source); exact unique holder counts (`HolderSnapshot.holderCount` is null, only `top10Pct` is populated).
 
@@ -43,7 +43,7 @@ localStorage-based watchlist, matching the original research doc's own reasoning
 
 ## Phase 4 — KOL Intelligence UI
 
-Consumes `KolTrade` (chain-and-data phase 5, just shipped — real MadeOnSol/Solana Tracker data, or mock trades if `USE_MOCK_DATA=true` and no API key is set yet). You'll likely need new thin read routes here (e.g. `GET /api/token/[mint]/kols`, `GET /api/kols/leaderboard`) — follow the existing pattern in `apps/frontend/app/api/*` (query `@clawdex/shared`'s Prisma client directly, no need to round-trip through the backend).
+Consumes `KolTrade` (chain-and-data phase 5, just shipped — real MadeOnSol/Solana Tracker data, or mock trades if `USE_MOCK_DATA=true` and no API key is set yet). You'll likely need new thin read routes here (e.g. `GET /api/token/[mint]/kols`, `GET /api/kols/leaderboard`) — follow the existing pattern in `apps/frontend/app/api/*` (query `@riven/shared`'s Prisma client directly, no need to round-trip through the backend).
 
 - Live KOL feed, per-token KOL activity tab, PnL leaderboard.
 - Rule from the spec: show sells as prominently as buys — a KOL buy is not a safety signal. Include a "not financial advice" note.

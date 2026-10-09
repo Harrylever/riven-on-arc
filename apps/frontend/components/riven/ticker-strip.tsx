@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-import type { ArcBand } from "@clawdex/shared"
+import type { ArcBand } from "@riven/shared"
 import { BAND_META, change, changeColor, usd } from "@/lib/riven-format"
 import { TokenAvatar } from "./token-avatar"
 

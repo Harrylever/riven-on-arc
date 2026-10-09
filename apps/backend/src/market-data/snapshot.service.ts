@@ -1,5 +1,5 @@
 import { Logger } from '../lib/logger';
-import { getDb, getSolBalance, getSolPriceUsd } from '@clawdex/shared';
+import { getDb, getSolBalance, getSolPriceUsd } from '@riven/shared';
 
 /**
  * Computes a PairSnapshot per pool from recent Trade rows, every minute.

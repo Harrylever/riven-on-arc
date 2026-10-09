@@ -1,5 +1,5 @@
 import { Logger } from '../lib/logger';
-import { getDb } from '@clawdex/shared';
+import { getDb } from '@riven/shared';
 
 /**
  * "Watch this token → alert" per the final spec's Autonomous Agent Mode —

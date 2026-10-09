@@ -63,7 +63,7 @@ The data flow is Arc RPC → backend indexers → Postgres → scorer → `score
 bun install
 cp apps/frontend/.env.example apps/frontend/.env.local   # set DATABASE_URL (UTF-8 Postgres!)
 cp apps/backend/.env.example apps/backend/.env
-DATABASE_URL=... bun run --filter @clawdex/shared db:migrate:deploy
+DATABASE_URL=... bun run --filter @riven/shared db:migrate:deploy
 bun run build:shared
 bun run dev:backend    # CHAIN_MODE defaults to Arc
 bun run dev:frontend
@@ -74,7 +74,7 @@ Create the database as **UTF-8**. Token names are arbitrary Unicode, and a WIN12
 ## Tests
 
 ```bash
-bun run --filter @clawdex/shared test   # scorer, incl. arc-v5 regressions
+bun run --filter @riven/shared test   # scorer, incl. arc-v5 regressions
 bun run --filter backend test           # indexers, pool USDC, LP-removal, alerts, jobs
 bun run --filter frontend test          # swap encoder, paper-perp accounting, screener params
 ```

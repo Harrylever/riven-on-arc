@@ -1,5 +1,5 @@
 import { Logger } from '../lib/logger';
-import { getDb, INCINERATOR_ADDRESS } from '@clawdex/shared';
+import { getDb, INCINERATOR_ADDRESS } from '@riven/shared';
 
 interface HeliusBurnTransaction {
   signature: string;

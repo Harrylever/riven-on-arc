@@ -1,6 +1,6 @@
 # Arc port notes
 
-This memo captures the current Solana-specific assumptions in the repo and what needs to be treated as chain-agnostic while porting ClawDex to Arc mainnet (chain ID `5042`).
+This memo captures the current Solana-specific assumptions in the repo and what needs to be treated as chain-agnostic while porting Riven to Arc mainnet (chain ID `5042`).
 
 ## Solana-specific assumptions to replace
 

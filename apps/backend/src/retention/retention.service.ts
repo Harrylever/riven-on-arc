@@ -1,5 +1,5 @@
 import { Logger } from '../lib/logger';
-import { getDb } from '@clawdex/shared';
+import { getDb } from '@riven/shared';
 
 /**
  * Deletes rows older than DATA_RETENTION_DAYS (default 30) from the

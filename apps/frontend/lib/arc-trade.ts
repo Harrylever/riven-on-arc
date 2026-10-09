@@ -1,6 +1,6 @@
 // Server-only. Builds unsigned Uniswap v4 swap transactions for the user's own
 // wallet to sign. Riven never holds keys or funds and never broadcasts anything.
-import { getDb } from "@clawdex/shared"
+import { getDb } from "@riven/shared"
 import {
   createPublicClient,
   decodeFunctionResult,

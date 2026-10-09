@@ -5,7 +5,7 @@ import {
   type ArcAuthorityInput,
   type ArcLpState,
   type ArcScoreInput,
-} from "@clawdex/shared";
+} from "@riven/shared";
 import {
   createPublicClient,
   http,

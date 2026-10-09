@@ -1,4 +1,4 @@
-import type { ArcBand } from "@clawdex/shared"
+import type { ArcBand } from "@riven/shared"
 import { BAND_META } from "@/lib/riven-format"
 
 /** Flat 1–10 score chip — colour carries the band, no glow. */

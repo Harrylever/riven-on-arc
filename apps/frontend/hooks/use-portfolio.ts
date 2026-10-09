@@ -88,8 +88,8 @@ const DEFAULT_STATE: PortfolioState = {
   totalVolume: 0,
 }
 
-const ACCOUNTS_LIST_KEY = "clawdex_accounts_registry_v1"
-const ACTIVE_ACCOUNT_KEY = "clawdex_active_account_v1"
+const ACCOUNTS_LIST_KEY = "riven_accounts_registry_v1"
+const ACTIVE_ACCOUNT_KEY = "riven_active_account_v1"
 
 export function getAccountsRegistry(): string[] {
   if (typeof window === "undefined") return ["trader_1"]
@@ -138,13 +138,13 @@ export function setActiveAccountInStorage(accountId: string) {
   } catch {
     // ignore
   }
-  window.dispatchEvent(new Event("clawdex_account_change"))
+  window.dispatchEvent(new Event("riven_account_change"))
 }
 
 function getStorageKey(accountId: string): string {
   // Normalize account id for storage key
   const safeId = accountId.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 48)
-  return `clawdex_portfolio_acc_${safeId}`
+  return `riven_portfolio_acc_${safeId}`
 }
 
 function readStorage(accountId: string): PortfolioState {
@@ -184,8 +184,8 @@ function writeStorage(accountId: string, state: PortfolioState) {
   } catch {
     // LocalStorage quota or privacy mode error
   }
-  window.dispatchEvent(new Event(`clawdex_portfolio_change_${accountId}`))
-  window.dispatchEvent(new Event("clawdex_portfolio_change"))
+  window.dispatchEvent(new Event(`riven_portfolio_change_${accountId}`))
+  window.dispatchEvent(new Event("riven_portfolio_change"))
 }
 
 function subscribeAccount(accountId: string, callback: () => void) {
@@ -194,13 +194,13 @@ function subscribeAccount(accountId: string, callback: () => void) {
     snapshotsCache.delete(key)
     callback()
   }
-  const eventName = `clawdex_portfolio_change_${accountId}`
+  const eventName = `riven_portfolio_change_${accountId}`
   window.addEventListener(eventName, onChange)
-  window.addEventListener("clawdex_account_change", onChange)
+  window.addEventListener("riven_account_change", onChange)
   window.addEventListener("storage", onChange)
   return () => {
     window.removeEventListener(eventName, onChange)
-    window.removeEventListener("clawdex_account_change", onChange)
+    window.removeEventListener("riven_account_change", onChange)
     window.removeEventListener("storage", onChange)
   }
 }

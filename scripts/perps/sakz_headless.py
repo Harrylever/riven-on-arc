@@ -3,11 +3,11 @@
 sakz-bot is normally a Telegram bot; its scanner (`run_full_scan`) and outcome
 checker (`_check_signal_outcomes_blocking`) are plain functions that already
 mirror into Riven's `perp_signals` table through `clawdex_sync` whenever
-CLAWDEX_DATABASE_URL is set. This runner calls them on a timer — no Telegram
+RIVEN_DATABASE_URL is set. This runner calls them on a timer — no Telegram
 token, no exchange keys, and it never places an order (signals only).
 
 Usage (from anywhere):
-    set CLAWDEX_DATABASE_URL=postgresql://...      (Riven's Postgres)
+    set RIVEN_DATABASE_URL=postgresql://...      (Riven's Postgres)
     set SAKZ_DIR=C:\\path\\to\\sakz-bot-main          (defaults to the sibling folder)
     python scripts/perps/sakz_headless.py --backfill      # import saved history once
     python scripts/perps/sakz_headless.py                 # scan every 10 min, forever
@@ -233,9 +233,13 @@ def main() -> None:
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
-    db_url = os.environ.get("CLAWDEX_DATABASE_URL", "").strip()
+    # sakz-bot's own mirror module (clawdex_sync, outside this repo) still reads the
+    # legacy name, so mirror the value into it.
+    db_url = (os.environ.get("RIVEN_DATABASE_URL") or os.environ.get("CLAWDEX_DATABASE_URL") or "").strip()
+    if db_url:
+        os.environ["CLAWDEX_DATABASE_URL"] = db_url
     if not db_url:
-        sys.exit("Set CLAWDEX_DATABASE_URL to Riven's Postgres (the mirror is a no-op without it).")
+        sys.exit("Set RIVEN_DATABASE_URL to Riven's Postgres (the mirror is a no-op without it).")
     sakz = _sakz_dir()
     sys.path.insert(0, sakz)
     os.chdir(sakz)  # sakz-bot resolves its own files (DB, model) relative to its folder

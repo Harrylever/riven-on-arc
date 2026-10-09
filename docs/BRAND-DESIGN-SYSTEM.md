@@ -1,8 +1,8 @@
-# Clawdex — Brand & Design System Brief
+# Riven — Brand & Design System Brief
 
 ## Name
 
-**Clawdex**
+**Riven**
 
 ## Blurb
 
@@ -13,7 +13,7 @@
 > AI terminal for Solana markets. Powered by @clawpumptech agents.
 
 **One paragraph:**
-> Clawdex watches every pump.fun / ClawPump / LaunchLab launch on Solana in real time, scores each token 0–100 on signals that can't be bought or faked (mint/freeze authority, LP lock, burn history, holder concentration), and explains what's happening in plain English through an AI agent — so a normie trader gets the same read a chain analyst would, without reading a contract.
+> Riven watches every pump.fun / ClawPump / LaunchLab launch on Solana in real time, scores each token 0–100 on signals that can't be bought or faked (mint/freeze authority, LP lock, burn history, holder concentration), and explains what's happening in plain English through an AI agent — so a normie trader gets the same read a chain analyst would, without reading a contract.
 
 ## Notes (context that should shape the design)
 
@@ -36,7 +36,7 @@
 
 - **The score is never sold.** No paid boosts, no "verified" badges for cash — credibility is the entire product. This is the single sentence that should anchor any tagline work.
 - **Signals are on-chain and hard to fake** — mint/freeze authority state, LP lock, attributed burns, holder concentration — not a curated "trust us" list a team can quietly adjust.
-- **The agent explains *why*, not just *what*.** DexScreener/Birdeye/RugCheck/Bubblemaps show you data; Clawdex is the one that tells you what it means, in one sentence.
+- **The agent explains *why*, not just *what*.** DexScreener/Birdeye/RugCheck/Bubblemaps show you data; Riven is the one that tells you what it means, in one sentence.
 - **Ecosystem-native**, not a bolted-on external tool — built directly against pump.fun/ClawPump/LaunchLab launch flow and Solana KOL activity, not a generic multi-chain scanner.
 
 ## Color system
@@ -51,7 +51,7 @@ Built around a dark, cool-graphite terminal base (not pure black — pure black 
 | `border` | `#232B38` | Dividers, card borders |
 | `text-primary` | `#E8ECF2` | Primary text |
 | `text-muted` | `#8B95A8` | Secondary/meta text |
-| `brand` | `#2FB8C4` | Brand accent — links, primary CTAs, agent-chat surfaces, the "Clawdex" identity color (a considered teal, not neon-green, not a purple/blue gradient; reads as "scanner/radar," fitting a screener) |
+| `brand` | `#2FB8C4` | Brand accent — links, primary CTAs, agent-chat surfaces, the "Riven" identity color (a considered teal, not neon-green, not a purple/blue gradient; reads as "scanner/radar," fitting a screener) |
 | `brand-dim` | `#1E8A94` | Hover/pressed state of brand accent |
 | `score-healthy` | `#3FBF7F` | Score ≥ 70 — muted green, not neon |
 | `score-caution` | `#F2B84B` | Score 50–69 — warm amber |

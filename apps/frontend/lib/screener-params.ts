@@ -1,4 +1,4 @@
-import type { ArcBand } from "@clawdex/shared"
+import type { ArcBand } from "@riven/shared"
 
 /** Screener filters ↔ URL query. Shared by the server page and the client UI. */
 

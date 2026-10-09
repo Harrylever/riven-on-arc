@@ -1,13 +1,13 @@
 > **Superseded for Riven (Arc):** read the "current state" section at the top of `AGENTS.md` first. The stack is bun + Hono (not pnpm/NestJS), the chain is Arc, and the owner has allowed non-custodial buy/sell and paper perps behind flags. The rules below are the original Solana-era ones.
 
-# ClawDex agent rules
+# Riven agent rules
 
 ## Source of truth
 - docs/SPEC.md (product), docs/BLUEPRINT.md (original blueprint), docs/ARCHITECTURE.md and docs/WORKSTREAMS.md (once approved). Read them before any task.
 - Decisions live in docs/DECISIONS.md. Do not contradict them.
 
 ## Product
-- ClawDex is a Solana-only AI intelligence terminal. It explains tokens; it does not trade.
+- Riven is a Solana-only AI intelligence terminal. It explains tokens; it does not trade.
 - Free first. No payments at launch. No dependency on DexScreener. Helius is the data source.
 - Mobile-first, plain-English UI.
 
@@ -25,8 +25,8 @@
 
 ## Turborepo
 - Run tasks through root scripts (pnpm build, pnpm lint, pnpm dev) or pnpm --filter <package> <script>.
-- Package names: frontend, backend, @clawdex/shared. Cross-package deps use workspace:* only.
-- After any schema change: pnpm --filter @clawdex/shared db:generate.
+- Package names: frontend, backend, @riven/shared. Cross-package deps use workspace:* only.
+- After any schema change: pnpm --filter @riven/shared db:generate.
 - Definition of done: pnpm build and pnpm lint pass. Backend changes also need pnpm --filter backend test.
 
 ## Working rules

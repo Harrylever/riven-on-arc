@@ -1,5 +1,5 @@
 import { Logger } from '../lib/logger';
-import { getDb } from '@clawdex/shared';
+import { getDb } from '@riven/shared';
 
 interface HeliusSwapTransaction {
   signature: string;

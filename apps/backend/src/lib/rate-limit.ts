@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from 'hono';
 import { Redis } from 'ioredis';
-import { getRedisConnectionParams } from '@clawdex/shared';
+import { getRedisConnectionParams } from '@riven/shared';
 
 /**
  * Fixed-window rate limiter, 100 req / 60s per client IP (same budget the

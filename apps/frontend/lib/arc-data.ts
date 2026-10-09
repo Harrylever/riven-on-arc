@@ -1,4 +1,4 @@
-// Server-only module: imports Prisma via @clawdex/shared, never import
+// Server-only module: imports Prisma via @riven/shared, never import
 // from a client component.
 import { cached } from "./memo"
 import {
@@ -11,7 +11,7 @@ import {
   type ArcBand,
   type ArcFlag,
   type SubScoreKey,
-} from "@clawdex/shared"
+} from "@riven/shared"
 
 /**
  * Read side of Riven. Scores come only from the backend pipeline's on-chain
