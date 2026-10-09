@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic"
 export async function GET(req: Request) {
   const light = new URL(req.url).searchParams.get("light") === "1"
   try {
-    return NextResponse.json(light ? await getSyncStatus() : await getStats())
+    return NextResponse.json(light ? await getSyncStatus() : await getStats(), {
+      headers: { "cache-control": "public, s-maxage=30, stale-while-revalidate=120" },
+    })
   } catch (err) {
     console.error(`[arc/status] ${(err as Error).message}`)
     return NextResponse.json(

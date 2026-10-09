@@ -8,6 +8,7 @@ import { RugWatcher } from "./rug-watcher"
 import { TickerStrip } from "./ticker-strip"
 import { Companion } from "@/components/mascot/companion"
 import { RivenProvider } from "@/components/mascot/riven-context"
+import { visibleInterval } from "@/lib/visible-interval"
 
 interface Status {
   lastBlock: string | null
@@ -50,10 +51,10 @@ function useStatus() {
         .then((s) => alive && s && setStatus(s))
         .catch(() => {})
     load()
-    const id = setInterval(load, 30_000)
+    const stop = visibleInterval(load, 120_000)
     return () => {
       alive = false
-      clearInterval(id)
+      stop()
     }
   }, [])
   return status

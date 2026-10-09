@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { toast } from "@/components/ui/toast"
 import { useWatchlist } from "@/hooks/use-watchlist"
+import { visibleInterval } from "@/lib/visible-interval"
 
 const SEEN_KEY = "riven_seen_alerts_v1"
 
@@ -67,10 +68,11 @@ export function RugWatcher() {
       } catch {}
     }
     check()
-    const id = setInterval(check, 45_000)
+    // alerts must reach background tabs too, so this one keeps polling while hidden
+    const stop = visibleInterval(check, 60_000, { whileHidden: true })
     return () => {
       alive = false
-      clearInterval(id)
+      stop()
     }
   }, [key])
   return null

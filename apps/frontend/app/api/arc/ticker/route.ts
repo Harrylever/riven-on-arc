@@ -28,7 +28,7 @@ export async function GET() {
           fake: t.fake,
         })),
       },
-      { headers: { "cache-control": "no-store" } },
+      { headers: { "cache-control": "public, s-maxage=30, stale-while-revalidate=120" } },
     )
   } catch (err) {
     console.error(`[arc/ticker] ${(err as Error).message}`)

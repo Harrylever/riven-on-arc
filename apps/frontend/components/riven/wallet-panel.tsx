@@ -16,6 +16,7 @@ import { compact, shortAddr, usd } from "@/lib/riven-format"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { TradeSheet, type TradeToken } from "./trade-sheet"
+import { visibleInterval } from "@/lib/visible-interval"
 
 interface WalletData {
   address: string
@@ -57,8 +58,7 @@ export function WalletPanel() {
   useEffect(() => {
     setData(null)
     void load()
-    const id = setInterval(load, 30_000)
-    return () => clearInterval(id)
+    return visibleInterval(load, 60_000)
   }, [load])
 
   if (!wallet.address) {

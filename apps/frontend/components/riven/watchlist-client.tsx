@@ -7,6 +7,7 @@ import { useEffect, useState } from "react"
 import type { TokenSummary } from "@/lib/arc-data"
 import { useWatchlist } from "@/hooks/use-watchlist"
 import { TokenCard } from "./token-card"
+import { visibleInterval } from "@/lib/visible-interval"
 
 export function WatchlistClient() {
   const { mints } = useWatchlist()
@@ -35,10 +36,10 @@ export function WatchlistClient() {
         // Keep showing the last good list; just say it's stale.
         .catch(() => alive && setFailed(true))
     load()
-    const id = setInterval(load, 30_000)
+    const stop = visibleInterval(load, 60_000)
     return () => {
       alive = false
-      clearInterval(id)
+      stop()
     }
   }, [key])
 

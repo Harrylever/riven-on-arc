@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import type { ArcBand } from "@riven/shared"
+import { visibleInterval } from "@/lib/visible-interval"
 import { BAND_META, change, changeColor, usd } from "@/lib/riven-format"
 import { TokenAvatar } from "./token-avatar"
 
@@ -26,7 +27,7 @@ export function TickerStrip() {
   useEffect(() => {
     let alive = true
     const load = () =>
-      fetch("/api/arc/ticker", { cache: "no-store" })
+      fetch("/api/arc/ticker")
         .then((r) => (r.ok ? r.json() : null))
         .then((d: { tokens: Tick[] } | null) => {
           if (!alive || !d) return
@@ -40,14 +41,11 @@ export function TickerStrip() {
         })
         .catch(() => {})
     load()
-    // refresh while the tab is visible; catch up right away when it comes back
-    const id = setInterval(() => document.visibilityState === "visible" && load(), 15_000)
-    const onVis = () => document.visibilityState === "visible" && load()
-    document.addEventListener("visibilitychange", onVis)
+    // refresh about once a minute while the tab is visible; catch up when it comes back
+    const stop = visibleInterval(load, 60_000)
     return () => {
       alive = false
-      clearInterval(id)
-      document.removeEventListener("visibilitychange", onVis)
+      stop()
     }
   }, [])
   if (ticks.length === 0) return <div className="h-9 border-t border-[var(--rv-stroke)]" />

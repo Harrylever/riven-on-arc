@@ -25,8 +25,9 @@ import type { getMarketTotals } from "@/lib/arc-data"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
+import { visibleInterval } from "@/lib/visible-interval"
 
-const REFRESH_MS = 20_000
+const REFRESH_MS = 60_000
 /** Where "Dispute a score" goes: NEXT_PUBLIC_DISPUTE_URL, else the methodology page. */
 const DISPUTE_URL = process.env.NEXT_PUBLIC_DISPUTE_URL || "/methodology#disputes"
 
@@ -93,10 +94,10 @@ export function Screener({
 
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 1000)
-    const refresh = setInterval(() => startTransition(() => router.refresh()), REFRESH_MS)
+    const stopRefresh = visibleInterval(() => startTransition(() => router.refresh()), REFRESH_MS)
     return () => {
       clearInterval(tick)
-      clearInterval(refresh)
+      stopRefresh()
     }
   }, [router])
 

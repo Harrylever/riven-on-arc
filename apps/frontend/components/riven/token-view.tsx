@@ -27,6 +27,7 @@ import { CopyBadge, CopycatWarning } from "./copycat"
 import { TradeSheet } from "./trade-sheet"
 import { useArcWallet } from "@/hooks/use-arc-wallet"
 import { TRADING_ENABLED } from "@/lib/flags"
+import { visibleInterval } from "@/lib/visible-interval"
 
 const EXPLORER = "https://explorer.arc.io"
 const ORDER: SubScoreKey[] = [
@@ -130,11 +131,8 @@ export function TokenView({
       },
     },
   })
-  // Keep the page live: numbers refresh every 30s, and once more after a scan settles.
-  useEffect(() => {
-    const id = window.setInterval(() => router.refresh(), 30_000)
-    return () => window.clearInterval(id)
-  }, [router])
+  // Keep the page live: numbers refresh about once a minute while it is visible, and once more after a scan settles.
+  useEffect(() => visibleInterval(() => router.refresh(), 60_000), [router])
   useEffect(() => {
     if (!flash) return
     const id = window.setTimeout(() => router.refresh(), 45_000)
