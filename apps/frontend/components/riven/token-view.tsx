@@ -457,6 +457,13 @@ export function TokenView({
                   ? " · holder history still loading"
                   : ""}
               </p>
+              {t.score === null && (
+                <UnscoredChecklist
+                  measured={t.measured}
+                  holderHistory={t.holderHistory}
+                  onScan={requestScan}
+                />
+              )}
               {t.subScores && (
                 <div className="mt-4 grid gap-2.5">
                   {ORDER.map((k) => (
@@ -515,6 +522,62 @@ export function TokenView({
           </section>
         </aside>
       </div>
+    </div>
+  )
+}
+
+/** Why a token has no number yet: which of the three required reads are done, and what the holder read is waiting on. */
+function UnscoredChecklist({
+  measured,
+  holderHistory,
+  onScan,
+}: {
+  measured: { contract: boolean; liquidity: boolean; holders: boolean }
+  holderHistory: string | null
+  onScan: () => Promise<unknown> | void
+}) {
+  const [busy, setBusy] = useState(false)
+  const holderNote =
+    holderHistory === "too_long"
+      ? "This token's history is longer than Riven replays on public RPCs, so it stays unscored rather than guessed."
+      : holderHistory === "unavailable"
+        ? "The RPC could not serve this token's transfer history. Unscored beats a wrong score."
+        : "Replaying every transfer since launch. Busy tokens take longer."
+  const rows: Array<[string, boolean, string | null]> = [
+    ["Contract powers (mint, pause, upgrade)", measured.contract, null],
+    ["Who controls the launch liquidity", measured.liquidity, null],
+    ["Who holds the supply", measured.holders, measured.holders ? null : holderNote],
+  ]
+  return (
+    <div className="mt-3 rounded-lg border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-3">
+      <p className="text-[12px] font-semibold text-[var(--rv-ink)]">
+        Riven publishes a number only after all three are read
+      </p>
+      <ul className="mt-2 grid gap-1.5">
+        {rows.map(([label, done, note]) => (
+          <li key={label} className="text-[12px] leading-snug text-[var(--rv-ink-2)]">
+            <span aria-hidden className="mr-1.5">{done ? "\u2713" : "\u2026"}</span>
+            <span className="sr-only">{done ? "Read: " : "Waiting: "}</span>
+            {label}
+            {note && <span className="block pl-5 text-[11px] text-[var(--rv-ink-3)]">{note}</span>}
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true)
+          try {
+            await onScan()
+          } finally {
+            setBusy(false)
+          }
+        }}
+        className="rv-btn-ghost mt-3 h-8 px-3 text-[12px]"
+      >
+        {busy ? "Asking Riven\u2026" : "Check again now"}
+      </button>
     </div>
   )
 }

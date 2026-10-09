@@ -138,6 +138,8 @@ export interface TokenDetail extends TokenSummary {
   creatorRecord: CreatorRecord | null
   alerts: TokenAlert[]
   holderHistory: string | null
+  /** Which of the three inputs a score needs have been read from the chain yet. */
+  measured: { contract: boolean; liquidity: boolean; holders: boolean }
   /** Every other token using this ticker or name, oldest first. */
   copyList: TokenSummary[]
 }
@@ -147,7 +149,11 @@ interface Signals {
   flags?: ArcFlag[]
   subScores?: Record<SubScoreKey, { points: number; max: number }>
   market?: { feePct?: number | null; poolUsdc?: number | null }
-  inputs?: { holders?: { count?: number } | null }
+  inputs?: {
+    holders?: { count?: number } | null
+    authority?: unknown
+    lp?: unknown
+  }
   topHolders?: Array<{ address: string; pct: number; tag: string | null }>
 }
 
@@ -838,6 +844,11 @@ export async function getTokenDetail(
       : null,
     alerts,
     holderHistory: t.holderHistory,
+    measured: {
+      contract: sig.inputs?.authority != null,
+      liquidity: sig.inputs?.lp != null,
+      holders: sig.inputs?.holders != null,
+    },
     copyList: copyRows.map(summarize),
   }
 }

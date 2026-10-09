@@ -17,7 +17,7 @@ const CHUNK = BigInt(process.env.ARC_BACKFILL_CHUNK_BLOCKS ?? "50000");
 /** ~6 weeks of Arc blocks (mainnet launched 2026-09-16, so all of it for now). Longer histories stay "too_long". */
 const MAX_SPAN = BigInt(process.env.ARC_BACKFILL_MAX_BLOCKS ?? "7000000");
 const MIN_LIQUIDITY_USD = Number(process.env.ARC_BACKFILL_MIN_LIQUIDITY ?? "1000");
-/** Tokens replayed per pipeline tick, deepest liquidity first. */
+/** Tokens replayed per pipeline tick, most-traded first. */
 const TOKENS_PER_RUN = Number(process.env.ARC_BACKFILL_TOKENS_PER_RUN ?? "4");
 const ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -59,7 +59,11 @@ export class HolderBackfillService {
         arcMarket: { liquidityUsd: { gte: MIN_LIQUIDITY_USD } },
         OR: [{ launchBlock: null }, { launchBlock: { lte: cursor.lastBlock } }],
       },
-      orderBy: { arcMarket: { liquidityUsd: "desc" } },
+      // Most-traded first: those are the tokens people open, and the ones a reviewer lands on.
+      orderBy: [
+        { arcMarket: { volume24h: { sort: "desc", nulls: "last" } } },
+        { arcMarket: { liquidityUsd: "desc" } },
+      ],
       include: { pools: true },
       take: TOKENS_PER_RUN,
     });

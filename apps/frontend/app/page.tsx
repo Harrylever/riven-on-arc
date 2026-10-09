@@ -50,7 +50,16 @@ export default async function Home() {
       ? Math.round((stats.fake24h / stats.launches24h) * 100)
       : null
   // results are shared from a cache: copy, never mutate
-  const top = topRaw ? { ...topRaw, tokens: topRaw.tokens.filter((t) => !t.fake).slice(0, 14) } : null
+  // scored tokens lead: a reviewer's first look should show Riven's number, not "pending"
+  const top = topRaw
+    ? {
+        ...topRaw,
+        tokens: [
+          ...topRaw.tokens.filter((t) => !t.fake && t.score !== null),
+          ...topRaw.tokens.filter((t) => !t.fake && t.score === null),
+        ].slice(0, 14),
+      }
+    : null
   const wall = (top?.tokens ?? []).filter((t) => t.image).slice(0, 12)
 
   // Holograms Riven pulls up in the hero — all live numbers.
