@@ -25,7 +25,7 @@ import {
   POOL_MANAGER,
   POSITION_MANAGER,
   STATE_VIEW,
-  USDC, arcTransport } from "./config";
+  USDC, arcTransport, quoteDecimals, quoteIsCurrency0 } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
 
 const ACTIVITY_CURSOR = "arc:activity";
@@ -112,6 +112,7 @@ export function usdcInRange(
   tickLower: number | null,
   tickUpper: number | null,
   token: string,
+  quoteMint?: string | null,
 ): number {
   if (sqrtPriceX96 <= 0n || liquidity <= 0n) return 0;
   const L = Number(liquidity);
@@ -120,8 +121,8 @@ export function usdcInRange(
   const s = Math.min(Math.max(Number(sqrtPriceX96) / 2 ** 96, sa), sb);
   const amount0 = (L * (sb - s)) / (s * sb);
   const amount1 = L * (s - sa);
-  const usdcIsCurrency0 = USDC.toLowerCase() < token.toLowerCase();
-  return (usdcIsCurrency0 ? amount0 : amount1) / 1e6;
+  const usdcIsCurrency0 = quoteIsCurrency0(quoteMint, token);
+  return (usdcIsCurrency0 ? amount0 : amount1) / 10 ** quoteDecimals(quoteMint);
 }
 
 /**
@@ -149,11 +150,16 @@ export function launchLiquidityPulled(
 }
 
 /** USD per whole token from a v4 sqrtPriceX96 on a USDC/token pool. */
-export function priceFromSqrt(sqrtPriceX96: bigint, token: string, decimals: number): number {
+export function priceFromSqrt(
+  sqrtPriceX96: bigint,
+  token: string,
+  decimals: number,
+  quoteMint?: string | null,
+): number {
   const ratio = (Number(sqrtPriceX96) / 2 ** 96) ** 2; // currency1 per currency0, raw units
-  const usdcIsCurrency0 = USDC.toLowerCase() < token.toLowerCase();
+  const usdcIsCurrency0 = quoteIsCurrency0(quoteMint, token);
   const tokenPerUsdc = usdcIsCurrency0 ? ratio : 1 / ratio;
-  const scale = 10 ** (decimals - 6);
+  const scale = 10 ** (decimals - quoteDecimals(quoteMint));
   return tokenPerUsdc > 0 ? scale / tokenPerUsdc : 0;
 }
 
@@ -350,9 +356,9 @@ export class ArcScoringService {
       market.set(t.id, {
         poolUsdc:
           sqrt > 0n && liq?.status === "success"
-            ? usdcInRange(sqrt, liq.result, range?.tickLower ?? null, range?.tickUpper ?? null, t.mint)
+            ? usdcInRange(sqrt, liq.result, range?.tickLower ?? null, range?.tickUpper ?? null, t.mint, pool.quoteMint)
             : null,
-        priceUsd: sqrt > 0n ? priceFromSqrt(sqrt, t.mint, t.decimals ?? 18) : null,
+        priceUsd: sqrt > 0n ? priceFromSqrt(sqrt, t.mint, t.decimals ?? 18, pool.quoteMint) : null,
         // lpFee is in hundredths of a bip: 10000 = 1%.
         feePct: s?.status === "success" ? s.result[3] / 10_000 : null,
         lpOwner: pool.positionId && o?.status === "success" ? o.result.toLowerCase() : null,

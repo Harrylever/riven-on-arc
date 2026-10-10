@@ -4,8 +4,10 @@ import {
   erc20Abi,
   formatUnits,
   http,
+  parseAbi,
   parseAbiItem,
   type Address,
+  type Hex,
   type PublicClient,
 } from "viem";
 import {
@@ -16,6 +18,7 @@ import {
   NATIVE,
   POOL_MANAGER,
   POOL_MANAGER_DEPLOY_BLOCK,
+  POSITION_MANAGER,
   USDC,
   cleanText, arcTransport } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
@@ -30,6 +33,16 @@ const BACKFILL_BLOCKS_PER_RUN = BigInt(process.env.ARC_POOL_BACKFILL_BLOCKS ?? "
 const INITIALIZE = parseAbiItem(
   "event Initialize(bytes32 indexed id, address indexed currency0, address indexed currency1, uint24 fee, int24 tickSpacing, address hooks, uint160 sqrtPriceX96, int24 tick)",
 );
+
+const POOL_KEYS_ABI = parseAbi([
+  "function poolKeys(bytes25 poolId) view returns (address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks)",
+]);
+
+const chunkOf = <T>(items: T[], size: number): T[][] => {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+};
 
 export interface PoolInit {
   poolId: string;
@@ -88,6 +101,8 @@ export function toPoolInit(log: {
     hooks: (hooks ?? "").toLowerCase(),
     blockNumber: log.blockNumber,
     txHash: log.transactionHash,
+    // The pool's own USDC side: the native coin (0x0, 18 decimals) or the ERC-20 (6).
+    quote: isUsdc(c0) ? c0 : c1,
   };
 }
 
@@ -263,12 +278,78 @@ export class PoolIndexerService {
           tokenId,
           venue: p.dex ? "OTHER" : "UNISWAP_V4",
           quoteMint: p.quote ?? USDC.toLowerCase(),
+          // v4 pools come from an Initialize event, so their currencies are known, not assumed.
+          quoteChecked: !p.dex && p.quote !== undefined,
           ...(p.dex ? { launchInfo: { dex: p.dex } } : {}),
         },
         update: {},
       });
     }
     return created;
+  }
+
+  /**
+   * Confirms which USDC each v4 pool quotes (native 18-decimal or ERC-20 6-decimal)
+   * from the PositionManager's pool registry, most-traded tokens first. A pool found
+   * to be native had its swaps recorded as if 6-decimal, so its stored swap amounts
+   * and prices are divided by 10^12 in the same transaction that flips the flag.
+   */
+  async verifyQuoteCurrenciesOnce(limit = Number(process.env.ARC_QUOTE_VERIFY_PER_RUN ?? "1500")) {
+    const db = getDb();
+    const pools = await db.pool.findMany({
+      where: { venue: "UNISWAP_V4", quoteChecked: false },
+      orderBy: { token: { arcMarket: { volume24h: { sort: "desc", nulls: "last" } } } },
+      select: { id: true, address: true, quoteMint: true },
+      take: limit,
+    });
+    if (pools.length === 0) return { checked: 0 };
+    let native = 0;
+    let erc20 = 0;
+    let unresolved = 0;
+    for (const batch of chunkOf(pools, 200)) {
+      const res = await this.client.multicall({
+        allowFailure: true,
+        contracts: batch.map(
+          (p) =>
+            ({
+              address: POSITION_MANAGER,
+              abi: POOL_KEYS_ABI,
+              functionName: "poolKeys",
+              args: [`0x${p.address.slice(2, 52)}` as Hex],
+            }) as const,
+        ),
+      });
+      for (let i = 0; i < batch.length; i++) {
+        const p = batch[i]!;
+        const r = res[i]!;
+        if (r.status !== "success") {
+          unresolved++;
+          continue;
+        }
+        const c0 = r.result[0].toLowerCase();
+        const c1 = r.result[1].toLowerCase();
+        const isNative = c0 === NATIVE.toLowerCase();
+        if (!isNative && c0 !== USDC.toLowerCase() && c1 !== USDC.toLowerCase()) {
+          unresolved++;
+          continue;
+        }
+        const quote = (isNative ? NATIVE : USDC).toLowerCase();
+        const wasAssumedErc20 = isNative && p.quoteMint !== NATIVE.toLowerCase();
+        await db.$transaction(async (tx) => {
+          // Only the process that flips the flag corrects the swaps, so two workers can never both divide.
+          const flipped = await tx.pool.updateMany({
+            where: { id: p.id, quoteChecked: false },
+            data: { quoteMint: quote, quoteChecked: true },
+          });
+          if (flipped.count === 1 && wasAssumedErc20) {
+            await tx.$executeRaw`UPDATE arc_swaps SET usdc_amount = usdc_amount / 1000000000000, price_usd = price_usd / 1000000000000 WHERE pool_id = ${p.id}`;
+          }
+        });
+        if (isNative) native++;
+        else erc20++;
+      }
+    }
+    return { checked: pools.length, native, erc20, unresolved };
   }
 
   private async readMeta(tokens: Address[]) {

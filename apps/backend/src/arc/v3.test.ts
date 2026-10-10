@@ -15,11 +15,14 @@ describe("toPoolInit", () => {
       hooks: "0xhook",
       blockNumber: 10n,
       txHash: "0xabc",
+      quote: USDC,
     });
   });
-  test("treats native USDC (currency 0x0) as USDC", () => {
+  test("treats native USDC (currency 0x0) as USDC, and remembers it is the native coin", () => {
     const NATIVE = "0x0000000000000000000000000000000000000000";
-    expect(toPoolInit({ ...base, args: { id: "0xP", currency0: NATIVE, currency1: TOKEN, hooks: "0x" } })?.token).toBe(TOKEN);
+    const init = toPoolInit({ ...base, args: { id: "0xP", currency0: NATIVE, currency1: TOKEN, hooks: "0x" } });
+    expect(init?.token).toBe(TOKEN);
+    expect(init?.quote).toBe(NATIVE);
   });
   test("drops pools without USDC", () => {
     expect(toPoolInit({ ...base, args: { id: "0x1", currency0: TOKEN, currency1: "0x0000000000000000000000000000000000000001" } })).toBeNull();
@@ -68,6 +71,21 @@ describe("usdcInRange", () => {
   });
   test("price above the range means the pool holds no currency0", () => {
     expect(usdcInRange(2n ** 96n, 1_000_000_000n, -600, 0, TOKEN)).toBe(0);
+  });
+  test("a native-USDC pool counts 18 decimals, so the same liquidity holds 10^12 less", () => {
+    const NATIVE = "0x0000000000000000000000000000000000000000";
+    const erc20 = usdcInRange(2n ** 96n, 1_000_000_000_000_000_000n, null, null, TOKEN, USDC);
+    const native = usdcInRange(2n ** 96n, 1_000_000_000_000_000_000n, null, null, TOKEN, NATIVE);
+    expect(erc20 / native).toBeCloseTo(1e12, -3);
+  });
+  test("real CTT pool: launch range with price at the top edge holds about a dollar, not $992 billion", () => {
+    const NATIVE = "0x0000000000000000000000000000000000000000";
+    const CTT = "0xfba3438e3935e90cdb30a5fefe1a7321b5f4ef5a";
+    const args = [38870247472251505616241312n, 2037785637346664697n, -887200, -152400, CTT] as const;
+    expect(usdcInRange(...args, USDC)).toBeGreaterThan(9e11); // the old, wrong reading
+    const real = usdcInRange(...args, NATIVE);
+    expect(real).toBeGreaterThan(0.5);
+    expect(real).toBeLessThan(2);
   });
   test("empty pool is zero, not negative", () => {
     expect(usdcInRange(0n, 5n, null, null, TOKEN)).toBe(0);

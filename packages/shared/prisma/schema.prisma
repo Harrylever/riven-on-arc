@@ -124,7 +124,10 @@ model Pool {
   tokenId    String    @map("token_id")
   token      Token     @relation(fields: [tokenId], references: [id])
   venue      PoolVenue
+  /// The pool's USDC side: the ERC-20 (6 decimals) or the native coin 0x0 (18 decimals).
   quoteMint  String?   @map("quote_mint")
+  /// True once quoteMint was confirmed from the pool's own currencies, not assumed.
+  quoteChecked Boolean  @default(false) @map("quote_checked")
   createdAt  DateTime  @default(now()) @map("created_at")
   migratedAt DateTime? @map("migrated_at")
   /// Arc v4: the LP position NFT id, and launchpad contracts excluded from holder math.

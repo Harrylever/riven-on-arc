@@ -89,7 +89,7 @@ export class HolderBackfillService {
 
   private async backfillToken(
     t: Awaited<ReturnType<ReturnType<typeof getDb>["token"]["findFirstOrThrow"]>> & {
-      pools: Array<{ id: string; address: string; venue: string }>;
+      pools: Array<{ id: string; address: string; venue: string; quoteMint: string | null }>;
     },
     to: bigint,
   ) {
@@ -145,11 +145,13 @@ export class HolderBackfillService {
       if (from.toLowerCase() !== ZERO) add(from.toLowerCase(), -value, l.blockNumber);
       add(dst.toLowerCase(), value, l.blockNumber);
     }
+    const poolByAddr = new Map(v4Pools.map((p) => [p.address, p]));
     const poolRow = new Map(v4Pools.map((p) => [p.address, p.id]));
     const swapRows = swaps.flatMap((l) => {
-      const poolId = l.args.id ? poolRow.get(l.args.id.toLowerCase()) : undefined;
-      if (!poolId || l.args.amount0 === undefined || l.args.amount1 === undefined) return [];
-      const v = interpretSwap(t.mint, decimals, l.args.amount0, l.args.amount1);
+      const pool = l.args.id ? poolByAddr.get(l.args.id.toLowerCase()) : undefined;
+      if (!pool || l.args.amount0 === undefined || l.args.amount1 === undefined) return [];
+      const poolId = pool.id;
+      const v = interpretSwap(t.mint, decimals, l.args.amount0, l.args.amount1, pool.quoteMint);
       return [
         {
           id: `${l.transactionHash}:${l.logIndex}`,

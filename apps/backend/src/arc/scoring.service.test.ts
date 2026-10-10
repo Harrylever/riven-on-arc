@@ -21,6 +21,36 @@ describe("interpretSwap", () => {
   });
 });
 
+describe("native-USDC pools (18 decimals)", () => {
+  const NATIVE = "0x0000000000000000000000000000000000000000";
+  const TOKEN6 = "0xfba3438e3935e90cdb30a5fefe1a7321b5f4ef5a";
+  test("a swap is read in 18 decimals, not 6", () => {
+    // 2.5 USDC paid in (native wei), 1000 tokens (6 decimals) out
+    const view = interpretSwap(TOKEN6, 6, -2_500_000_000_000_000_000n, 1_000_000_000n, NATIVE);
+    expect(view.side).toBe("buy");
+    expect(view.usdcAmount).toBeCloseTo(2.5);
+    expect(view.tokenAmount).toBe(1000);
+    expect(view.priceUsd).toBeCloseTo(0.0025);
+  });
+  test("native is always currency0, even for a token address that sorts below the ERC-20 USDC", () => {
+    const LOW = "0x1000000000000000000000000000000000000001";
+    const native = interpretSwap(LOW, 18, -1_000_000_000_000_000_000n, 5n * 10n ** 18n, NATIVE);
+    expect(native.usdcAmount).toBeCloseTo(1);
+    expect(native.side).toBe("buy");
+    // the ERC-20 USDC sorts after this token, so there USDC is currency1
+    const erc20 = interpretSwap(LOW, 18, 5n * 10n ** 18n, -1_000_000n);
+    expect(erc20.usdcAmount).toBe(1);
+    expect(erc20.side).toBe("buy");
+  });
+  test("price from sqrt uses the quote's decimals", () => {
+    // 1 USDC (1e18 wei) = 1000 tokens (1e6 raw) -> raw ratio 1e-12 ... token1 per currency0
+    const sqrt = BigInt(Math.round(Math.sqrt(1000e6 / 1e18) * 2 ** 96));
+    const price = priceFromSqrt(sqrt, TOKEN6, 6, NATIVE);
+    expect(price).toBeGreaterThan(0.00099);
+    expect(price).toBeLessThan(0.00101);
+  });
+});
+
 describe("priceFromSqrt", () => {
   test("matches the live TOIIY pool (~$0.0000025, ~$2.5k cap)", () => {
     const price = priceFromSqrt(50302338732118197629310017055385614571n, TOIIY, 18);

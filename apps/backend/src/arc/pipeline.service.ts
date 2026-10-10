@@ -35,6 +35,8 @@ export class ArcPipelineService {
     };
     const launches = await step("launch indexing", () => this.launches.indexLaunchpadsOnce());
     const pools = await step("pool indexing", () => this.pools.indexPoolsOnce());
+    // Before activity: swaps are read with the right USDC decimals only once each pool's quote is known.
+    const quotes = await step("pool quote check", () => this.pools.verifyQuoteCurrenciesOnce());
     const activity = await step("activity indexing", () => this.activity.indexActivityOnce());
     const market = await step("market sync", () => this.market.syncOnce());
     const backfill = await step("holder backfill", () => this.backfill.backfillOnce());
@@ -42,6 +44,6 @@ export class ArcPipelineService {
     const callouts = this.callouts
       ? await step("X callouts", () => this.callouts!.indexOnce())
       : { skipped: "not configured" };
-    return { launches, pools, activity, market, backfill, scoring, callouts };
+    return { launches, pools, quotes, activity, market, backfill, scoring, callouts };
   }
 }

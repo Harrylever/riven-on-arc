@@ -52,6 +52,18 @@ export const USDC: Address = "0x3600000000000000000000000000000000000000";
 export const NATIVE: Address = "0x0000000000000000000000000000000000000000";
 
 /**
+ * Arc's USDC exists as an ERC-20 (6 decimals) and as the native gas coin (18).
+ * A v4 pool quotes exactly one of them, recorded in Pool.quoteMint. Treating a
+ * native pool as 6-decimal inflates every amount, price and liquidity figure by 10^12.
+ */
+export const isNativeQuote = (quoteMint: string | null | undefined): boolean =>
+  (quoteMint ?? "").toLowerCase() === NATIVE.toLowerCase();
+export const quoteDecimals = (quoteMint: string | null | undefined): number => (isNativeQuote(quoteMint) ? 18 : 6);
+/** Is the pool's USDC side currency0? (Pool currencies are sorted by address; 0x0 sorts first.) */
+export const quoteIsCurrency0 = (quoteMint: string | null | undefined, token: string): boolean =>
+  (isNativeQuote(quoteMint) ? NATIVE : USDC).toLowerCase() < token.toLowerCase();
+
+/**
  * Other DEX factories on Arc, found from DexScreener's Arc pairs (pool.factory(),
  * 2026-10-07). Their pool-creation events all index token0/token1 as the first
  * two topics (Uniswap v2/v3, Solidly/Aerodrome, Algebra), so one decoder covers them.

@@ -13,7 +13,7 @@ import {
   LAUNCHPAD_SOURCES,
   POOL_MANAGER,
   POSITION_MANAGER,
-  USDC, arcTransport } from "./config";
+  USDC, arcTransport, quoteDecimals, quoteIsCurrency0 } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
 
 const CURSOR = "arc:activity";
@@ -64,12 +64,13 @@ export function interpretSwap(
   decimals: number,
   amount0: bigint,
   amount1: bigint,
+  quoteMint?: string | null,
 ): SwapView {
-  const usdcIsCurrency0 = USDC.toLowerCase() < token.toLowerCase();
+  const usdcIsCurrency0 = quoteIsCurrency0(quoteMint, token);
   const usdcDelta = usdcIsCurrency0 ? amount0 : amount1;
   const tokenDelta = usdcIsCurrency0 ? amount1 : amount0;
   const abs = (n: bigint) => (n < 0n ? -n : n);
-  const usdcAmount = Number(abs(usdcDelta)) / 1e6;
+  const usdcAmount = Number(abs(usdcDelta)) / 10 ** quoteDecimals(quoteMint);
   const tokenAmount = Number(abs(tokenDelta)) / 10 ** decimals;
   return {
     side: usdcDelta < 0n ? "buy" : "sell",
@@ -176,7 +177,7 @@ export class ArcActivityIndexerService {
         deployerWallet: true,
         decimals: true,
         initialSupply: true,
-        pools: { select: { id: true, address: true, venue: true, excludedHolders: true } },
+        pools: { select: { id: true, address: true, venue: true, excludedHolders: true, quoteMint: true } },
       },
     });
     const supplyRaw = new Map(
@@ -191,10 +192,11 @@ export class ArcActivityIndexerService {
         { id: r.id, mint: r.mint, deployerWallet: r.deployerWallet, decimals: r.decimals ?? 18 },
       ]),
     );
-    const pools = new Map<string, { poolRowId: string; token: TrackedToken }>();
+    const pools = new Map<string, { poolRowId: string; token: TrackedToken; quoteMint: string | null }>();
     for (const r of rows) {
       for (const p of r.pools) {
-        if (p.venue === "UNISWAP_V4") pools.set(p.address, { poolRowId: p.id, token: tokens.get(r.mint)! });
+        if (p.venue === "UNISWAP_V4")
+          pools.set(p.address, { poolRowId: p.id, token: tokens.get(r.mint)!, quoteMint: p.quoteMint });
       }
     }
 
@@ -342,7 +344,7 @@ export class ArcActivityIndexerService {
       const pool = log.args.id ? pools.get(log.args.id.toLowerCase()) : undefined;
       const { amount0, amount1, sender } = log.args;
       if (!pool || amount0 === undefined || amount1 === undefined) continue;
-      const view = interpretSwap(pool.token.mint, pool.token.decimals, amount0, amount1);
+      const view = interpretSwap(pool.token.mint, pool.token.decimals, amount0, amount1, pool.quoteMint);
       swaps.push({
         id: `${log.transactionHash}:${log.logIndex}`,
         poolId: pool.poolRowId,
