@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { getAlerts, getArcPulse, getCallouts, getScreener, getStats } from "@/lib/arc-data"
 import { DEFAULT_FILTERS } from "@/lib/screener-params"
 import { REASON_LABEL } from "@/lib/reasons"
@@ -148,8 +150,9 @@ export default async function Home() {
               check on-chain — and the evidence when a token is faking it.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start">
-              <Link href="/trending" className="rv-btn h-12 px-6 text-[15px]">
-                Open the screener →
+              <Link href="/trending" className="rv-btn h-12 gap-1.5 px-6 text-[15px]">
+                Open the screener
+                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-4" aria-hidden />
               </Link>
               <Link
                 href="/methodology"

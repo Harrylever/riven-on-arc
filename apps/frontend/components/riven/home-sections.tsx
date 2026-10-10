@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import type { Callout, TokenAlert, TokenSummary } from "@/lib/arc-data"
 import {
   BAND_META,
@@ -34,8 +36,9 @@ export function SectionTitle({
       </h2>
       {live && <span className="rv-live-dot" aria-hidden />}
       {href && (
-        <Link href={href} className="rv-btn-ghost ml-auto h-8 px-3 text-[12px]">
-          {cta ?? "View all"} →
+        <Link href={href} className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]">
+          {cta ?? "View all"}
+          <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" aria-hidden />
         </Link>
       )}
     </div>
