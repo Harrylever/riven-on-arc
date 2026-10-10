@@ -13,7 +13,11 @@ import {
   SITE_TAGLINE,
 } from "@/lib/site"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" })
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -62,8 +66,15 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/brand/riven-splash.png",
+    // /favicon.ico is served from app/favicon.ico; the PNGs live in public/.
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 }
 
@@ -76,12 +87,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={cn(
-        "h-full",
-        "antialiased",
-        "font-sans",
-        inter.variable,
-      )}
+      className={cn("h-full", "antialiased", "font-sans", inter.variable)}
     >
       <body className="rv-body text-foreground flex min-h-full flex-col">
         <TooltipProvider>
