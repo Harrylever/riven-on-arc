@@ -25,6 +25,8 @@ This repo is **Riven**: Riven ported from Solana to **Arc mainnet** (chain 5042,
 
 **Added 2026-10-09:** the ClawDex name is gone (package scope is `@riven/shared`; `RIVEN_DATABASE_URL` is the sakz mirror variable, with the old `CLAWDEX_DATABASE_URL` still passed through because the external sakz-bot module reads it). Deployment is Railway Infrastructure as Code (`.railway/railway.ts`, no `railway.toml`) plus Vercel for the frontend: see `docs/DEPLOY.md`. New surfaces: `/accuracy`, `/creator/[wallet]`, exit check on token pages, `/api/arc/tokens/[address]` and `/api/arc/badge/[address]`, "Liquidity gap" sort. Profile/Community/Boosted screener filters are hidden until the market sync fills their fields.
 
+**Auth (decided 2026-10-10): none.** Riven is wallet-only and non-custodial (`hooks/use-arc-wallet.ts`). The Privy code in `components/auth/auth-provider.tsx` is a Solana-era leftover: `RivenAuthProvider` is not mounted, there is no `/api/profile` route, and its "Where do you trade? Fomo/Padre/Jupiter" onboarding does not apply to Arc. Privy would work on Arc (it supports custom EVM chains) if cross-device watchlists or embedded wallets are wanted later; until then `NEXT_PUBLIC_PRIVY_APP_ID` and `PRIVY_APP_SECRET` have no effect.
+
 **Owner decisions (2026-10-06), superseding "monitoring only" below:**
 - **Non-custodial buy/sell is allowed** behind `NEXT_PUBLIC_TRADING_ENABLED` (default off since 2026-10-09 until the swap encoder is exercised with real funds). The user signs every tx in their own wallet; Riven never holds keys, signs or broadcasts.
   - Approvals are exact-amount and short-lived.
