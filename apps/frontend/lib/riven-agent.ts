@@ -46,7 +46,7 @@ export interface AgentReply {
 }
 
 const ADDRESS = /0x[0-9a-fA-F]{40}/
-const TICKER = /\$([A-Za-z][A-Za-z0-9]{1,14})/
+const TICKER = /\$([A-Za-z][A-Za-z0-9]{1,14})\b/
 
 function line(t: TokenSummary) {
   const s = t.score === null ? "not scored yet" : `${t.score.toFixed(1)}/10`
@@ -126,12 +126,15 @@ const pct = (n: number | null) => (n === null ? "—" : `${n >= 0 ? "+" : ""}${n
 
 /** "What's happening on Arc?" — the whole market in a few lines. */
 async function marketOverview(): Promise<AgentReply> {
-  const [pulse, totals, hot, alerts] = await Promise.all([
+  const [pulse, totals, trending, alerts] = await Promise.all([
     getArcPulse(),
     getMarketTotals(),
-    getScreener({ ...DEFAULT_FILTERS, view: "listed", tf: "24h", sort: "trending" }, 4),
+    // view "all" is the fast database-paged path; the "listed" view scores thousands of tokens in
+    // memory (seconds, cold). Take a small page and drop flagged tokens here instead.
+    getScreener({ ...DEFAULT_FILTERS, view: "all", tf: "24h", sort: "trending" }, 12),
     getAlerts({ limit: 3 }),
   ])
+  const hot = { tokens: trending.tokens.filter((t) => !t.fake).slice(0, 4) }
   return {
     text: [
       "Arc right now:",
@@ -260,7 +263,7 @@ export async function answer(question: string, topicOrCtx?: AgentTopic | AskCont
   if (/^(?:hi|hey|hello|yo|gm|sup|help|\?|what can you do\??|commands?)\W*$/i.test(q))
     return { text: `Hey, I'm Riven. I read Arc's chain and the perp markets and explain what I see — I never tell you to buy or sell.\n${HELP}\n${DISCLAIMER}`, tokens: [] }
 
-  if (/happening|going on|overview|summary|pulse|how(?:'s| is) (?:the )?(?:market|arc|everything)|market today|status/.test(lower) && !parseScreenerQuery(q))
+  if (/happening|going on|overview|summary|pulse|how(?:'s| is) (?:the )?(?:market|arc|everything)|market today|\bstatus\b/.test(lower) && !parseScreenerQuery(q))
     return marketOverview()
 
   // "What is liquidity?" — definitions don't need data.

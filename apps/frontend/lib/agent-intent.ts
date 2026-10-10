@@ -145,7 +145,7 @@ export function parseScreenerQuery(question: string): ParsedQuery | null {
 export function comparePair(question: string): string[] | null {
   if (!/\bvs\.?\b|versus|compare|comparison|better[, ]|or\b.*\?|difference between/i.test(question)) return null
   const addrs = question.match(/0x[0-9a-fA-F]{40}/g) ?? []
-  const tickers = [...question.matchAll(/\$([A-Za-z][A-Za-z0-9]{1,14})/g)].map((m) => m[1]!)
+  const tickers = [...question.matchAll(/\$([A-Za-z][A-Za-z0-9]{1,14})\b/g)].map((m) => m[1]!)
   let items = [...addrs.map((a) => a.toLowerCase()), ...tickers]
   if (items.length < 2) {
     // "compare WINDMILL and FLY" — bare upper-case words
@@ -224,7 +224,7 @@ export function explainConcept(question: string): string | null {
   const q = question.toLowerCase()
   if (!/\bwhat(?:'s| is| are| does| do)\b|\bexplain\b|\bmeaning\b|\bmean\b|\bhow (?:does|do|is|are)\b|\bdefine\b|\btell me about\b/.test(q)) return null
   // A question about a specific token is not a definition.
-  if (/0x[0-9a-f]{40}|\$[a-z][a-z0-9]{1,14}/.test(q)) return null
+  if (/0x[0-9a-f]{40}|\$[a-z][a-z0-9]{1,14}\b/.test(q)) return null
   for (const [re, text] of GLOSSARY) if (re.test(q)) return text
   return null
 }
