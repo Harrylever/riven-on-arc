@@ -1,4 +1,11 @@
-import { defineRailway, github, postgres, preserve, project, service } from "railway/iac"
+import {
+  defineRailway,
+  github,
+  postgres,
+  preserve,
+  project,
+  service,
+} from "railway/iac"
 
 /**
  * Riven on Railway: the Arc indexer/worker (apps/backend) plus its Postgres.
