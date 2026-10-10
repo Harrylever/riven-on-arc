@@ -6,6 +6,7 @@ import type { PerpSignal } from "@/components/perps/perps-panel"
 import { CoinIcon, coinArtUrl } from "@/components/perps/coin-icon"
 import { ago, priceUsd } from "@/lib/format"
 import { signalCoinKey } from "@/lib/perp-symbols"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 const OUTCOME: Record<string, { label: string; color: string }> = {
   pending: { label: "Live", color: "var(--rv-blue)" },
@@ -137,8 +138,9 @@ export function SignalCarousel({
                   </b>
                 </span>
               </div>
-              <span className="mt-auto pt-1 text-[11.5px] font-semibold text-[var(--rv-ice)] group-hover:underline">
-                Chart, plan & Riven's read →
+              <span className="mt-auto inline-flex items-center gap-1 pt-1 text-[11.5px] font-semibold text-[var(--rv-ice)] group-hover:underline">
+                Chart, plan & Riven's read
+                <ArrowIcon className="size-3" />
               </span>
             </div>
           </Link>

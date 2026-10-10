@@ -5,6 +5,7 @@ import type { PerpSignal } from "@/components/perps/perps-panel"
 import { CoinIcon } from "@/components/perps/coin-icon"
 import { ago, priceUsd } from "@/lib/format"
 import { signalCoinKey } from "@/lib/perp-symbols"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 const OUTCOME: Record<string, { label: string; color: string }> = {
   pending: { label: "Live", color: "var(--rv-blue)" },
@@ -120,8 +121,12 @@ export function CallCard({ signal: s, onTrade }: { signal: PerpSignal; onTrade: 
         </div>
 
         <div className="flex items-center gap-2 pt-0.5">
-          <Link href={`/perps/${coin}`} className="text-[12px] font-semibold text-[var(--rv-ice)] hover:underline">
-            Chart & Riven&apos;s read →
+          <Link
+            href={`/perps/${coin}`}
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--rv-ice)] hover:underline"
+          >
+            Chart & Riven&apos;s read
+            <ArrowIcon />
           </Link>
           {s.outcome === "pending" && (
             <button type="button" onClick={() => onTrade(s)} className="rv-btn ml-auto h-8 px-3 text-[12px]">

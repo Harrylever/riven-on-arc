@@ -6,6 +6,7 @@ import type { PerpSignal } from "@/components/perps/perps-panel"
 import { usePortfolio } from "@/hooks/use-portfolio"
 import { priceUsd, ago } from "@/lib/format"
 import { MiniBar } from "@/components/perps/mini-bar"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 interface SignalOrderModalProps {
   signal: PerpSignal | null
@@ -495,9 +496,10 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   {orderSuccess}{" "}
                   <Link
                     href="/portfolio"
-                    className="font-bold underline hover:text-white"
+                    className="inline-flex items-center gap-1 font-bold underline hover:text-white"
                   >
-                    View in Portfolio →
+                    View in Portfolio
+                    <ArrowIcon />
                   </Link>
                 </div>
               )}

@@ -21,7 +21,6 @@ const NAV = [
   { href: "/markets", label: "Markets" },
   { href: "/alerts", label: "Rug radar" },
   { href: "/perps", label: "Perps" },
-  { href: "/portfolio", label: "Portfolio" },
   { href: "/agent", label: "Ask Riven" },
 ].filter((n) => PERPS_ENABLED || n.href !== "/perps")
 

@@ -1,8 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import type { Callout, TokenAlert, TokenSummary } from "@/lib/arc-data"
 import {
   BAND_META,
@@ -17,6 +15,7 @@ import { Carousel } from "./carousel"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { Why } from "./screener"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 export function SectionTitle({
   title,
@@ -38,7 +37,7 @@ export function SectionTitle({
       {href && (
         <Link href={href} className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]">
           {cta ?? "View all"}
-          <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-3.5" aria-hidden />
+          <ArrowIcon />
         </Link>
       )}
     </div>

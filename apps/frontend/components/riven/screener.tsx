@@ -26,6 +26,7 @@ import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
 import { visibleInterval } from "@/lib/visible-interval"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 const REFRESH_MS = 60_000
 /** Where "Dispute a score" goes: NEXT_PUBLIC_DISPUTE_URL, else the methodology page. */
@@ -354,8 +355,9 @@ function Pagination({ page, pages, onPage }: { page: number; pages: number; onPa
     .sort((a, b) => a - b)
   return (
     <nav className="flex flex-wrap items-center justify-center gap-1.5 py-1" aria-label="Pages">
-      <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)} className="rv-chip disabled:opacity-30">
-        ← Prev
+      <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)} className="rv-chip items-center gap-1 disabled:opacity-30">
+        <ArrowIcon dir="left" />
+        Prev
       </button>
       <div className="rv-seg">
         {nums.map((n, i) => (
@@ -367,8 +369,9 @@ function Pagination({ page, pages, onPage }: { page: number; pages: number; onPa
           </span>
         ))}
       </div>
-      <button type="button" disabled={page >= pages} onClick={() => onPage(page + 1)} className="rv-chip disabled:opacity-30">
-        Next →
+      <button type="button" disabled={page >= pages} onClick={() => onPage(page + 1)} className="rv-chip items-center gap-1 disabled:opacity-30">
+        Next
+        <ArrowIcon />
       </button>
     </nav>
   )

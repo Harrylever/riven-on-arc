@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 export const metadata: Metadata = {
   title: "How the score works",
@@ -295,9 +296,10 @@ export default function MethodologyPage() {
         </p>
         <Link
           href="/"
-          className="mt-3 inline-block text-[14px] font-semibold text-[var(--rv-ice)] hover:underline"
+          className="mt-3 inline-flex items-center gap-1 text-[14px] font-semibold text-[var(--rv-ice)] hover:underline"
         >
-          ← Back to launches
+          <ArrowIcon dir="left" className="size-4" />
+          Back to launches
         </Link>
       </section>
     </article>

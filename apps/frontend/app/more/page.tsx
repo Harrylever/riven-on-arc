@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { PERPS_ENABLED } from "@/lib/flags"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 export const metadata: Metadata = { title: "More" }
 
@@ -58,9 +59,7 @@ export default function MorePage() {
                   {l.hint}
                 </p>
               </div>
-              <span className="text-[var(--rv-ink-3)]" aria-hidden>
-                →
-              </span>
+              <ArrowIcon className="size-4 text-[var(--rv-ink-3)]" />
             </Link>
           </li>
         ))}

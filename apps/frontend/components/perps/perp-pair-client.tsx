@@ -17,6 +17,7 @@ import type { PerpSignal } from "@/components/perps/perps-panel"
 import { signalCoinKey } from "@/lib/perp-symbols"
 import { ago, priceUsd } from "@/lib/format"
 import { DISCLAIMER } from "@/lib/site"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 
@@ -112,8 +113,12 @@ export function PerpPairClient({ coin }: { coin: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/perps" className="w-fit text-[13px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]">
-        ← All pairs
+      <Link
+        href="/perps"
+        className="inline-flex w-fit items-center gap-1 text-[13px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+      >
+        <ArrowIcon dir="left" className="size-4" />
+        All pairs
       </Link>
 
       <header className="flex flex-wrap items-center gap-3">

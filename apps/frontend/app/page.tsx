@@ -1,7 +1,5 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons"
 import { getAlerts, getArcPulse, getCallouts, getScreener, getStats } from "@/lib/arc-data"
 import { DEFAULT_FILTERS } from "@/lib/screener-params"
 import { REASON_LABEL } from "@/lib/reasons"
@@ -17,6 +15,7 @@ import {
 import { MascotStage } from "@/components/mascot/mascot-stage"
 import { BigOrb } from "@/components/riven/orb-field"
 import type { Holo } from "@/components/mascot/mascot"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 export const dynamic = "force-dynamic"
 
@@ -152,7 +151,7 @@ export default async function Home() {
             <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start">
               <Link href="/trending" className="rv-btn h-12 gap-1.5 px-6 text-[15px]">
                 Open the screener
-                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} className="size-4" aria-hidden />
+                <ArrowIcon className="size-4" />
               </Link>
               <Link
                 href="/methodology"

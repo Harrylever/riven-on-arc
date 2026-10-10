@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { getAccuracy } from "@/lib/arc-data"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 export const dynamic = "force-dynamic"
 export const metadata: Metadata = {
@@ -100,8 +101,12 @@ export default async function AccuracyPage() {
           </section>
         </>
       )}
-      <Link href="/methodology" className="text-[12px] font-semibold text-[var(--rv-ice)] hover:underline">
-        How the score works →
+      <Link
+        href="/methodology"
+        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--rv-ice)] hover:underline"
+      >
+        How the score works
+        <ArrowIcon />
       </Link>
     </div>
   )

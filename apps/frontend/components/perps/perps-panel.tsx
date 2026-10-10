@@ -18,6 +18,7 @@ import { NewsFeed } from "@/components/perps/news-feed"
 import Link from "next/link"
 import { isMajorPerp, isMemePerp, signalCoinKey } from "@/lib/perp-symbols"
 import type { PerpMarket } from "@/lib/hyperliquid"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 export interface PerpSignal {
   id: string
@@ -343,8 +344,9 @@ export function PerpsPanel() {
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">Live scanner calls</h2>
           <span className="rv-live-dot" aria-hidden />
-          <a href="#perp-signals" className="rv-btn-ghost ml-auto h-8 px-3 text-[12px]">
-            All calls →
+          <a href="#perp-signals" className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]">
+            All calls
+            <ArrowIcon />
           </a>
         </div>
         {loading && signals === null ? (

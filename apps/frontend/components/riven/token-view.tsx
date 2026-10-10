@@ -28,6 +28,7 @@ import { TradeSheet } from "./trade-sheet"
 import { useArcWallet } from "@/hooks/use-arc-wallet"
 import { TRADING_ENABLED } from "@/lib/flags"
 import { visibleInterval } from "@/lib/visible-interval"
+import { ArrowIcon } from "@/components/riven/arrow"
 
 const EXPLORER = "https://explorer.arc.io"
 const ORDER: SubScoreKey[] = [
@@ -145,10 +146,10 @@ export function TokenView({
       <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <Link
           href="/trending"
-          className="text-[12px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+          className="inline-flex items-center text-[12px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
           aria-label="Back to trending"
         >
-          ←
+          <ArrowIcon dir="left" className="size-4" />
         </Link>
         <TokenAvatar
           image={t.image}
@@ -474,9 +475,10 @@ export function TokenView({
               )}
               <Link
                 href="/methodology"
-                className="mt-3 inline-block text-[12px] font-semibold text-[var(--rv-ice)] hover:underline"
+                className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--rv-ice)] hover:underline"
               >
-                How the score works →
+                How the score works
+                <ArrowIcon />
               </Link>
             </div>
           </section>
@@ -931,9 +933,10 @@ export function CreatorTrack({
         {link && (
           <Link
             href={`/creator/${record.wallet}`}
-            className="text-[11px] font-semibold text-[var(--rv-ice)] hover:underline"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--rv-ice)] hover:underline"
           >
-            Full record →
+            Full record
+            <ArrowIcon className="size-3" />
           </Link>
         )}
         <a
