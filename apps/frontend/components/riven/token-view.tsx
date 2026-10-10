@@ -142,90 +142,93 @@ export function TokenView({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header */}
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
+      {/* Header: three rows on a phone (identity + actions, price, facts); one row from md up */}
+      <header className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 md:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] md:gap-x-4 md:gap-y-1">
         <Link
           href="/trending"
-          className="inline-flex items-center text-[12px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+          className="col-start-1 row-start-1 inline-flex items-center text-[12px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)] md:row-span-2"
           aria-label="Back to trending"
         >
           <ArrowIcon dir="left" className="size-4" />
         </Link>
-        <TokenAvatar
-          image={t.image}
-          symbol={t.symbol}
-          address={t.address}
-          size={52}
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <h1 className="text-[24px] font-bold tracking-tight text-[var(--rv-ink)]">
-              {t.symbol}
-            </h1>
-            <span className="truncate text-[14px] text-[var(--rv-ink-3)]">
-              {t.name}
-            </span>
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11.5px] text-[var(--rv-ink-3)]">
-            <span className="rounded bg-white/[0.05] px-1.5 py-px font-semibold text-[var(--rv-ink-2)]">
-              {t.launchpad}
-            </span>
-            <span className="rv-num">{age(t.launchedAt, now)} old</span>
-            {t.fake && (
-              <span className="rounded bg-[rgba(248,113,113,0.12)] px-1.5 py-px text-[10px] font-bold tracking-wide text-[var(--rv-risk)] uppercase">
-                Flagged
-              </span>
-            )}
-            <CopyBadge copies={t.copies} />
-            <CopyAddress address={t.address} />
-            <a
-              href={`${EXPLORER}/address/${t.address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[var(--rv-ice)]"
-            >
-              Explorer ↗
-            </a>
-            {t.dexUrl && (
-              <a
-                href={t.dexUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-[var(--rv-ice)]"
-              >
-                DexScreener ↗
-              </a>
-            )}
-          </div>
+        <div className="col-start-2 row-start-1 md:row-span-2">
+          <TokenAvatar
+            image={t.image}
+            symbol={t.symbol}
+            address={t.address}
+            size={52}
+          />
         </div>
-        <div className="text-right">
-          <div className="rv-num text-[24px] font-bold tracking-tight text-[var(--rv-ink)]">
+        <div className="col-start-3 row-start-1 flex min-w-0 flex-col md:flex-row md:flex-wrap md:items-baseline md:gap-x-2 md:self-end">
+          <h1 className="truncate text-[22px] leading-tight font-bold tracking-tight text-[var(--rv-ink)] md:text-[24px]">
+            {t.symbol}
+          </h1>
+          <span className="truncate text-[13px] text-[var(--rv-ink-3)] md:text-[14px]">
+            {t.name}
+          </span>
+        </div>
+        <div className="col-start-4 row-start-1 flex items-center gap-1.5 md:col-start-5 md:row-span-2 md:gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              riven.scan()
+              if (!hasData) riven.speak("Nothing to read on this pair yet — no trades or pool data.", 4500)
+            }}
+            className="rv-btn size-9 gap-1.5 px-0 text-[13px] sm:w-auto sm:px-3"
+            title="Riven scans this token and refreshes its score"
+            aria-label="Scan this token"
+          >
+            <svg viewBox="0 0 24 24" className="size-[17px] sm:size-[15px]" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+              <circle cx="11" cy="11" r="6" />
+              <path d="m20 20-4.2-4.2" />
+            </svg>
+            <span className="hidden sm:inline">Scan</span>
+          </button>
+          <WatchButton address={t.address} size="lg" />
+        </div>
+        <div className="col-span-4 row-start-2 flex items-baseline justify-between gap-3 md:col-span-1 md:col-start-4 md:row-span-2 md:block md:text-right">
+          <div className="rv-num text-[26px] leading-none font-bold tracking-tight text-[var(--rv-ink)] md:text-[24px]">
             {usd(t.priceUsd, { precise: true })}
           </div>
           <div
-            className="rv-num text-[13px] font-semibold"
+            className="rv-num text-[13px] font-semibold whitespace-nowrap md:mt-1"
             style={{ color: changeColor(t.change.h24) }}
           >
             {change(t.change.h24)}{" "}
             <span className="text-[var(--rv-ink-3)]">24h</span>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            riven.scan()
-            if (!hasData) riven.speak("Nothing to read on this pair yet — no trades or pool data.", 4500)
-          }}
-          className="rv-btn h-9 gap-1.5 px-3 text-[13px]"
-          title="Riven scans this token and refreshes its score"
-        >
-          <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
-            <circle cx="11" cy="11" r="6" />
-            <path d="m20 20-4.2-4.2" />
-          </svg>
-          Scan
-        </button>
-        <WatchButton address={t.address} size="lg" />
+        <div className="col-span-4 row-start-3 flex flex-wrap items-center gap-1.5 text-[11.5px] text-[var(--rv-ink-3)] md:col-span-1 md:col-start-3 md:row-start-2 md:mt-1 md:self-start">
+          <span className="rounded bg-white/[0.05] px-1.5 py-px font-semibold whitespace-nowrap text-[var(--rv-ink-2)]">
+            {t.launchpad}
+          </span>
+          <span className="rv-num whitespace-nowrap">{age(t.launchedAt, now)} old</span>
+          {t.fake && (
+            <span className="rounded bg-[rgba(248,113,113,0.12)] px-1.5 py-px text-[10px] font-bold tracking-wide whitespace-nowrap text-[var(--rv-risk)] uppercase">
+              Flagged
+            </span>
+          )}
+          <CopyBadge copies={t.copies} />
+          <CopyAddress address={t.address} />
+          <a
+            href={`${EXPLORER}/address/${t.address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="whitespace-nowrap hover:text-[var(--rv-ice)]"
+          >
+            Explorer ↗
+          </a>
+          {t.dexUrl && (
+            <a
+              href={t.dexUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="whitespace-nowrap hover:text-[var(--rv-ice)]"
+            >
+              DexScreener ↗
+            </a>
+          )}
+        </div>
       </header>
 
       {/* Stat strip */}
@@ -685,7 +688,7 @@ function CopyAddress({ address }: { address: string }) {
           setTimeout(() => setCopied(false), 1400)
         })
       }
-      className="rv-num flex items-center gap-1 rounded bg-white/[0.05] px-1.5 py-px text-[11px] text-[var(--rv-ink-2)] hover:text-[var(--rv-ink)]"
+      className="rv-num flex items-center gap-1 rounded bg-white/[0.05] px-1.5 py-px text-[11px] whitespace-nowrap text-[var(--rv-ink-2)] hover:text-[var(--rv-ink)]"
       title="Copy contract address"
     >
       {shortAddr(address)}
