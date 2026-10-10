@@ -24,6 +24,18 @@ export function exitQuote(poolUsdc: number | null, sellUsd: number): ExitQuote |
   return { receive, impact: 1 - receive / sellUsd, exceedsPool: sellUsd > poolUsdc }
 }
 
+/**
+ * The measured pool USDC is sometimes absurd for pools with odd ranges (billions
+ * for a token DexScreener prices at a few thousand dollars). A quote built on that
+ * would say "no price impact", so the exit check is withheld rather than shown.
+ */
+export function plausiblePoolUsdc(poolUsdc: number, reportedLiquidity: number | null): boolean {
+  if (!Number.isFinite(poolUsdc) || poolUsdc < 0) return false
+  if (poolUsdc > 50_000_000) return false
+  if (reportedLiquidity !== null && reportedLiquidity > 0 && poolUsdc > reportedLiquidity * 10) return false
+  return true
+}
+
 /** Largest sale (USD) that keeps best-case impact at or under `maxImpact` (e.g. 0.05). */
 export function maxSellForImpact(poolUsdc: number | null, maxImpact: number): number | null {
   if (poolUsdc === null || !Number.isFinite(poolUsdc) || poolUsdc <= 0) return null

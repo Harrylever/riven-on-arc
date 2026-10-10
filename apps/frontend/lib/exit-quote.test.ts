@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { exitQuote, maxSellForImpact } from "./exit-quote"
+import { exitQuote, maxSellForImpact, plausiblePoolUsdc } from "./exit-quote"
 
 describe("exitQuote", () => {
   test("selling a sliver of a deep pool costs almost nothing", () => {
@@ -39,5 +39,24 @@ describe("maxSellForImpact", () => {
   test("no pool, no safe size", () => {
     expect(maxSellForImpact(0, 0.05)).toBeNull()
     expect(maxSellForImpact(null, 0.05)).toBeNull()
+  })
+})
+
+describe("plausiblePoolUsdc", () => {
+  test("accepts a pool in line with the reported liquidity", () => {
+    expect(plausiblePoolUsdc(3_000, 4_000)).toBe(true)
+    expect(plausiblePoolUsdc(10, 4_000)).toBe(true)
+  })
+  test("rejects billions for a token reported at a few thousand dollars", () => {
+    expect(plausiblePoolUsdc(992_437_503_487, 4_155)).toBe(false)
+  })
+  test("rejects values far above the reported liquidity, and non-numbers", () => {
+    expect(plausiblePoolUsdc(500_000, 4_000)).toBe(false)
+    expect(plausiblePoolUsdc(Number.NaN, 4_000)).toBe(false)
+    expect(plausiblePoolUsdc(-1, null)).toBe(false)
+  })
+  test("without a reported figure only the absolute ceiling applies", () => {
+    expect(plausiblePoolUsdc(2_000_000, null)).toBe(true)
+    expect(plausiblePoolUsdc(60_000_000, null)).toBe(false)
   })
 })

@@ -18,7 +18,7 @@ import {
 } from "@/lib/riven-format"
 import { ScoreMeter } from "./score-badge"
 import { CalloutsRow } from "./home-sections"
-import { exitQuote, maxSellForImpact } from "@/lib/exit-quote"
+import { exitQuote, maxSellForImpact, plausiblePoolUsdc } from "@/lib/exit-quote"
 import type { Holo, Mood } from "@/components/mascot/mascot"
 import { useRiven, useRivenPage } from "@/components/mascot/riven-context"
 import { TokenAvatar } from "./token-avatar"
@@ -272,7 +272,7 @@ export function TokenView({
           </p>
         )}
 
-      {t.usdcInPool !== null && <ExitCheck poolUsdc={t.usdcInPool} />}
+      {t.usdcInPool !== null && plausiblePoolUsdc(t.usdcInPool, t.liquidityUsd) && <ExitCheck poolUsdc={t.usdcInPool} />}
 
       <CopycatWarning token={t} copies={t.copyList} now={now} />
 

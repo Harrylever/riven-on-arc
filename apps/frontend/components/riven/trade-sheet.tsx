@@ -21,6 +21,9 @@ interface Quote {
   amountIn: string
   amountOut: string
   minOut: string
+  warnings?: string[]
+  priceImpactPct?: number | null
+  roundTripLossPct?: number | null
   insufficient: boolean
   approvals: TxRequest[]
   swap: TxRequest
@@ -62,6 +65,7 @@ export function TradeSheet({
   const [loading, setLoading] = useState(false)
   const [steps, setSteps] = useState<Step[] | null>(null)
   const [riskAck, setRiskAck] = useState(false)
+  const [warnAck, setWarnAck] = useState(false)
   const dialog = useRef<HTMLDialogElement>(null)
   const risky = token.fake || token.band === "risk" || token.copies > 0
   const running = steps?.some((s) => s.state === "signing") ?? false
@@ -73,6 +77,7 @@ export function TradeSheet({
   // Live quote, debounced, whenever the inputs change.
   useEffect(() => {
     setQuote(null)
+    setWarnAck(false)
     const n = Number(amount)
     if (!wallet.address || !Number.isFinite(n) || n <= 0) return
     const ctrl = new AbortController()
@@ -138,7 +143,8 @@ export function TradeSheet({
   const unit = side === "buy" ? "USDC" : token.symbol
   const outUnit = side === "buy" ? token.symbol : "USDC"
   const m = BAND_META[token.band]
-  const blocked = side === "buy" && risky && !riskAck
+  const needsWarnAck = (quote?.warnings?.length ?? 0) > 0
+  const blocked = (side === "buy" && risky && !riskAck) || (needsWarnAck && !warnAck)
 
   return (
     <dialog
@@ -252,6 +258,12 @@ export function TradeSheet({
                   {compact(Number(quote.minOut))} {outUnit}
                 </span>
               </div>
+              {typeof quote.priceImpactPct === "number" && (
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-[var(--rv-ink-3)]">Estimated price impact</span>
+                  <span>{quote.priceImpactPct < 0.1 ? "<0.1" : quote.priceImpactPct.toFixed(1)}%</span>
+                </div>
+              )}
               {quote.approvals.length > 0 && (
                 <div className="text-[11px] text-[var(--rv-ink-3)]">
                   First trade of this token: {quote.approvals.length} one-time
@@ -268,6 +280,23 @@ export function TradeSheet({
             <span className="text-[var(--rv-ink-3)]">Enter an amount</span>
           )}
         </div>
+
+        {needsWarnAck && (
+          <label className="flex gap-2.5 rounded-lg border border-[rgba(251,191,36,0.4)] bg-[rgba(251,191,36,0.06)] p-3 text-[12px] leading-snug">
+            <input
+              type="checkbox"
+              checked={warnAck}
+              onChange={(e) => setWarnAck(e.target.checked)}
+              className="mt-0.5 accent-[var(--rv-caution)]"
+            />
+            <span>
+              {quote!.warnings!.map((w) => (
+                <span key={w} className="block">{w}</span>
+              ))}
+              <b>I understand and want to continue.</b>
+            </span>
+          </label>
+        )}
 
         {side === "buy" && risky && (
           <label className="flex gap-2.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.06)] p-3 text-[12px] leading-snug">

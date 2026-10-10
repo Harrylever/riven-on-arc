@@ -1,6 +1,7 @@
 // Server-only. Builds unsigned Uniswap v4 swap transactions for the user's own
 // wallet to sign. Riven never holds keys or funds and never broadcasts anything.
 import { getDb } from "@riven/shared"
+import { DEFAULT_MAX_TRADE_USD, evaluateGuards } from "./trade-guards"
 import {
   createPublicClient,
   decodeFunctionResult,
@@ -68,51 +69,91 @@ export interface TxRequest {
   label: string
 }
 
-const keyCache = new Map<string, PoolKey>()
+const keyCache = new Map<string, { at: number; keys: PoolKey[] }>()
+const KEY_CACHE_MS = 10 * 60_000
+/** Public Arc RPCs refuse topic-filtered ranges beyond ~10k blocks; a paid RPC can raise this. */
+const LOG_CHUNK = BigInt(process.env.ARC_TRADE_LOG_CHUNK_BLOCKS ?? "9999")
+const LOG_PARALLEL = 3
+const MAX_POOL_SCAN = BigInt(500_000)
 
-/** The v4 PoolKey for a token's USDC pool, read from its Initialize event. */
-export async function poolKeyFor(
-  token: string,
-): Promise<{ key: PoolKey; decimals: number } | null> {
-  const t = await getDb().token.findUnique({
-    where: { mint: token.toLowerCase() },
-    include: {
-      pools: { where: { venue: "UNISWAP_V4" }, orderBy: { createdAt: "asc" } },
-    },
-  })
-  const pool = t?.pools[0]
-  if (!t || !pool || t.launchBlock === null) return null
-  const cached = keyCache.get(pool.address)
-  if (cached) return { key: cached, decimals: t.decimals ?? 18 }
-  const logs = await client.getLogs({
-    address: ARC.poolManager,
-    event: INITIALIZE,
-    args: { id: pool.address as Hex },
-    fromBlock: t.launchBlock - BigInt(5),
-    toBlock: t.launchBlock + BigInt(5),
-  })
-  const a = logs[0]?.args
-  if (
-    !a?.currency0 ||
-    !a.currency1 ||
-    a.fee === undefined ||
-    a.tickSpacing === undefined ||
-    !a.hooks
-  )
-    return null
-  // Only route USDC pairs: approvals, labels and amounts all assume USDC is one side.
-  const usdc = ARC.usdc.toLowerCase()
-  if (a.currency0.toLowerCase() !== usdc && a.currency1.toLowerCase() !== usdc)
-    return null
-  const key: PoolKey = {
-    currency0: a.currency0,
-    currency1: a.currency1,
-    fee: a.fee,
-    tickSpacing: a.tickSpacing,
-    hooks: a.hooks,
+/** Initialize events for one currency pair, in block chunks that halve when an RPC refuses a range. */
+async function initializeLogs(currency0: Address, currency1: Address, from: bigint, to: bigint) {
+  const range = async (f: bigint, t: bigint): Promise<Awaited<ReturnType<typeof fetchRange>>> => {
+    try {
+      return await fetchRange(f, t)
+    } catch (err) {
+      if (t - f < BigInt(2_000)) throw err
+      const mid = (f + t) / BigInt(2)
+      return [...(await range(f, mid)), ...(await range(mid + BigInt(1), t))]
+    }
   }
-  keyCache.set(pool.address, key)
-  return { key, decimals: t.decimals ?? 18 }
+  const fetchRange = (f: bigint, t: bigint) =>
+    client.getLogs({
+      address: ARC.poolManager,
+      event: INITIALIZE,
+      args: { currency0, currency1 },
+      fromBlock: f,
+      toBlock: t,
+    })
+  const chunks: Array<[bigint, bigint]> = []
+  for (let f = from; f <= to; f += LOG_CHUNK) {
+    chunks.push([f, f + LOG_CHUNK - BigInt(1) > to ? to : f + LOG_CHUNK - BigInt(1)])
+  }
+  const out: Awaited<ReturnType<typeof fetchRange>> = []
+  for (let i = 0; i < chunks.length; i += LOG_PARALLEL) {
+    const batch = await Promise.all(chunks.slice(i, i + LOG_PARALLEL).map(([f, t]) => range(f, t)))
+    for (const logs of batch) out.push(...logs)
+    // A pool is almost always created at or just after launch: once one turns up,
+    // the batch that found it (a few tens of thousands of blocks) is enough.
+    if (out.length > 0) break
+  }
+  return out
+}
+
+/**
+ * Every v4 pool pairing this token with USDC (each fee tier and hook is its own
+ * pool), read from Initialize events filtered by the currency pair. The database
+ * can't say which pool is the real one for tokens found by pool history, so the
+ * caller quotes each candidate and routes through the best.
+ */
+export async function poolKeysFor(
+  token: string,
+): Promise<{ keys: PoolKey[]; decimals: number } | null> {
+  const mint = token.toLowerCase()
+  const t = await getDb().token.findUnique({
+    where: { mint },
+    select: { decimals: true, launchBlock: true, creationBlock: true },
+  })
+  if (!t) return null
+  const decimals = t.decimals ?? 18
+  const cached = keyCache.get(mint)
+  if (cached && Date.now() - cached.at < KEY_CACHE_MS) return cached.keys.length ? { keys: cached.keys, decimals } : null
+
+  const head = await client.getBlockNumber()
+  const start = t.launchBlock ?? t.creationBlock
+  const from = start !== null ? (start > BigInt(5) ? start - BigInt(5) : BigInt(0)) : head > BigInt(1_000_000) ? head - BigInt(1_000_000) : BigInt(0)
+  const usdc = ARC.usdc.toLowerCase()
+  const usdcIs0 = usdc < mint
+  const logs = await initializeLogs(
+    (usdcIs0 ? ARC.usdc : mint) as Address,
+    (usdcIs0 ? mint : ARC.usdc) as Address,
+    from,
+    // never scan more than ~500k blocks (about 3 days) for a pool that should exist near launch
+    head - from > MAX_POOL_SCAN ? from + MAX_POOL_SCAN : head,
+  )
+  const seen = new Set<string>()
+  const keys: PoolKey[] = []
+  for (const l of logs) {
+    const a = l.args
+    if (!a.currency0 || !a.currency1 || a.fee === undefined || a.tickSpacing === undefined || !a.hooks) continue
+    const id = `${a.fee}:${a.tickSpacing}:${a.hooks.toLowerCase()}`
+    if (seen.has(id)) continue
+    seen.add(id)
+    keys.push({ currency0: a.currency0, currency1: a.currency1, fee: a.fee, tickSpacing: a.tickSpacing, hooks: a.hooks })
+  }
+  // Cache hits for 10 minutes, but never a miss: a flaky RPC must not hide a real pool.
+  if (keys.length) keyCache.set(mint, { at: Date.now(), keys })
+  return keys.length ? { keys, decimals } : null
 }
 
 /**
@@ -275,15 +316,16 @@ export async function buildTrade(p: {
   slippageBps: number
 }) {
   const wallet = p.wallet.toLowerCase() as Address
-  const pk = await poolKeyFor(p.token)
-  if (!pk)
+  const pks = await poolKeysFor(p.token)
+  if (!pks)
     return {
       error: "This token has no Uniswap v4 USDC pool Riven can route through.",
     }
-  const { key, decimals } = pk
+  const { keys, decimals } = pks
   const usdc = ARC.usdc.toLowerCase()
-  const usdcIs0 = key.currency0.toLowerCase() === usdc
-  const tokenAddr = (usdcIs0 ? key.currency1 : key.currency0) as Address
+  // Every candidate pool shares the same currency order, so the swap direction is shared too.
+  const usdcIs0 = keys[0]!.currency0.toLowerCase() === usdc
+  const tokenAddr = (usdcIs0 ? keys[0]!.currency1 : keys[0]!.currency0) as Address
   // Buying = USDC in, token out.
   const zeroForOne = p.side === "buy" ? usdcIs0 : !usdcIs0
   const inDecimals = p.side === "buy" ? 6 : decimals
@@ -304,8 +346,8 @@ export async function buildTrade(p: {
     return { error: "Slippage must be a number." }
   const tokenIn = p.side === "buy" ? ARC.usdc : tokenAddr
 
-  const [amountOut, balance] = await Promise.all([
-    quote(key, zeroForOne, amountIn),
+  const [quotes, balance] = await Promise.all([
+    Promise.all(keys.map((k) => quote(k, zeroForOne, amountIn))),
     client.readContract({
       address: tokenIn,
       abi: erc20Abi,
@@ -313,8 +355,37 @@ export async function buildTrade(p: {
       args: [wallet],
     }),
   ])
+  // Route through whichever pool pays the most for this size.
+  let best = -1
+  quotes.forEach((q, i) => {
+    if (q !== null && q > BigInt(0) && (best < 0 || q > quotes[best]!)) best = i
+  })
+  const amountOut = best >= 0 ? quotes[best]! : null
+  const key = keys[Math.max(best, 0)]!
   if (amountOut === null || amountOut === BigInt(0))
     return { error: "No quote — the pool may be empty or the trade too large." }
+  // Pre-flight: size cap, price impact against the marginal price, and (for buys)
+  // whether the quoted tokens can be sold straight back at a sane price.
+  const smallAmount = amountIn / BigInt(50) > BigInt(0) ? amountIn / BigInt(50) : amountIn
+  const [small, back] = await Promise.all([
+    quote(key, zeroForOne, smallAmount),
+    p.side === "buy" ? quote(key, !zeroForOne, amountOut) : Promise.resolve(null),
+  ])
+  const inHuman = Number(amountIn) / 10 ** inDecimals
+  const outHuman = Number(amountOut) / 10 ** outDecimals
+  const guards = evaluateGuards({
+    side: p.side,
+    usdLeg: p.side === "buy" ? inHuman : outHuman,
+    amountIn: inHuman,
+    amountOut: outHuman,
+    smallIn: Number(smallAmount) / 10 ** inDecimals,
+    smallOut: small === null ? null : Number(small) / 10 ** outDecimals,
+    backOut: back === null ? null : Number(back) / 1e6,
+    // dynamic-fee pools carry a flag in the fee field; assume 1% there
+    feeFraction: key.fee >= 0x800000 ? 0.01 : key.fee / 1_000_000,
+    maxUsd: Number(process.env.TRADE_MAX_USDC) || DEFAULT_MAX_TRADE_USD,
+  })
+  if (guards.error) return { error: guards.error }
   const slippage = BigInt(
     Math.min(Math.max(Math.round(p.slippageBps), 10), 5000),
   )
@@ -331,6 +402,9 @@ export async function buildTrade(p: {
     amountIn: (Number(amountIn) / 10 ** inDecimals).toString(),
     amountOut: (Number(amountOut) / 10 ** outDecimals).toString(),
     minOut: (Number(minOut) / 10 ** outDecimals).toString(),
+    warnings: guards.warnings,
+    priceImpactPct: guards.priceImpact === null ? null : guards.priceImpact * 100,
+    roundTripLossPct: guards.roundTripLoss === null ? null : guards.roundTripLoss * 100,
     // USDC is also Arc's gas: keep ~0.05 back on buys so the swap can pay for itself.
     insufficient:
       balance < amountIn + (p.side === "buy" ? GAS_RESERVE_USDC : BigInt(0)),
