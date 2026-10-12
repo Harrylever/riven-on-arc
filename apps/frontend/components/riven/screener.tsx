@@ -214,7 +214,7 @@ export function Screener({
           Filters{activeCount > 0 ? ` · ${activeCount}` : ""}
         </button>
         <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-2 text-[11.5px] text-[var(--rv-ink-3)]" aria-live="polite">
-          <span className={pending ? "size-1.5 rounded-full bg-[var(--rv-caution)]" : "rv-live-dot"} />
+          {pending && <span className="size-1.5 rounded-full bg-[var(--rv-caution)]" />}
           {pending ? "Updating" : `${compact(total)} tokens · live`}
         </span>
       </div>

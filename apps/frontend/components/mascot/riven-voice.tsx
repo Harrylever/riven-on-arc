@@ -3,7 +3,11 @@
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState } from "react"
 import * as sfx from "@/lib/bot-sfx"
-import { preloadRobotVoice, speakRobot, stopRobotVoice } from "@/lib/robot-voice"
+import {
+  preloadRobotVoice,
+  speakRobot,
+  stopRobotVoice,
+} from "@/lib/robot-voice"
 
 /**
  * Talk to Riven. Double-tap him to open (and double-tap again to close) a
@@ -14,7 +18,10 @@ import { preloadRobotVoice, speakRobot, stopRobotVoice } from "@/lib/robot-voice
  * text. He explains — he never tells anyone to trade.
  */
 
-type Topic = { kind: "token"; address: string } | { kind: "perp"; coin: string } | undefined
+type Topic =
+  | { kind: "token"; address: string }
+  | { kind: "perp"; coin: string }
+  | undefined
 type Msg = { who: "you" | "riven"; text: string; mode?: string }
 /** robot = Riven's own synthesized robot voice · natural = the browser's voice · text = no speech */
 export type ReplyMode = "robot" | "natural" | "text"
@@ -33,7 +40,13 @@ interface SpeechRec {
   lang: string
   interimResults: boolean
   continuous: boolean
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null
+  onresult:
+    | ((e: {
+        results: ArrayLike<
+          ArrayLike<{ transcript: string }> & { isFinal: boolean }
+        >
+      }) => void)
+    | null
   onerror: ((e: { error: string }) => void) | null
   onend: (() => void) | null
   start: () => void
@@ -44,7 +57,10 @@ type RecCtor = new () => SpeechRec
 
 function recCtor(): RecCtor | null {
   if (typeof window === "undefined") return null
-  const w = window as unknown as { SpeechRecognition?: RecCtor; webkitSpeechRecognition?: RecCtor }
+  const w = window as unknown as {
+    SpeechRecognition?: RecCtor
+    webkitSpeechRecognition?: RecCtor
+  }
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
@@ -74,7 +90,11 @@ function say(text: string) {
     u.pitch = 1.15
     const voice = synth
       .getVoices()
-      .find((v) => /^en[-_]/i.test(v.lang) && /google|samantha|daniel|aria|guy|jenny|zira|natural/i.test(v.name))
+      .find(
+        (v) =>
+          /^en[-_]/i.test(v.lang) &&
+          /google|samantha|daniel|aria|guy|jenny|zira|natural/i.test(v.name),
+      )
     if (voice) u.voice = voice
     synth.speak(u)
   } catch {
@@ -82,7 +102,11 @@ function say(text: string) {
   }
 }
 
-export function useRivenVoice(opts: { topic: () => Topic; onThinking: () => void; onAnswer: (short: string) => void }) {
+export function useRivenVoice(opts: {
+  topic: () => Topic
+  onThinking: () => void
+  onAnswer: (short: string) => void
+}) {
   const [chat, setChat] = useState<VoiceChat>({
     open: false,
     listening: false,
@@ -115,7 +139,12 @@ export function useRivenVoice(opts: { topic: () => Topic; onThinking: () => void
   const ask = useCallback(async (question: string) => {
     const q = question.trim()
     if (!q) return
-    setChat((c) => ({ ...c, thinking: true, heard: "", msgs: [...c.msgs, { who: "you", text: q }] }))
+    setChat((c) => ({
+      ...c,
+      thinking: true,
+      heard: "",
+      msgs: [...c.msgs, { who: "you", text: q }],
+    }))
     optsRef.current.onThinking()
     sfx.compute(1400)
     let text: string
@@ -128,10 +157,17 @@ export function useRivenVoice(opts: { topic: () => Topic; onThinking: () => void
           question: q,
           topic: optsRef.current.topic(),
           subject: subjectRef.current,
-          history: msgsRef.current.slice(-6).map((m) => ({ who: m.who, text: m.text })),
+          history: msgsRef.current
+            .slice(-6)
+            .map((m) => ({ who: m.who, text: m.text })),
         }),
       })
-      const d = (await res.json()) as { text?: string; error?: string; mode?: string; tokens?: Array<{ address: string }> }
+      const d = (await res.json()) as {
+        text?: string
+        error?: string
+        mode?: string
+        tokens?: Array<{ address: string }>
+      }
       if (d.tokens?.length === 1) subjectRef.current = d.tokens[0]!.address
       text = d.text ?? d.error ?? "I couldn't answer that right now."
       mode = d.mode
@@ -139,7 +175,11 @@ export function useRivenVoice(opts: { topic: () => Topic; onThinking: () => void
       sfx.glitch()
       text = "I couldn't reach my data just now. Try again in a moment."
     }
-    setChat((c) => ({ ...c, thinking: false, msgs: [...c.msgs, { who: "riven", text, mode }] }))
+    setChat((c) => ({
+      ...c,
+      thinking: false,
+      msgs: [...c.msgs, { who: "riven", text, mode }],
+    }))
     optsRef.current.onAnswer(text.split("\n")[0]!.slice(0, 140))
     sfx.talk()
     if (replyRef.current === "robot") {
@@ -159,7 +199,12 @@ export function useRivenVoice(opts: { topic: () => Topic; onThinking: () => void
     stopRobotVoice()
     const C = recCtor()
     if (!C) {
-      setChat((c) => ({ ...c, micSupported: false, micError: "This browser can't listen — type instead (voice works in Chrome, Edge and Safari)." }))
+      setChat((c) => ({
+        ...c,
+        micSupported: false,
+        micError:
+          "This browser can't listen — type instead (voice works in Chrome, Edge and Safari).",
+      }))
       return
     }
     rec.current?.abort()
@@ -200,11 +245,21 @@ export function useRivenVoice(opts: { topic: () => Topic; onThinking: () => void
       setChat((c) => ({ ...c, listening: false }))
       if (heard) void ask(heard)
     }
-    setChat((c) => ({ ...c, open: true, listening: true, heard: "", micError: null }))
+    setChat((c) => ({
+      ...c,
+      open: true,
+      listening: true,
+      heard: "",
+      micError: null,
+    }))
     try {
       r.start()
     } catch {
-      setChat((c) => ({ ...c, listening: false, micError: "Couldn't start the microphone — type instead." }))
+      setChat((c) => ({
+        ...c,
+        listening: false,
+        micError: "Couldn't start the microphone — type instead.",
+      }))
     }
   }, [ask])
 
@@ -242,7 +297,15 @@ export function useRivenVoice(opts: { topic: () => Topic; onThinking: () => void
 
 function MicIcon() {
   return (
-    <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      width={18}
+      height={18}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      aria-hidden
+    >
       <rect x="9" y="3" width="6" height="11" rx="3" />
       <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
     </svg>
@@ -279,8 +342,14 @@ export function VoicePanel({
       style={{ animation: "rv-pop 180ms ease-out" }}
     >
       <div className="flex items-center gap-2 border-b border-[var(--rv-stroke)] px-3 py-2">
-        <span className="text-[10px] font-bold tracking-[0.12em] text-[var(--rv-blue)] uppercase">Talk to Riven</span>
-        <div className="rv-seg ml-auto" role="radiogroup" aria-label="How Riven replies">
+        <span className="text-[10px] font-bold tracking-[0.12em] text-[var(--rv-blue)] uppercase">
+          Talk to Riven
+        </span>
+        <div
+          className="rv-seg ml-auto"
+          role="radiogroup"
+          aria-label="How Riven replies"
+        >
           <button
             type="button"
             role="radio"
@@ -301,7 +370,13 @@ export function VoicePanel({
           >
             🗣 Natural
           </button>
-          <button type="button" role="radio" aria-checked={chat.reply === "text"} onClick={() => onReply("text")} className="!px-2 !py-1 !text-[11px]">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={chat.reply === "text"}
+            onClick={() => onReply("text")}
+            className="!px-2 !py-1 !text-[11px]"
+          >
             Text
           </button>
         </div>
@@ -318,33 +393,47 @@ export function VoicePanel({
       <div className="flex max-h-[42vh] min-h-[90px] flex-col gap-2 overflow-y-auto px-3 py-2.5">
         {chat.msgs.length === 0 && !chat.listening && (
           <p className="text-[var(--rv-ink-3)]">
-            Tap the mic and ask anything — “what's happening on Arc?”, “is this token safe?”, “tokens under $50K with socials”, “why is SOL pumping?”, “what does funding mean?”. Double-tap me again to close.
+            Tap the mic and ask anything — “what's happening on Arc?”, “is this
+            token safe?”, “tokens under $50K with socials”, “why is SOL
+            pumping?”, “what does funding mean?”. Double-tap me again to close.
           </p>
         )}
         {chat.msgs.map((m, i) => (
           <div key={i} className={m.who === "you" ? "self-end text-right" : ""}>
             <div
               className={`inline-block max-w-[300px] rounded-lg px-2.5 py-1.5 leading-relaxed whitespace-pre-line ${
-                m.who === "you" ? "bg-[var(--rv-blue)] text-[var(--rv-on-blue)]" : "bg-white/[0.05]"
+                m.who === "you"
+                  ? "bg-[var(--rv-blue)] text-[var(--rv-on-blue)]"
+                  : "bg-white/[0.05]"
               }`}
             >
               {m.text}
             </div>
             {m.who === "riven" && (
               <p className="mt-0.5 text-[10.5px] text-[var(--rv-ink-3)]">
-                {m.mode === "gemini" ? "Worded by Gemini from Riven's data" : m.mode === "claude" ? "Worded by Claude from Riven's data" : "Riven's analysis engine"}
+                {m.mode === "gemini"
+                  ? "Worded by Gemini from Riven's data"
+                  : m.mode === "claude"
+                    ? "Worded by Claude from Riven's data"
+                    : "Riven's analysis engine"}
               </p>
             )}
           </div>
         ))}
         {chat.listening && (
           <p className="flex items-center gap-2 text-[var(--rv-ink-2)] italic">
-            <span className="size-2 shrink-0 animate-ping rounded-full bg-[var(--rv-risk)]" />
+            <span className="size-2 shrink-0 rounded-full bg-[var(--rv-risk)]" />
             {chat.heard || "Listening… speak now"}
           </p>
         )}
-        {chat.thinking && <p className="text-[var(--rv-ink-3)]">Riven is reading his data…</p>}
-        {chat.micError && <p className="text-[12px] text-[var(--rv-caution)]">{chat.micError}</p>}
+        {chat.thinking && (
+          <p className="text-[var(--rv-ink-3)]">Riven is reading his data…</p>
+        )}
+        {chat.micError && (
+          <p className="text-[12px] text-[var(--rv-caution)]">
+            {chat.micError}
+          </p>
+        )}
         <div ref={end} />
       </div>
 
@@ -367,23 +456,37 @@ export function VoicePanel({
             background: chat.listening ? "var(--rv-risk)" : "var(--rv-blue)",
             color: chat.listening ? "#fff" : "var(--rv-on-blue)",
           }}
-          title={chat.micSupported ? undefined : "Voice input isn't supported in this browser"}
+          title={
+            chat.micSupported
+              ? undefined
+              : "Voice input isn't supported in this browser"
+          }
         >
           <MicIcon />
         </button>
         <input
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
-          placeholder={chat.micSupported ? "…or type a question" : "Type a question"}
+          placeholder={
+            chat.micSupported ? "…or type a question" : "Type a question"
+          }
           className="rv-input h-9 min-w-0 flex-1 px-3 text-[13px]"
         />
-        <button type="submit" disabled={!typed.trim() || chat.thinking} className="rv-btn h-9 px-3 text-[13px] disabled:opacity-50">
+        <button
+          type="submit"
+          disabled={!typed.trim() || chat.thinking}
+          className="rv-btn h-9 px-3 text-[13px] disabled:opacity-50"
+        >
           Ask
         </button>
       </form>
       <p className="px-3 pb-2 text-[10.5px] text-[var(--rv-ink-3)]">
         Riven explains; he never tells you to trade. Not financial advice.{" "}
-        <Link href="/agent" onClick={onClose} className="text-[var(--rv-ice)] hover:underline">
+        <Link
+          href="/agent"
+          onClick={onClose}
+          className="text-[var(--rv-ice)] hover:underline"
+        >
           Full chat
         </Link>
       </p>

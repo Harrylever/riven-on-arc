@@ -137,7 +137,7 @@ export default async function Home() {
         <div className="relative mx-auto grid max-w-6xl items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
             <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--rv-stroke)] bg-[var(--rv-card)] px-3 py-1 text-[12px] text-[var(--rv-ink-2)]">
-              <span className="rv-live-dot" /> Live on Arc mainnet
+              Live on Arc mainnet
             </p>
             <h1 className="text-[40px] leading-[1.05] font-medium tracking-[-0.035em] text-[var(--rv-ink)] sm:text-[64px] lg:text-[68px]">
               Every token on Arc,

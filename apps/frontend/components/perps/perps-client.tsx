@@ -74,7 +74,7 @@ export function PerpsClient() {
         />
         <div className="relative">
           <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 py-1 text-[12px] text-[var(--rv-ink-2)]">
-            <span className="rv-live-dot" /> Paper trading · Hyperliquid prices
+            Paper trading · Hyperliquid prices
           </p>
           <h1 className="text-[28px] leading-tight font-bold tracking-tight text-[var(--rv-ink)] sm:text-[34px]">
             Practise perps with Arc USDC

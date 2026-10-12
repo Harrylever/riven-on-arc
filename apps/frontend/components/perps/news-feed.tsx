@@ -39,7 +39,6 @@ export function NewsFeed({ coin, limit = 12, title }: { coin?: string; limit?: n
         <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
           {title ?? (coin ? `${coin} in the news` : "Trending crypto news")}
         </h2>
-        <span className="rv-live-dot" aria-hidden />
         <span className="ml-auto text-[11.5px] text-[var(--rv-ink-3)]">Cointelegraph · Decrypt · CoinDesk · Bitcoin Magazine</span>
       </div>
       {news === null ? (

@@ -343,7 +343,6 @@ export function PerpsPanel() {
       <section>
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">Live scanner calls</h2>
-          <span className="rv-live-dot" aria-hidden />
           <a href="#perp-signals" className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]">
             All calls
             <ArrowIcon />

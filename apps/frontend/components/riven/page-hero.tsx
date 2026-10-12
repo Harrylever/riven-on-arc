@@ -32,7 +32,7 @@ export function PageHero({
     <header className="flex flex-col gap-1.5">
       {eyebrow && (
         <p className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--rv-stroke)] bg-[var(--rv-card)] px-3 py-1 text-[12px] text-[var(--rv-ink-2)]">
-          <span className="rv-live-dot" /> {eyebrow}
+          {eyebrow}
         </p>
       )}
       <h1 className="text-[28px] leading-tight font-bold tracking-tight text-[var(--rv-ink)] sm:text-[32px]">{title}</h1>

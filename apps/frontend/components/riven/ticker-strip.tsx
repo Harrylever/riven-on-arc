@@ -80,7 +80,7 @@ export function TickerStrip() {
   return (
     <div className="relative flex h-9 items-center overflow-hidden border-t border-[var(--rv-stroke)]">
       <span className="z-10 flex h-full shrink-0 items-center gap-1.5 bg-[rgba(15,15,18,0.95)] pr-3 pl-4 text-[10.5px] font-bold tracking-[0.1em] text-[var(--rv-ink-3)] uppercase">
-        <span className="rv-live-dot" /> Arc now
+        Arc now
       </span>
       <div className="flex min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_24px,#000_calc(100%-24px),transparent)]">
         {/* Rendered twice so the -50% marquee loops seamlessly. */}

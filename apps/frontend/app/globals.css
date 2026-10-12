@@ -434,18 +434,6 @@ body::after {
   font-weight: inherit;
 }
 
-.rv-live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--rv-cyan);
-  animation: rv-blink 1.6s steps(2, start) infinite;
-}
-
-@keyframes rv-blink {
-  to { opacity: 0.25; }
-}
-
 .rv-table th {
   font-family: var(--font-body);
   font-weight: 600;
@@ -573,10 +561,6 @@ body::after {
 }
 @media (prefers-reduced-motion: reduce) {
   .rv-marquee { animation: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rv-live-dot { animation: none; }
 }
 
 @keyframes rv-pop {

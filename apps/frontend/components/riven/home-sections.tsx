@@ -33,7 +33,6 @@ export function SectionTitle({
       <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
         {title}
       </h2>
-      {live && <span className="rv-live-dot" aria-hidden />}
       {href && (
         <Link href={href} className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]">
           {cta ?? "View all"}

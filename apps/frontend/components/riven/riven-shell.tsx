@@ -178,13 +178,7 @@ export function RivenShell({ children }: { children: ReactNode }) {
       {/* Desktop status bar */}
       <footer className="fixed inset-x-0 bottom-0 z-30 hidden h-8 items-center gap-4 border-t border-[var(--rv-stroke)] bg-[rgba(10,10,12,0.95)] px-4 text-[11.5px] text-[var(--rv-ink-3)] lg:flex">
         <span className="flex items-center gap-2 font-semibold text-[var(--rv-ink-2)]">
-          <span
-            className={
-              stale
-                ? "size-1.5 rounded-full bg-[var(--rv-caution)]"
-                : "rv-live-dot"
-            }
-          />
+          {stale && <span className="size-1.5 rounded-full bg-[var(--rv-caution)]" />}
           {stale ? `Catching up · ${lagMin} min behind` : "Arc mainnet · live"}
         </span>
         {status?.lastBlock && (
