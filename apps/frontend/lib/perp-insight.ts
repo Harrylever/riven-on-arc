@@ -33,7 +33,8 @@ export interface PerpInsight {
   bullets: string[]
 }
 
-const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`
+// two decimals under 1% so a -0.05% day does not read as "-0.0%"
+const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(Math.abs(n) < 1 ? 2 : 1)}%`
 const money = (n: number) =>
   n >= 1e9 ? `$${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(1)}K` : `$${n.toFixed(2)}`
 const price = (n: number) => (n >= 1 ? `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `$${n.toPrecision(4)}`)

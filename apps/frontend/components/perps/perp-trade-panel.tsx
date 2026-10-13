@@ -5,6 +5,7 @@ import type { PerpSignal } from "@/components/perps/perps-panel"
 import { usePortfolio, type Collateral } from "@/hooks/use-portfolio"
 import type { PerpMarket } from "@/lib/hyperliquid"
 import { priceUsd } from "@/lib/format"
+import { venueName } from "@/lib/perp-symbols"
 import {
   buildTradeSetup,
   validateSetup,
@@ -39,7 +40,10 @@ export function PerpTradePanel({
   const [edits, setEdits] = useState<Record<string, string>>({})
   const resetEdits = () => setEdits({})
 
-  const suggested = buildTradeSetup(side, market.markPrice, orderType, signal)
+  // Levels to 6 significant digits: the raw maths gave boxes like 83034.74816895297.
+  const raw = buildTradeSetup(side, market.markPrice, orderType, signal)
+  const sig6 = (n: number) => Number(n.toPrecision(6))
+  const suggested = { ...raw, entry: sig6(raw.entry), stopLoss: sig6(raw.stopLoss), tps: raw.tps.map(sig6) }
   const num = (key: string, fallback: number) =>
     edits[key] === undefined ? fallback : Number(edits[key])
   const setup = {
@@ -246,7 +250,7 @@ export function PerpTradePanel({
         <div className="flex items-start justify-between gap-2 border-t border-[var(--rv-stroke)] pt-1.5 text-[10px] text-[var(--rv-ink-3)]">
           <span>
             {signal && signal.bias === side
-              ? `Suggested from the ${signal.exchange} signal (conviction ${signal.confidence}/10).`
+              ? `Suggested from the Riven Scanner call on ${venueName(signal.exchange)} (conviction ${signal.confidence}/10).`
               : "Suggested: SL at 1.5% risk, TPs at 1R / 2R / 3R."}{" "}
             Margin ${margin.toFixed(2)} · fee ${fee.toFixed(2)}
           </span>
@@ -280,7 +284,7 @@ export function PerpTradePanel({
           if (notional <= 0) return setError("Enter an order size.")
           setConfirming(true)
         }}
-        className="w-full py-2.5 font-extrabold tracking-wider text-black uppercase"
+        className="min-h-12 w-full px-3 py-3 text-[13px] leading-tight font-extrabold tracking-wider text-black uppercase sm:text-sm"
         style={{ background: sideColor(side) }}
       >
         Trade setup · {orderType === "LIMIT" ? "Limit" : "Market"} {side}{" "}
