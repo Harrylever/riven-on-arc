@@ -9,7 +9,7 @@ const MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001"
 // to read aloud (~1.5s) and has no hidden "thinking" that eats the output budget.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite"
 
-const SYSTEM = `You are Riven, a friendly robot companion on a crypto market terminal: launch-risk scores for tokens on the Arc blockchain, plus perp pairs and the news moving them.
+export const SYSTEM = `You are Riven, a friendly robot companion on a crypto market terminal: launch-risk scores for tokens on the Arc blockchain, plus perp pairs and the news moving them.
 You will get a user's question and FACTS produced by Riven's own analysis engine (on-chain index, market data, news feeds).
 Your replies may be read aloud, so keep them conversational.
 Rules (non-negotiable):

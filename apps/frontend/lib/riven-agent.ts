@@ -33,7 +33,7 @@ async function perpCoinIn(q: string): Promise<string | null> {
   return found[0] ?? null
 }
 
-async function explainPerp(coin: string): Promise<AgentReply> {
+export async function explainPerp(coin: string): Promise<AgentReply> {
   const i = await getPerpInsight(coin)
   return { text: `${insightFacts(i)}\n${DISCLAIMER}`, tokens: [] }
 }
@@ -53,7 +53,7 @@ function line(t: TokenSummary) {
   return `• ${t.symbol} — ${s}, MC ${usd(t.marketCap)}, 24h vol ${usd(t.volume.h24)}`
 }
 
-async function explainToken(address: string): Promise<AgentReply> {
+export async function explainToken(address: string): Promise<AgentReply> {
   const t = await getTokenDetail(address)
   if (!t) {
     return {
@@ -101,7 +101,7 @@ async function explainToken(address: string): Promise<AgentReply> {
   return { text: parts.join("\n\n"), tokens: [t] }
 }
 
-async function explainTicker(ticker: string): Promise<AgentReply> {
+export async function explainTicker(ticker: string): Promise<AgentReply> {
   const found = await searchTokens(ticker)
   if (found.length === 1) return explainToken(found[0]!.address)
   if (found.length > 1) {
@@ -125,7 +125,7 @@ async function explainTicker(ticker: string): Promise<AgentReply> {
 const pct = (n: number | null) => (n === null ? "—" : `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`)
 
 /** "What's happening on Arc?" — the whole market in a few lines. */
-async function marketOverview(): Promise<AgentReply> {
+export async function marketOverview(): Promise<AgentReply> {
   const [pulse, totals, trending, alerts] = await Promise.all([
     getArcPulse(),
     getMarketTotals(),
@@ -153,7 +153,7 @@ async function marketOverview(): Promise<AgentReply> {
 }
 
 /** "Which perps are moving?" / "any signals?" — markets + scanner calls. */
-async function perpsOverview(lower: string): Promise<AgentReply> {
+export async function perpsOverview(lower: string): Promise<AgentReply> {
   const [markets, db] = [await getHyperliquidMarkets().catch(() => []), getDb()]
   const calls = await db.perpSignal
     .findMany({ where: { outcome: "pending" }, orderBy: [{ confidence: "desc" }, { scanTime: "desc" }], take: 5 })
@@ -183,7 +183,7 @@ async function perpsOverview(lower: string): Promise<AgentReply> {
 }
 
 /** One token, found by address or ticker (first real match). */
-async function resolveToken(ref: string): Promise<TokenSummary | null> {
+export async function resolveToken(ref: string): Promise<TokenSummary | null> {
   if (/^0x[0-9a-f]{40}$/i.test(ref)) return getTokenDetail(ref.toLowerCase())
   const found = await searchTokens(ref)
   const exact = found.filter((t) => t.symbol.toLowerCase() === ref.toLowerCase())
@@ -191,7 +191,7 @@ async function resolveToken(ref: string): Promise<TokenSummary | null> {
   return pick ? getTokenDetail(pick.address) : null
 }
 
-async function compareTokens(refs: string[]): Promise<AgentReply> {
+export async function compareTokens(refs: string[]): Promise<AgentReply> {
   const all = await Promise.all(refs.map(resolveToken))
   const found = all.filter((t): t is TokenSummary => t !== null)
   const missing = all.length - found.length
@@ -213,7 +213,7 @@ async function compareTokens(refs: string[]): Promise<AgentReply> {
   return { text: lines.join("\n"), tokens: found }
 }
 
-async function screenerAnswer(p: ParsedQuery): Promise<AgentReply> {
+export async function screenerAnswer(p: ParsedQuery): Promise<AgentReply> {
   const res = await getScreener(p.filters, p.riskiest ? 40 : 6)
   let list = res.tokens
   if (p.riskiest) list = [...list].sort((a, b) => (a.score ?? 99) - (b.score ?? 99)).slice(0, 6)
@@ -250,6 +250,24 @@ export interface AskContext {
   topic?: AgentTopic
   /** The token Riven last answered about (for "and its holders?"). */
   subject?: string
+}
+
+/** Latest anti-rug alerts: liquidity pulls, big creator/whale sales, score drops. */
+export async function rugAlerts(): Promise<AgentReply> {
+  const alerts = await getAlerts({ limit: 8 })
+  if (alerts.length === 0)
+    return {
+      text: `No liquidity pulls, big sales or score drops caught recently. ${DISCLAIMER}`,
+      tokens: [],
+    }
+  return {
+    text: [
+      "Latest anti-rug alerts on Arc:",
+      ...alerts.map((a) => `• ${a.token.symbol}: ${a.message}`),
+      `Source: Riven's rug radar. ${DISCLAIMER}`,
+    ].join("\n"),
+    tokens: [],
+  }
 }
 
 /** Routes a plain-English question to the right lookup. */
@@ -326,22 +344,7 @@ export async function answer(question: string, topicOrCtx?: AgentTopic | AskCont
   const dollar = q.match(TICKER)?.[1]
   if (dollar) return explainTicker(dollar)
 
-  if (/\brug|alert|liquidity pull|pulled|creator sol|whale sol|score drop/.test(lower)) {
-    const alerts = await getAlerts({ limit: 8 })
-    if (alerts.length === 0)
-      return {
-        text: `No liquidity pulls, big sales or score drops caught recently. ${DISCLAIMER}`,
-        tokens: [],
-      }
-    return {
-      text: [
-        "Latest anti-rug alerts on Arc:",
-        ...alerts.map((a) => `• ${a.token.symbol}: ${a.message}`),
-        `Source: Riven's rug radar. ${DISCLAIMER}`,
-      ].join("\n"),
-      tokens: [],
-    }
-  }
+  if (/\brug|alert|liquidity pull|pulled|creator sol|whale sol|score drop/.test(lower)) return rugAlerts()
 
   // "Find tokens under 5M market cap with socials", "safest new launches", "top gainers"…
   const parsed = parseScreenerQuery(q)

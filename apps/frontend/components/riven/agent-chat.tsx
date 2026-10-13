@@ -7,6 +7,7 @@ import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { useRiven, useRivenPage } from "@/components/mascot/riven-context"
 import { RivenOrb } from "./orb-field"
+import { useAskSession } from "@/hooks/use-ask-session"
 
 interface Msg {
   role: "user" | "riven"
@@ -35,6 +36,7 @@ export function AgentChat() {
   const [busy, setBusy] = useState(false)
   const end = useRef<HTMLDivElement>(null)
   const riven = useRiven()
+  const allowance = useAskSession()
   useRivenPage({
     lines: ["Paste a 0x address or a $TICKER.", "I only answer from on-chain data.", "I'll never tell you to buy or sell — just what the chain says."],
     greet: "Ask me anything about an Arc token.",
@@ -62,6 +64,7 @@ export function AgentChat() {
         }),
       })
       const d = await res.json()
+      if (d.usage) allowance.setUsage(d.usage)
       setMsgs((m) => [
         ...m,
         {
@@ -173,6 +176,7 @@ export function AgentChat() {
           </button>
         ))}
       </div>
+      <AllowanceBar ask={allowance} />
       <form
         className="flex gap-2"
         onSubmit={(e) => {
@@ -195,6 +199,36 @@ export function AgentChat() {
           Ask
         </button>
       </form>
+    </div>
+  )
+}
+
+function AllowanceBar({ ask }: { ask: ReturnType<typeof useAskSession> }) {
+  const { usage, isVerified, wallet, signing, enabled, error, verify } = ask
+  if (!usage) return null
+  const left = Math.max(usage.limit - usage.used, 0)
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[var(--rv-ink-3)]" aria-live="polite">
+      <span>
+        {left} of {usage.limit} questions left today{isVerified ? " · wallet verified" : ""}
+      </span>
+      {!isVerified && enabled && (
+        <>
+          <span aria-hidden>·</span>
+          {wallet.address ? (
+            <button type="button" onClick={() => void verify()} disabled={signing} className="font-semibold text-[var(--rv-ice)] hover:underline disabled:opacity-50">
+              {signing ? "Waiting for your wallet…" : "Verify wallet for 10 a day"}
+            </button>
+          ) : wallet.hasWallet ? (
+            <button type="button" onClick={() => void wallet.connect()} className="font-semibold text-[var(--rv-ice)] hover:underline">
+              Connect wallet for 10 a day
+            </button>
+          ) : (
+            <span>Install a wallet for 10 a day</span>
+          )}
+        </>
+      )}
+      {error && <span className="text-[var(--rv-caution)]">{error}</span>}
     </div>
   )
 }

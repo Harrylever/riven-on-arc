@@ -131,9 +131,6 @@ export function PerpsPanel() {
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "resolved">(
     "all",
   )
-  const [exchangeFilter, setExchangeFilter] = useState<
-    "ALL" | "BYBIT" | "MEXC" | "BINANCE"
-  >("ALL")
   const [biasFilter, setBiasFilter] = useState<"ALL" | "LONG" | "SHORT">("ALL")
   const [search, setSearch] = useState("")
   const [selectedSignal, setSelectedSignal] = useState<PerpSignal | null>(null)
@@ -208,10 +205,6 @@ export function PerpsPanel() {
           params.set("status", "open")
         }
 
-        if (exchangeFilter !== "ALL") {
-          params.set("exchange", exchangeFilter)
-        }
-
         if (biasFilter !== "ALL") {
           params.set("bias", biasFilter)
         }
@@ -245,7 +238,7 @@ export function PerpsPanel() {
         setRefreshing(false)
       }
     },
-    [statusFilter, exchangeFilter, biasFilter],
+    [statusFilter, biasFilter],
   )
 
   // Initial load and whenever filters change
@@ -333,17 +326,26 @@ export function PerpsPanel() {
     .filter((s) => s.outcome === "pending")
     .sort(
       (a, b) =>
-        b.confidence - a.confidence || (b.winProb ?? 0) - (a.winProb ?? 0) || b.scanTime.localeCompare(a.scanTime),
+        b.confidence - a.confidence ||
+        (b.winProb ?? 0) - (a.winProb ?? 0) ||
+        b.scanTime.localeCompare(a.scanTime),
     )
     .slice(0, 24)
-  const marks = new Map((markets ?? []).map((m) => [m.symbol.toUpperCase(), m.markPrice]))
+  const marks = new Map(
+    (markets ?? []).map((m) => [m.symbol.toUpperCase(), m.markPrice]),
+  )
 
   return (
     <div className="space-y-4">
       <section>
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">Live scanner calls</h2>
-          <a href="#perp-signals" className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]">
+          <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
+            Live scanner calls
+          </h2>
+          <a
+            href="#perp-signals"
+            className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]"
+          >
             All calls
             <ArrowIcon />
           </a>
@@ -351,7 +353,10 @@ export function PerpsPanel() {
         {loading && signals === null ? (
           <div className="flex gap-3 overflow-hidden">
             {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-[300px] w-[232px] shrink-0 rounded-[var(--rv-radius)]" />
+              <Skeleton
+                key={i}
+                className="h-[300px] w-[232px] shrink-0 rounded-[var(--rv-radius)]"
+              />
             ))}
           </div>
         ) : (
@@ -367,7 +372,7 @@ export function PerpsPanel() {
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rv-stroke)] pb-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className=" text-sm font-extrabold text-[var(--rv-ink)]">
+                <span className="text-sm font-extrabold text-[var(--rv-ink)]">
                   Statistical Engine Track Record
                 </span>
                 <span className="rounded-md border border-[var(--rv-blue)]/30 bg-[var(--rv-blue)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--rv-blue)]">
@@ -421,8 +426,7 @@ export function PerpsPanel() {
               <div
                 className="mt-1 text-lg font-extrabold"
                 style={{
-                  color:
-                    stats.winRate >= 60 ? "var(--rv-up)" : "var(--rv-ink)",
+                  color: stats.winRate >= 60 ? "var(--rv-up)" : "var(--rv-ink)",
                 }}
               >
                 {stats.winRate > 0 ? `${stats.winRate}%` : "—"}
@@ -483,9 +487,7 @@ export function PerpsPanel() {
               </div>
               <div className="mt-1 flex items-center justify-between font-mono text-[11px]">
                 <div>
-                  <span className="text-[var(--rv-ink-3)]">
-                    High (8-10):{" "}
-                  </span>
+                  <span className="text-[var(--rv-ink-3)]">High (8-10): </span>
                   <span className="font-bold text-[var(--rv-up)]">
                     {stats.confidenceBands.high.total > 0
                       ? `${stats.confidenceBands.high.winRate}%`
@@ -563,27 +565,6 @@ export function PerpsPanel() {
             </button>
           </div>
 
-          {/* Exchange Filter */}
-          <div className="flex items-center gap-1">
-            <span className="px-1 text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-              Venue:
-            </span>
-            {(["ALL", "BYBIT", "MEXC", "BINANCE"] as const).map((ex) => (
-              <button
-                key={ex}
-                type="button"
-                onClick={() => setExchangeFilter(ex)}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
-                  exchangeFilter === ex
-                    ? "border border-[var(--rv-blue)] bg-[var(--rv-blue)]/10 text-[var(--rv-blue)]"
-                    : "border border-[var(--rv-stroke)] text-[var(--rv-ink-3)] hover:text-white"
-                }`}
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
-
           {/* Direction Filter */}
           <div className="flex items-center gap-1">
             <span className="px-1 text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
@@ -654,8 +635,7 @@ export function PerpsPanel() {
                       aria-pressed={marketGroup === id}
                       className="px-2.5 py-1 text-[11px] font-bold"
                       style={{
-                        color:
-                          marketGroup === id ? "#fff" : "var(--rv-ink-3)",
+                        color: marketGroup === id ? "#fff" : "var(--rv-ink-3)",
                         background:
                           marketGroup === id ? "var(--rv-blue)" : "transparent",
                         boxShadow:
@@ -713,7 +693,10 @@ export function PerpsPanel() {
                       <span
                         className="font-mono text-xs font-bold"
                         style={{
-                          color: m.change24h >= 0 ? "var(--rv-up)" : "var(--rv-down)",
+                          color:
+                            m.change24h >= 0
+                              ? "var(--rv-up)"
+                              : "var(--rv-down)",
                         }}
                       >
                         {m.change24h >= 0 ? "+" : ""}
@@ -746,31 +729,42 @@ export function PerpsPanel() {
         })()}
 
       {/* Signals Content Grid */}
-      <div id="perp-signals" className="flex scroll-mt-28 items-end justify-between gap-2 pt-2">
+      <div
+        id="perp-signals"
+        className="flex scroll-mt-28 items-end justify-between gap-2 pt-2"
+      >
         <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
           Scanner calls
           {displayedSignals ? (
-            <span className="rv-num ml-2 text-[12px] font-semibold text-[var(--rv-ink-3)]">{displayedSignals.length}</span>
+            <span className="rv-num ml-2 text-[12px] font-semibold text-[var(--rv-ink-3)]">
+              {displayedSignals.length}
+            </span>
           ) : null}
         </h2>
-        <span className="text-[11.5px] text-[var(--rv-ink-3)]">From sakz-bot · tap a call to see the plan</span>
+        <span className="text-[11.5px] text-[var(--rv-ink-3)]">
+          From sakz-bot · tap a call to see the plan
+        </span>
       </div>
       {loading && signals === null ? (
         <PerpsSignalsSkeleton />
       ) : displayedSignals && displayedSignals.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
           {displayedSignals.map((signal) => (
-            <CallCard key={signal.id} signal={signal} onTrade={setSelectedSignal} />
+            <CallCard
+              key={signal.id}
+              signal={signal}
+              onTrade={setSelectedSignal}
+            />
           ))}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-12 text-center">
-          <div className=" text-sm font-bold text-[var(--rv-ink)]">
+          <div className="text-sm font-bold text-[var(--rv-ink)]">
             No perpetual signals found
           </div>
           <p className="mt-1 max-w-md text-xs text-[var(--rv-ink-3)]">
             {statusFilter === "open"
-              ? "There are currently no active open calls matching your filter criteria. Try toggling to 'Full History' or changing venue filters."
+              ? "There are currently no active open calls matching your filter criteria. Try toggling to 'Full History'."
               : "No historical perpetual signals found in database. Signals generated by sakz-bot will automatically mirror here after scan cycles."}
           </p>
         </div>
@@ -780,8 +774,11 @@ export function PerpsPanel() {
 
       {/* Regulatory / Safe Terminal Disclaimer */}
       <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-3 text-[11px] text-[var(--rv-ink-3)]">
-        <span className="font-bold text-[var(--rv-ink-2)]">Paper trading only:</span> {DISCLAIMER} Riven mirrors
-        sakz-bot&apos;s scanner calls read-only. It never holds funds or places orders for you.
+        <span className="font-bold text-[var(--rv-ink-2)]">
+          Paper trading only:
+        </span>{" "}
+        {DISCLAIMER} Riven mirrors sakz-bot&apos;s scanner calls read-only. It
+        never holds funds or places orders for you.
       </div>
 
       {/* Signal Detail & Order Modal */}

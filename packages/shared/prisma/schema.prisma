@@ -589,3 +589,17 @@ model TelegramSent {
 
   @@map("telegram_sent")
 }
+
+/// Ask Riven daily usage, one row per (counter kind, subject, UTC day).
+/// kind: "wallet" (verified wallet), "anon" (anonymous calls from an IP hash),
+/// "ip" (every call from an IP hash). Subjects are never raw IPs.
+model AskUsage {
+  kind  String
+  key   String
+  day   String // UTC date, YYYY-MM-DD
+  count Int    @default(0)
+
+  @@id([kind, key, day])
+  @@index([day])
+  @@map("ask_usage")
+}

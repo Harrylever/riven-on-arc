@@ -136,6 +136,8 @@ export function useArcWallet() {
 
   const disconnect = useCallback(() => {
     setAddress(null)
+    // drop the Ask Riven wallet session too
+    void fetch("/api/arc/session", { method: "DELETE" }).catch(() => {})
     try {
       localStorage.removeItem(KEY)
     } catch {}
