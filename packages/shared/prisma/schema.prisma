@@ -66,6 +66,7 @@ model Token {
   burns           Burn[]
   pools           Pool[]
   scoreRuns       ScoreRun[]
+  scoreLatest    TokenScoreLatest?
   watchlists      Watchlist[]
   alerts          Alert[]
   executionLogs   ExecutionLog[]
@@ -602,4 +603,28 @@ model AskUsage {
   @@id([kind, key, day])
   @@index([day])
   @@map("ask_usage")
+}
+
+/// The latest verdict per token, kept up to date by the scorer (score, band, flags from the score run)
+/// and the market sync (wash trading, impersonation). Lists such as Safest and Flagged read this
+/// instead of loading thousands of score runs. A row exists for scored tokens and for tokens flagged
+/// from market data alone; no row means "not scored and not flagged".
+model TokenScoreLatest {
+  tokenId     String    @id @map("token_id")
+  token       Token     @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  /// 1-10, normalised across methodologies; null when only a market flag exists.
+  score       Float?
+  /// "healthy" | "caution" | "risk" | "unscored"
+  band        String    @default("unscored")
+  /// Trusted flag codes from the latest score run that mark a token flagged (WASH, SERIAL, ...).
+  scoreCodes  String[]  @default([]) @map("score_codes")
+  /// Flags derived from market data and the token's name (WASH, IMPERSONATION).
+  marketCodes String[]  @default([]) @map("market_codes")
+  methodology String?
+  scoredAt    DateTime? @map("scored_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([band, score])
+  @@index([scoredAt])
+  @@map("token_score_latest")
 }
