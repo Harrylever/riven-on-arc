@@ -91,14 +91,14 @@ export function SourceTabs({
             aria-controls={`perps-panel-${t.id}`}
             tabIndex={on ? 0 : -1}
             onClick={() => onChange(t.id)}
-            className="flex min-w-0 flex-1 flex-col items-start gap-0.5 px-4 py-2.5 text-left transition-colors sm:flex-row sm:items-center sm:gap-3"
+            className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 px-3 py-3 text-center transition-colors sm:justify-start sm:gap-3 sm:px-4 sm:py-2.5 sm:text-left"
             style={{
               background: on ? "rgba(124, 196, 232, 0.14)" : "transparent",
               boxShadow: on ? "inset 0 -2px 0 var(--rv-blue)" : "none",
             }}
           >
             <span
-              className="inline-flex items-center gap-1.5 text-[14px] font-bold"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-bold"
               style={{ color: on ? "#fff" : "var(--rv-ink-2)" }}
             >
               {t.id === "scanner" && <ScannerGlyph size={15} className="text-[var(--rv-blue)]" />}
@@ -109,7 +109,7 @@ export function SourceTabs({
                 </span>
               )}
             </span>
-            <span className="truncate text-[11px] text-[var(--rv-ink-3)]">{t.sub}</span>
+            <span className="hidden truncate text-[11px] text-[var(--rv-ink-3)] sm:inline">{t.sub}</span>
           </button>
         )
       })}
@@ -122,27 +122,29 @@ export function SourceStrip({ kind, children }: { kind: SourceTab; children?: Re
   const scanner = kind === "scanner"
   return (
     <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[var(--rv-radius)] border px-3 py-2 text-[12px] text-[var(--rv-ink-2)]"
+      className="rounded-[var(--rv-radius)] border px-3 py-2.5 text-[12px] text-[var(--rv-ink-2)]"
       style={{
         borderColor: scanner ? "rgba(124, 196, 232, 0.35)" : "var(--rv-stroke)",
         background: scanner ? "rgba(124, 196, 232, 0.06)" : "var(--rv-sunken)",
       }}
     >
-      <span className="inline-flex items-center gap-1.5 font-bold text-[var(--rv-ink)]">
-        {scanner ? (
-          <>
-            <ScannerGlyph className="text-[var(--rv-blue)]" /> Riven Scanner
-          </>
-        ) : (
-          "Live markets"
-        )}
-      </span>
-      <span className="min-w-0 flex-1 text-[var(--rv-ink-3)]">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-[var(--rv-ink)]">
+          {scanner ? (
+            <>
+              <ScannerGlyph className="text-[var(--rv-blue)]" /> Riven Scanner
+            </>
+          ) : (
+            "Live markets"
+          )}
+        </span>
+        {children && <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">{children}</span>}
+      </div>
+      <p className="mt-1 leading-snug text-[var(--rv-ink-3)]">
         {scanner
           ? "Setups found on Bybit, MEXC and Binance, powered by sakz-bot. Entry, stop and targets are priced on that exchange, so they can differ from live market prices."
           : "Live price, 24h change and volume for every perp market. A scanner pill marks a coin with an open Riven Scanner call."}
-      </span>
-      {children && <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">{children}</span>}
+      </p>
     </div>
   )
 }

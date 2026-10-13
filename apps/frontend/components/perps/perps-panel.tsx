@@ -56,6 +56,8 @@ export interface PerpSignal {
 
 /** Below this many confirmed calls the rates are anecdotes, not a track record (same bar as /accuracy). */
 const MIN_SAMPLE = 30
+/** Calls shown before "Show more": 35 cards made the page 16,000px tall on a phone. */
+const CALLS_PAGE = 8
 
 export interface PerpStats {
   totalResolved: number
@@ -148,10 +150,13 @@ export function PerpsPanel() {
   // follows the Status / Bias filters, and a coin's badge must not disappear because you
   // are looking at shorts or at resolved history.
   const [openCalls, setOpenCalls] = useState<PerpSignal[] | null>(null)
+  // True while the last badge request failed: say so instead of showing coins with no calls.
+  const [openCallsFailed, setOpenCallsFailed] = useState(false)
   // Which source is on screen. null = not chosen yet: open on Riven Scanner when it has open
   // calls, otherwise on Markets.
   const [tab, setTab] = useState<SourceTab | null>(null)
   const [marketSearch, setMarketSearch] = useState("")
+  const [callsShown, setCallsShown] = useState(CALLS_PAGE)
   const [marketsUpdatedAt, setMarketsUpdatedAt] = useState<number | null>(null)
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null)
   const [showAllMarkets, setShowAllMarkets] = useState(false)
@@ -225,12 +230,19 @@ export function PerpsPanel() {
     let cancelled = false
     const load = async () => {
       try {
-        const res = await fetch("/api/perp-signals?status=open&take=200&stats=0", { cache: "no-store" })
-        if (!res.ok) return
+        const res = await fetch("/api/perp-signals?status=open&take=200&stats=0", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(15_000),
+        })
+        if (!res.ok) throw new Error(`open calls ${res.status}`)
         const json = await res.json()
-        if (!cancelled) setOpenCalls(json.signals ?? [])
+        if (!cancelled) {
+          setOpenCalls(json.signals ?? [])
+          setOpenCallsFailed(false)
+        }
       } catch (err) {
         console.warn("Failed to load open calls:", err)
+        if (!cancelled) setOpenCallsFailed(true)
       }
     }
     void load()
@@ -457,7 +469,7 @@ export function PerpsPanel() {
                     <span className="text-sm font-extrabold text-[var(--rv-ink)]">
                       Riven Scanner track record
                     </span>
-                    <span className="rounded-md border border-[var(--rv-blue)]/30 bg-[var(--rv-blue)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--rv-blue)]">
+                    <span className="rounded-md border border-[var(--rv-blue)]/30 bg-[var(--rv-blue)]/10 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-[var(--rv-blue)]">
                       Scanner results · unaudited
                     </span>
                   </div>
@@ -466,7 +478,7 @@ export function PerpsPanel() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5 text-xs text-[var(--rv-ink-3)]">
+                  <div className="hidden items-center gap-1.5 text-xs text-[var(--rv-ink-3)] sm:flex">
                     <span className="text-[10px] font-bold tracking-wider uppercase">
                       Auto-Refresh:
                     </span>
@@ -627,13 +639,13 @@ export function PerpsPanel() {
           {/* Filter Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-3">
             {/* Left: Status & Exchanges */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
               {/* Status Switcher */}
-              <div className="flex border border-[var(--rv-stroke)]">
+              <div className="flex w-full border border-[var(--rv-stroke)] sm:w-auto">
                 <button
                   type="button"
                   onClick={() => setStatusFilter("all")}
-                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                  className={`flex-1 px-3 py-2.5 text-xs font-bold transition-colors sm:flex-none sm:py-1.5 ${
                     statusFilter === "all"
                       ? "bg-[var(--rv-blue)] text-black"
                       : "text-[var(--rv-ink-2)] hover:text-white"
@@ -644,7 +656,7 @@ export function PerpsPanel() {
                 <button
                   type="button"
                   onClick={() => setStatusFilter("open")}
-                  className={`border-l border-[var(--rv-stroke)] px-3 py-1.5 text-xs font-bold transition-colors ${
+                  className={`border-l border-[var(--rv-stroke)] flex-1 px-3 py-2.5 text-xs font-bold transition-colors sm:flex-none sm:py-1.5 ${
                     statusFilter === "open"
                       ? "bg-[var(--rv-blue)] text-black"
                       : "text-[var(--rv-ink-2)] hover:text-white"
@@ -655,7 +667,7 @@ export function PerpsPanel() {
                 <button
                   type="button"
                   onClick={() => setStatusFilter("resolved")}
-                  className={`border-l border-[var(--rv-stroke)] px-3 py-1.5 text-xs font-bold transition-colors ${
+                  className={`border-l border-[var(--rv-stroke)] flex-1 px-3 py-2.5 text-xs font-bold transition-colors sm:flex-none sm:py-1.5 ${
                     statusFilter === "resolved"
                       ? "bg-[var(--rv-blue)] text-black"
                       : "text-[var(--rv-ink-2)] hover:text-white"
@@ -675,7 +687,7 @@ export function PerpsPanel() {
                     key={b}
                     type="button"
                     onClick={() => setBiasFilter(b)}
-                    className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
+                    className={`rounded-md px-3 py-2 text-[12px] font-bold transition-colors sm:px-2 sm:py-1 sm:text-[11px] ${
                       biasFilter === b
                         ? b === "LONG"
                           ? "border border-[var(--rv-up)] bg-[var(--rv-up)]/10 text-[var(--rv-up)]"
@@ -692,13 +704,13 @@ export function PerpsPanel() {
             </div>
 
             {/* Right: Search box */}
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <input
                 type="text"
                 placeholder="Filter ticker (e.g. $SOL, BTC, ETH)…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-52 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-1 text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
+                className="w-full rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-2.5 text-xs sm:w-52 sm:py-1 text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
               />
             </div>
           </div>
@@ -716,15 +728,16 @@ export function PerpsPanel() {
                 </span>
               ) : null}
             </h2>
-            <span className="text-[11.5px] text-[var(--rv-ink-3)]">
+            <span className="hidden text-[11.5px] text-[var(--rv-ink-3)] sm:inline">
               Riven Scanner · tap a call to see the plan
             </span>
           </div>
           {loading && signals === null ? (
             <PerpsSignalsSkeleton />
           ) : displayedSignals && displayedSignals.length > 0 ? (
+            <>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
-              {displayedSignals.map((signal) => (
+              {displayedSignals.slice(0, callsShown).map((signal) => (
                 <CallCard
                   key={signal.id}
                   signal={signal}
@@ -733,6 +746,16 @@ export function PerpsPanel() {
                 />
               ))}
             </div>
+            {displayedSignals.length > callsShown && (
+              <button
+                type="button"
+                onClick={() => setCallsShown((n) => n + CALLS_PAGE)}
+                className="rv-btn-ghost h-11 w-full text-[13px]"
+              >
+                Show {Math.min(CALLS_PAGE, displayedSignals.length - callsShown)} more ({displayedSignals.length - callsShown} not shown)
+              </button>
+            )}
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-12 text-center">
               <div className="text-sm font-bold text-[var(--rv-ink)]">
@@ -740,7 +763,7 @@ export function PerpsPanel() {
               </div>
               <p className="mt-1 max-w-md text-xs text-[var(--rv-ink-3)]">
                 {statusFilter === "open"
-                  ? "There are currently no active open calls matching your filter criteria. Try toggling to 'Full History'."
+                  ? "There are currently no active open calls matching your filter criteria. Try All Signals."
                   : "No historical perpetual signals found in database. Calls from Riven Scanner appear here after each scan."}
               </p>
             </div>
@@ -759,6 +782,11 @@ export function PerpsPanel() {
           <SourceStrip kind="markets">
             <AgeLabel at={marketsUpdatedAt} prefix="updated" />
           </SourceStrip>
+          {openCallsFailed && (
+            <p className="rounded-md border border-[var(--rv-caution)]/30 bg-[var(--rv-caution)]/10 px-3 py-2 text-[12px] text-[var(--rv-ink-2)]">
+              Riven Scanner calls couldn&apos;t be loaded just now, so scanner pills may be missing. Retrying automatically.
+            </p>
+          )}
           {/* All perp markets */}
           {displayedMarkets &&
             displayedMarkets.length > 0 &&
@@ -774,7 +802,7 @@ export function PerpsPanel() {
               const list = groups[marketGroup]
               return (
                 <div className="border border-[var(--rv-stroke)] bg-[var(--rv-card)]">
-                  <div className="flex items-center justify-between border-b border-[var(--rv-stroke)] px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rv-stroke)] px-3 py-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {(
                         [
@@ -789,7 +817,7 @@ export function PerpsPanel() {
                           type="button"
                           onClick={() => setMarketGroup(id)}
                           aria-pressed={marketGroup === id}
-                          className="px-2.5 py-1 text-[11px] font-bold"
+                          className="px-3 py-2 text-[12px] font-bold sm:px-2.5 sm:py-1 sm:text-[11px]"
                           style={{
                             color: marketGroup === id ? "#fff" : "var(--rv-ink-3)",
                             background:
@@ -804,7 +832,7 @@ export function PerpsPanel() {
                         </button>
                       ))}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full items-center gap-3 sm:w-auto">
                       <span className="hidden text-[10px] text-[var(--rv-ink-3)] lg:inline">
                         Scanner calls first, then by volume · click to open
                       </span>
@@ -814,7 +842,7 @@ export function PerpsPanel() {
                         aria-label="Filter live markets"
                         value={marketSearch}
                         onChange={(e) => setMarketSearch(e.target.value)}
-                        className="w-44 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-1 text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)] sm:w-52"
+                        className="w-full rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-2.5 text-xs sm:py-1 text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)] sm:w-52"
                       />
                     </div>
                   </div>
@@ -864,12 +892,12 @@ export function PerpsPanel() {
                     })}
                   </div>
                   {!showAllMarkets &&
-                    !search &&
+                    !marketSearch &&
                     marketGroup === "all" &&
                     list.length > 24 && (
                       <button
                         onClick={() => setShowAllMarkets(true)}
-                        className="w-full border-t border-[var(--rv-stroke)] py-2 text-[11px] font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+                        className="w-full border-t border-[var(--rv-stroke)] py-3 text-[12px] font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
                       >
                         Show all {list.length} markets
                       </button>

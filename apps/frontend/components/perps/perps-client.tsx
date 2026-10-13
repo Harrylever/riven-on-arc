@@ -76,7 +76,7 @@ export function PerpsClient() {
           <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 py-1 text-[12px] text-[var(--rv-ink-2)]">
             Paper trading
           </p>
-          <h1 className="text-[28px] leading-tight font-bold tracking-tight text-[var(--rv-ink)] sm:text-[34px]">
+          <h1 className="text-[26px] leading-tight font-bold tracking-tight text-[var(--rv-ink)] sm:text-[34px]">
             Practise perps with Arc USDC
           </h1>
           <p className="mt-1.5 max-w-xl text-[13.5px] leading-relaxed text-[var(--rv-ink-2)]">
@@ -84,7 +84,7 @@ export function PerpsClient() {
             Bybit, MEXC and Binance. Orders are paper only (0.045% taker fee), and no wallet is needed.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href="#perp-signals" className="rv-btn h-10 px-5">
+            <a href="#perp-signals" className="rv-btn h-11 px-5 sm:h-10">
               See open calls
             </a>
           </div>

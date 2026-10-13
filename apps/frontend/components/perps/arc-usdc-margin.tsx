@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useArcWallet } from "@/hooks/use-arc-wallet"
 import { usePortfolio } from "@/hooks/use-portfolio"
 
@@ -42,17 +42,26 @@ function Balance({ label, value }: { label: string; value: number }) {
 export function ArcUsdcMargin() {
   const wallet = useArcWallet()
   const { cashBalance, usdtBalance, deposit, withdraw, resetPortfolio } = usePortfolio()
-  const [bal, setBal] = useState<number | null>(null)
+  // The balance is stored with the address it was read for, so switching or disconnecting
+  // wallets never shows a stale number (and no state is set synchronously in the effect).
+  const [read, setRead] = useState<{ address: string; value: number | null } | null>(null)
+  const bal = wallet.address && read?.address === wallet.address ? read.value : null
   const [notice, setNotice] = useState<string | null>(null)
   const [confirmingReset, setConfirmingReset] = useState(false)
+  // On phones the card starts as a one-line summary so the markets and calls stay near the top.
+  const [expanded, setExpanded] = useState(false)
 
-  const load = useCallback(async () => {
-    if (!wallet.address) return setBal(null)
-    setBal(await arcUsdc(wallet.address))
-  }, [wallet.address])
   useEffect(() => {
-    void load()
-  }, [load])
+    const address = wallet.address
+    if (!address) return
+    let cancelled = false
+    void arcUsdc(address).then((value) => {
+      if (!cancelled) setRead({ address, value })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [wallet.address])
 
   const matchWallet = () => {
     // A wallet with no USDC must never zero the practice balance.
@@ -90,10 +99,25 @@ export function ArcUsdcMargin() {
           <h2 id="practice-margin-title" className="text-[15px] font-semibold text-[var(--rv-ink)]">
             Your practice margin
           </h2>
-          <p className="mt-0.5 text-[12.5px] leading-snug text-[var(--rv-ink-2)]">{blurb}</p>
+          <p className={`mt-0.5 text-[12.5px] leading-snug text-[var(--rv-ink-2)] ${expanded ? "" : "hidden sm:block"}`}>
+            {blurb}
+          </p>
+          <p className="rv-num mt-0.5 text-[12.5px] text-[var(--rv-ink-2)] sm:hidden">
+            {usd(cashBalance)} USDC · {usd(usdtBalance)} USDT
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-controls="practice-margin-body"
+          className="rv-btn-ghost h-11 shrink-0 px-3 text-[12px] sm:hidden"
+        >
+          {expanded ? "Hide" : "Manage"}
+        </button>
       </div>
 
+      <div id="practice-margin-body" className={expanded ? "" : "hidden sm:block"}>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Balance label="USDC" value={cashBalance} />
         <Balance label="USDT" value={usdtBalance} />
@@ -151,7 +175,9 @@ export function ArcUsdcMargin() {
         </div>
       )}
 
-      <p className="mt-2 min-h-[1em] text-[12px] text-[var(--rv-ink-3)]" aria-live="polite">
+      </div>
+
+      <p className="mt-2 text-[12px] text-[var(--rv-ink-3)] empty:hidden" aria-live="polite">
         {notice}
       </p>
     </section>
