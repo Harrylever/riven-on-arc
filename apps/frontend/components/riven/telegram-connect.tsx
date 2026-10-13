@@ -38,7 +38,7 @@ function TelegramIcon() {
 /**
  * "Connect Telegram": opens Riven's bot with a one-time code; once the user
  * presses Start, their starred tokens (rug alerts) and tracked perp pairs
- * (sakz-bot calls) are pinged to that chat. Hidden when no bot is configured.
+ * (Riven Scanner calls) are pinged to that chat. Hidden when no bot is configured.
  */
 export function TelegramConnect({ compact = false }: { compact?: boolean }) {
   const { mints } = useWatchlist()
@@ -153,7 +153,7 @@ export function TelegramConnect({ compact = false }: { compact?: boolean }) {
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-[var(--rv-ink)]">Telegram alerts</p>
           <p className="text-[12px] text-[var(--rv-ink-2)]">
-            Get pinged on Telegram when a starred token gets rugged, or sakz-bot calls a pair you track — even with Riven closed.
+            Get pinged on Telegram when a starred token gets rugged, or Riven Scanner calls a pair you track — even with Riven closed.
           </p>
         </div>
       )}

@@ -16,13 +16,14 @@ import { TelegramConnect } from "@/components/riven/telegram-connect"
 import type { PerpSignal } from "@/components/perps/perps-panel"
 import { signalCoinKey } from "@/lib/perp-symbols"
 import { ago, priceUsd } from "@/lib/format"
+import { venueName } from "@/lib/perp-symbols"
 import { DISCLAIMER } from "@/lib/site"
 import { ArrowIcon } from "@/components/riven/arrow"
 
 const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 
 /**
- * One perp pair: chart + paper trading, alerts and tracking, sakz-bot's call,
+ * One perp pair: chart + paper trading, alerts and tracking, Riven Scanner's call,
  * the news moving it — and Riven's read tying them together. Tap Riven (or
  * Scan) and he reads it out; double-tap him to ask a question out loud.
  */
@@ -92,7 +93,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
           tone: market.fundingBias === "NEUTRAL" ? "blue" : "amber",
         },
         { title: "News 24h", value: String(insight?.news.filter((n) => Date.now() - +new Date(n.publishedAt) < 86_400_000).length ?? "—"), tone: "blue" },
-        { title: "sakz call", value: open ? `${open.bias} ${open.confidence}/10` : "none", tone: open ? (open.bias === "LONG" ? "green" : "red") : "blue" },
+        { title: "Scanner call", value: open ? `${open.bias} ${open.confidence}/10` : "none", tone: open ? (open.bias === "LONG" ? "green" : "red") : "blue" },
       ]
     : []
   useRivenPage({
@@ -176,7 +177,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
               ))}
             </ul>
             <p className="mt-2 text-[11.5px] text-[var(--rv-ink-3)]">
-              From Hyperliquid, sakz-bot and crypto news. Riven explains; you decide. {DISCLAIMER}
+              Prices from Hyperliquid, calls from Riven Scanner, plus crypto news. Riven explains; you decide. {DISCLAIMER}
             </p>
           </>
         ) : (
@@ -200,7 +201,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
         <div className="rv-card h-[420px] animate-pulse" />
       )}
 
-      {/* sakz-bot's call on this pair */}
+      {/* Riven Scanner's call on this pair */}
       {open && (
         <section className="rv-card flex flex-wrap items-center gap-3 p-4">
           <span
@@ -210,9 +211,10 @@ export function PerpPairClient({ coin }: { coin: string }) {
             {open.bias}
           </span>
           <div className="rv-num min-w-0 flex-1 text-[13px] text-[var(--rv-ink-2)]">
-            <b className="text-[var(--rv-ink)]">sakz-bot call</b> · conviction {open.confidence}/10 · entry {priceUsd(open.entryLow)}–
+            <b className="text-[var(--rv-ink)]">Riven Scanner call</b> from {venueName(open.exchange)} · conviction {open.confidence}/10 · entry {priceUsd(open.entryLow)}–
             {priceUsd(open.entryHigh)} · stop {priceUsd(open.stopLoss)} · targets {priceUsd(open.t1)} / {priceUsd(open.t2)} /{" "}
-            {priceUsd(open.t3)} · {ago(open.scanTime)}
+            {priceUsd(open.t3)} · {ago(open.scanTime)} ago. Levels are {venueName(open.exchange)} prices; the chart and paper
+            orders use Hyperliquid&apos;s.
           </div>
           <button type="button" onClick={() => setOrder(open)} className="rv-btn h-9 px-4 text-[13px]">
             Paper trade this call

@@ -21,7 +21,7 @@ function notify(title: string, body: string, tag: string) {
 /**
  * Pair tracking + alerts for the perps terminal. Price alerts are checked
  * against the live Hyperliquid mark price every time markets refresh; new
- * sakz-bot calls on a tracked pair notify once.
+ * Riven Scanner calls on a tracked pair notify once.
  */
 export function PerpWatch({
   market,
@@ -71,7 +71,7 @@ export function PerpWatch({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markets, alerts, removeAlert])
 
-  // New sakz-bot calls on tracked pairs. The first load only records what exists.
+  // New Riven Scanner calls on tracked pairs. The first load only records what exists.
   useEffect(() => {
     if (!signals) return
     // The first batch only records what exists — even if nothing is unseen,

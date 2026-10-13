@@ -3,9 +3,10 @@
 import Link from "next/link"
 import type { PerpSignal } from "@/components/perps/perps-panel"
 import { CoinIcon } from "@/components/perps/coin-icon"
-import { ago, priceUsd } from "@/lib/format"
+import { priceUsd } from "@/lib/format"
 import { signalCoinKey } from "@/lib/perp-symbols"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { PriceGap } from "@/components/perps/source-ui"
 
 const OUTCOME: Record<string, { label: string; color: string }> = {
   pending: { label: "Live", color: "var(--rv-blue)" },
@@ -40,7 +41,16 @@ function Level({ label, value, sub, color }: { label: string; value: string; sub
  * left; on the right the side, calibrated conviction and the plan in order —
  * entry zone, stop, then the three targets.
  */
-export function CallCard({ signal: s, onTrade }: { signal: PerpSignal; onTrade: (s: PerpSignal) => void }) {
+export function CallCard({
+  signal: s,
+  mark,
+  onTrade,
+}: {
+  signal: PerpSignal
+  /** Hyperliquid's live price: undefined while loading, null if Hyperliquid doesn't list the coin. */
+  mark?: number | null
+  onTrade: (s: PerpSignal) => void
+}) {
   const coin = signalCoinKey(s.symbol)
   const long = s.bias === "LONG"
   const side = long ? "var(--rv-up)" : "var(--rv-down)"
@@ -69,10 +79,9 @@ export function CallCard({ signal: s, onTrade }: { signal: PerpSignal; onTrade: 
               {coin}
               <span className="text-[12px] font-semibold text-[var(--rv-ink-3)]">/USDT</span>
             </Link>
-            <p className="text-[11px] text-[var(--rv-ink-3)]">
-              {s.exchange} · {ago(s.scanTime)} ago
-              {s.entryConfirmed === 0 && s.outcome !== "pending" ? " · entry never filled" : ""}
-            </p>
+            {s.entryConfirmed === 0 && s.outcome !== "pending" && (
+              <p className="text-[11px] text-[var(--rv-ink-3)]">Entry never filled</p>
+            )}
           </div>
           <span
             className="ml-auto shrink-0 rounded-full border px-2 py-0.5 text-[10.5px] font-bold"
@@ -120,6 +129,14 @@ export function CallCard({ signal: s, onTrade }: { signal: PerpSignal; onTrade: 
           <Level label="Target 3" value={priceUsd(s.t3)} sub={signed(pctFrom(s.entryPrice, s.t3))} color="var(--rv-up)" />
         </div>
 
+        <PriceGap
+          exchange={s.exchange}
+          entry={s.entryPrice}
+          mark={mark}
+          scanTime={s.scanTime}
+          showNow={s.outcome === "pending"}
+        />
+
         <div className="flex items-center gap-2 pt-0.5">
           <Link
             href={`/perps/${coin}`}
@@ -129,8 +146,18 @@ export function CallCard({ signal: s, onTrade }: { signal: PerpSignal; onTrade: 
             <ArrowIcon />
           </Link>
           {s.outcome === "pending" && (
-            <button type="button" onClick={() => onTrade(s)} className="rv-btn ml-auto h-8 px-3 text-[12px]">
-              Paper trade
+            <button
+              type="button"
+              onClick={() => onTrade(s)}
+              disabled={mark === null}
+              title={
+                mark === null
+                  ? "Hyperliquid doesn't list this coin"
+                  : "Levels come from the scanner's exchange; the paper order fills at Hyperliquid's price"
+              }
+              className="rv-btn ml-auto h-8 px-3 text-[12px] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Paper trade on Hyperliquid
             </button>
           )}
         </div>

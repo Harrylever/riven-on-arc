@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ coin: str
   const c = coin.toUpperCase().replace(/[^A-Z0-9]/g, "")
   return {
     title: `${c}-PERP · chart, signals & news`,
-    description: `${c} perpetual on Hyperliquid: live chart, paper trading, sakz-bot calls, alerts and the news moving it — read by Riven.`,
+    description: `${c} perpetual on Hyperliquid: live chart, paper trading, Riven Scanner calls, alerts and the news moving it — read by Riven.`,
   }
 }
 

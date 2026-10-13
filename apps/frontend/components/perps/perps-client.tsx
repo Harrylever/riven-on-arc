@@ -74,15 +74,16 @@ export function PerpsClient() {
         />
         <div className="relative">
           <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 py-1 text-[12px] text-[var(--rv-ink-2)]">
-            Paper trading · Hyperliquid prices
+            Paper trading on Hyperliquid
           </p>
           <h1 className="text-[28px] leading-tight font-bold tracking-tight text-[var(--rv-ink)] sm:text-[34px]">
             Practise perps with Arc USDC
           </h1>
           <p className="mt-1.5 max-w-xl text-[13.5px] leading-relaxed text-[var(--rv-ink-2)]">
-            Your Arc USDC is the margin: connect an Arc wallet and practise on 100+ live Hyperliquid markets with real
-            prices, funding and sakz-bot&apos;s scanner calls (entry, stop, three targets, a self-calibrating track record).
-            Orders run on a paper account at Hyperliquid&apos;s 0.045% taker fee — your USDC never leaves your wallet.
+            Your Arc USDC is the margin: connect an Arc wallet and practise on 100+ live Hyperliquid markets, with
+            Hyperliquid&apos;s real prices and funding. Separately, Riven Scanner flags setups it finds on Bybit, MEXC and
+            Binance (entry, stop, three targets, a self-calibrating track record). Orders run on a paper account at
+            Hyperliquid&apos;s 0.045% taker fee — your USDC never leaves your wallet.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <a href="#perp-signals" className="rv-btn h-10 px-5">

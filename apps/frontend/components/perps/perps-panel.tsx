@@ -13,6 +13,13 @@ import { SignalOrderModal } from "@/components/perps/signal-order-modal"
 import { usePortfolio } from "@/hooks/use-portfolio"
 import { SignalCarousel } from "@/components/perps/signal-carousel"
 import { CallCard } from "@/components/perps/call-card"
+import {
+  AgeLabel,
+  ScannerPill,
+  SourceStrip,
+  SourceTabs,
+  type SourceTab,
+} from "@/components/perps/source-ui"
 import { CoinIcon } from "@/components/perps/coin-icon"
 import { NewsFeed } from "@/components/perps/news-feed"
 import Link from "next/link"
@@ -137,6 +144,15 @@ export function PerpsPanel() {
   const [search, setSearch] = useState("")
   const [selectedSignal, setSelectedSignal] = useState<PerpSignal | null>(null)
   const [markets, setMarkets] = useState<PerpMarket[] | null>(null)
+  // Open calls for the market table's badges. Separate from `signals` on purpose: that list
+  // follows the Status / Bias filters, and a coin's badge must not disappear because you
+  // are looking at shorts or at resolved history.
+  const [openCalls, setOpenCalls] = useState<PerpSignal[] | null>(null)
+  // Which source is on screen. null = not chosen yet: open on Riven Scanner when it has open
+  // calls, otherwise on Markets.
+  const [tab, setTab] = useState<SourceTab | null>(null)
+  const [marketSearch, setMarketSearch] = useState("")
+  const [marketsUpdatedAt, setMarketsUpdatedAt] = useState<number | null>(null)
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null)
   const [showAllMarkets, setShowAllMarkets] = useState(false)
   const [marketGroup, setMarketGroup] = useState<
@@ -174,7 +190,10 @@ export function PerpsPanel() {
         const res = await fetch("/api/perps/markets", { cache: "no-store" })
         if (!res.ok) return
         const json = await res.json()
-        if (!cancelled) setMarkets(json.markets ?? [])
+        if (!cancelled) {
+          setMarkets(json.markets ?? [])
+          setMarketsUpdatedAt(Date.now())
+        }
       } catch (err) {
         console.warn("Failed to load perp markets:", err)
       }
@@ -183,6 +202,42 @@ export function PerpsPanel() {
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void load()
     }, 10_000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [])
+
+  // "See open calls" and #perp-signals links must land on the Scanner tab, wherever you were.
+  useEffect(() => {
+    const go = () => {
+      if (window.location.hash !== "#perp-signals") return
+      setTab("scanner")
+      setTimeout(() => document.getElementById("perp-signals")?.scrollIntoView({ behavior: "smooth" }), 0)
+    }
+    go()
+    window.addEventListener("hashchange", go)
+    return () => window.removeEventListener("hashchange", go)
+  }, [])
+
+  useEffect(() => {
+    if (!PERPS_ENABLED) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch("/api/perp-signals?status=open&take=200&stats=0", { cache: "no-store" })
+        if (!res.ok) return
+        const json = await res.json()
+        if (!cancelled) setOpenCalls(json.signals ?? [])
+      } catch (err) {
+        console.warn("Failed to load open calls:", err)
+      }
+    }
+    void load()
+    // calls arrive about every 10 minutes; 30s keeps the badges current without hammering the database
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void load()
+    }, 30_000)
     return () => {
       cancelled = true
       clearInterval(timer)
@@ -284,18 +339,18 @@ export function PerpsPanel() {
   // Best open signal per base coin, so market rows can show the scanner's view
   const signalByCoin = useMemo(() => {
     const map = new Map<string, PerpSignal>()
-    for (const sig of signals ?? []) {
+    for (const sig of openCalls ?? []) {
       if (sig.outcome !== "pending") continue
       const base = signalCoinKey(sig.symbol)
       const prev = map.get(base)
       if (!prev || sig.confidence > prev.confidence) map.set(base, sig)
     }
     return map
-  }, [signals])
+  }, [openCalls])
 
   const displayedMarkets = useMemo(() => {
     if (!markets) return null
-    const q = search
+    const q = marketSearch
       .trim()
       .toUpperCase()
       .replace(/^\$/, "")
@@ -309,7 +364,7 @@ export function PerpsPanel() {
       const sb = signalByCoin.get(b.symbol.toUpperCase())?.confidence ?? -1
       return sb - sa || b.volume24h - a.volume24h
     })
-  }, [markets, search, signalByCoin])
+  }, [markets, marketSearch, signalByCoin])
 
   // Selected market tracks the live list; defaults to the top-ranked coin
   const selectedMarket =
@@ -337,456 +392,510 @@ export function PerpsPanel() {
     (markets ?? []).map((m) => [m.symbol.toUpperCase(), m.markPrice]),
   )
 
+  const scannerCount = openCalls?.length ?? null
+  const active: SourceTab =
+    tab ?? (openCalls !== null && openCalls.length === 0 ? "markets" : "scanner")
+  const lastScanAt =
+    openCalls && openCalls.length > 0
+      ? Math.max(...openCalls.map((c) => Date.parse(c.scanTime)))
+      : null
+
   return (
     <div className="space-y-4">
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
-            Live scanner calls
-          </h2>
-          <a
-            href="#perp-signals"
-            className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]"
-          >
-            All calls
-            <ArrowIcon />
-          </a>
-        </div>
-        {loading && signals === null ? (
-          <div className="flex gap-3 overflow-hidden">
-            {[0, 1, 2, 3].map((i) => (
-              <Skeleton
-                key={i}
-                className="h-[300px] w-[232px] shrink-0 rounded-[var(--rv-radius)]"
-              />
-            ))}
-          </div>
-        ) : (
-          <SignalCarousel signals={liveCalls} marks={marks} />
-        )}
-      </section>
+      <SourceTabs
+        value={active}
+        onChange={setTab}
+        scannerCount={scannerCount}
+        marketCount={markets?.length ?? null}
+      />
 
-      <TelegramConnect />
-
-      {/* Track Record Stats Header */}
-      {stats && (
-        <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rv-stroke)] pb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-extrabold text-[var(--rv-ink)]">
-                  Statistical Engine Track Record
-                </span>
-                <span className="rounded-md border border-[var(--rv-blue)]/30 bg-[var(--rv-blue)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--rv-blue)]">
-                  Scanner results · unaudited
-                </span>
+      {active === "scanner" && (
+        <div
+          role="tabpanel"
+          id="perps-panel-scanner"
+          aria-labelledby="perps-tab-scanner"
+          className="space-y-4"
+        >
+          <SourceStrip kind="scanner">
+            <AgeLabel at={lastScanAt} prefix="last scan" /> · scans about every 10 min
+          </SourceStrip>
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
+                Live scanner calls
+              </h2>
+              <a
+                href="#perp-signals"
+                className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]"
+              >
+                All calls
+                <ArrowIcon />
+              </a>
+            </div>
+            {loading && signals === null ? (
+              <div className="flex gap-3 overflow-hidden">
+                {[0, 1, 2, 3].map((i) => (
+                  <Skeleton
+                    key={i}
+                    className="h-[300px] w-[232px] shrink-0 rounded-[var(--rv-radius)]"
+                  />
+                ))}
               </div>
-              <p className="mt-1 text-[11px] text-[var(--rv-ink-3)]">
-                {stats.criteria}
+            ) : (
+              <SignalCarousel signals={liveCalls} marks={marks} marksReady={markets !== null} />
+            )}
+          </section>
+
+          <TelegramConnect />
+
+          {/* Track Record Stats Header */}
+          {stats && (
+            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--rv-stroke)] pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-extrabold text-[var(--rv-ink)]">
+                      Riven Scanner track record
+                    </span>
+                    <span className="rounded-md border border-[var(--rv-blue)]/30 bg-[var(--rv-blue)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--rv-blue)]">
+                      Scanner results · unaudited
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-[var(--rv-ink-3)]">
+                    {stats.criteria}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-1.5 text-xs text-[var(--rv-ink-3)]">
+                    <span className="text-[10px] font-bold tracking-wider uppercase">
+                      Auto-Refresh:
+                    </span>
+                    <select
+                      value={refreshIntervalMs}
+                      onChange={(e) => {
+                        const val = Number(e.target.value)
+                        setRefreshIntervalMs(val)
+                        if (typeof window !== "undefined") {
+                          localStorage.setItem(
+                            "riven_perps_refresh_interval",
+                            String(val),
+                          )
+                        }
+                      }}
+                      className="cursor-pointer rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2 py-1 text-xs text-[var(--rv-ink)] transition-colors outline-none hover:border-[var(--rv-blue)] focus:border-[var(--rv-blue)]"
+                    >
+                      <option value={600000}>10m (Default)</option>
+                      <option value={300000}>5m</option>
+                      <option value={120000}>2m</option>
+                      <option value={60000}>1m</option>
+                      <option value={30000}>30s</option>
+                      <option value={0}>Manual (Off)</option>
+                    </select>
+                  </div>
+                  <Freshness
+                    updatedAt={updatedAt}
+                    refreshing={refreshing}
+                    onRefresh={() => void loadData(false)}
+                  />
+                </div>
+              </div>
+
+              {stats.totalResolved === 0 ? (
+                <p className="mt-3 text-[12px] text-[var(--rv-ink-2)]">
+                  No resolved calls yet. A call counts once price reaches a target or the stop, which can take up to 48 hours;
+                  until then there is no win rate to show.
+                </p>
+              ) : (
+                <>
+              {stats.confirmedTrades < MIN_SAMPLE && (
+                <p className="mt-3 rounded-md border border-[var(--rv-caution)]/30 bg-[var(--rv-caution)]/10 px-3 py-2 text-[12px] text-[var(--rv-ink-2)]">
+                  Small sample: only {stats.confirmedTrades} confirmed call{stats.confirmedTrades === 1 ? "" : "s"} so far (fewer than {MIN_SAMPLE}).
+                  Read these rates as early anecdotes, not a settled record.
+                </p>
+              )}
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                    Win Rate
+                  </div>
+                  <div
+                    className="mt-1 text-lg font-extrabold"
+                    style={{
+                      color:
+                        stats.confirmedTrades >= MIN_SAMPLE && stats.winRate >= 60
+                          ? "var(--rv-up)"
+                          : "var(--rv-ink)",
+                    }}
+                  >
+                    {stats.confirmedTrades > 0 ? `${stats.winRate}%` : "—"}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
+                    {stats.wins} wins / {stats.confirmedTrades} confirmed
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                    Stop-Loss Rate
+                  </div>
+                  <div
+                    className="mt-1 text-lg font-extrabold"
+                    style={{
+                      color:
+                        stats.confirmedTrades >= MIN_SAMPLE && stats.stopLossRate > 35
+                          ? "var(--rv-risk)"
+                          : "var(--rv-ink)",
+                    }}
+                  >
+                    {stats.confirmedTrades > 0 ? `${stats.stopLossRate}%` : "—"}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
+                    {stats.slHits} stops hit
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                    Missed Entries
+                  </div>
+                  <div className="mt-1 text-lg font-extrabold text-[var(--rv-caution)]">
+                    {stats.missedEntries}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
+                    Unfilled (Excluded)
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                    Target Hits
+                  </div>
+                  <div className="mt-1 font-mono text-xs font-bold text-[var(--rv-ink)]">
+                    T1: {stats.perTargetHit.t1} · T2: {stats.perTargetHit.t2} · T3:{" "}
+                    {stats.perTargetHit.t3}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
+                    T1: {stats.perTargetHit.t1Rate}% hit rate
+                  </div>
+                </div>
+
+                <div className="col-span-2 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                    Conviction Bands
+                  </div>
+                  <div className="mt-1 flex items-center justify-between font-mono text-[11px]">
+                    <div>
+                      <span className="text-[var(--rv-ink-3)]">High (8-10): </span>
+                      <span className="font-bold text-[var(--rv-up)]">
+                        {stats.confidenceBands.high.total > 0
+                          ? `${stats.confidenceBands.high.winRate}%`
+                          : "—"}
+                      </span>
+                      <span className="text-[10px] text-[var(--rv-ink-3)]">
+                        {" "}
+                        ({stats.confidenceBands.high.wins}/
+                        {stats.confidenceBands.high.total})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--rv-ink-3)]">Med (5-7): </span>
+                      <span className="font-bold text-[var(--rv-ink)]">
+                        {stats.confidenceBands.medium.total > 0
+                          ? `${stats.confidenceBands.medium.winRate}%`
+                          : "—"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--rv-ink-3)]">Low (1-4): </span>
+                      <span className="font-bold text-[var(--rv-ink-3)]">
+                        {stats.confidenceBands.low.total > 0
+                          ? `${stats.confidenceBands.low.winRate}%`
+                          : "—"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-[10px] text-[var(--rv-ink-3)]">
+                    Total resolved: {stats.totalResolved} calls
+                  </div>
+                </div>
+              </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Filter Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-3">
+            {/* Left: Status & Exchanges */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Status Switcher */}
+              <div className="flex border border-[var(--rv-stroke)]">
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("all")}
+                  className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                    statusFilter === "all"
+                      ? "bg-[var(--rv-blue)] text-black"
+                      : "text-[var(--rv-ink-2)] hover:text-white"
+                  }`}
+                >
+                  All Signals
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("open")}
+                  className={`border-l border-[var(--rv-stroke)] px-3 py-1.5 text-xs font-bold transition-colors ${
+                    statusFilter === "open"
+                      ? "bg-[var(--rv-blue)] text-black"
+                      : "text-[var(--rv-ink-2)] hover:text-white"
+                  }`}
+                >
+                  Open Calls
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("resolved")}
+                  className={`border-l border-[var(--rv-stroke)] px-3 py-1.5 text-xs font-bold transition-colors ${
+                    statusFilter === "resolved"
+                      ? "bg-[var(--rv-blue)] text-black"
+                      : "text-[var(--rv-ink-2)] hover:text-white"
+                  }`}
+                >
+                  Resolved
+                </button>
+              </div>
+
+              {/* Direction Filter */}
+              <div className="flex items-center gap-1">
+                <span className="px-1 text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                  Bias:
+                </span>
+                {(["ALL", "LONG", "SHORT"] as const).map((b) => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => setBiasFilter(b)}
+                    className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
+                      biasFilter === b
+                        ? b === "LONG"
+                          ? "border border-[var(--rv-up)] bg-[var(--rv-up)]/10 text-[var(--rv-up)]"
+                          : b === "SHORT"
+                            ? "border border-[var(--rv-down)] bg-[var(--rv-down)]/10 text-[var(--rv-down)]"
+                            : "border border-[var(--rv-blue)] bg-[var(--rv-blue)]/10 text-[var(--rv-blue)]"
+                        : "border border-[var(--rv-stroke)] text-[var(--rv-ink-3)] hover:text-white"
+                    }`}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Search box */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Filter ticker (e.g. $SOL, BTC, ETH)…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-52 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-1 text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
+              />
+            </div>
+          </div>
+
+          {/* Signals Content Grid */}
+          <div
+            id="perp-signals"
+            className="flex scroll-mt-28 items-end justify-between gap-2 pt-2"
+          >
+            <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
+              Scanner calls
+              {displayedSignals ? (
+                <span className="rv-num ml-2 text-[12px] font-semibold text-[var(--rv-ink-3)]">
+                  {displayedSignals.length}
+                </span>
+              ) : null}
+            </h2>
+            <span className="text-[11.5px] text-[var(--rv-ink-3)]">
+              Riven Scanner · tap a call to see the plan
+            </span>
+          </div>
+          {loading && signals === null ? (
+            <PerpsSignalsSkeleton />
+          ) : displayedSignals && displayedSignals.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+              {displayedSignals.map((signal) => (
+                <CallCard
+                  key={signal.id}
+                  signal={signal}
+                  mark={markets === null ? undefined : (marks.get(signalCoinKey(signal.symbol)) ?? null)}
+                  onTrade={setSelectedSignal}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-12 text-center">
+              <div className="text-sm font-bold text-[var(--rv-ink)]">
+                No perpetual signals found
+              </div>
+              <p className="mt-1 max-w-md text-xs text-[var(--rv-ink-3)]">
+                {statusFilter === "open"
+                  ? "There are currently no active open calls matching your filter criteria. Try toggling to 'Full History'."
+                  : "No historical perpetual signals found in database. Calls from Riven Scanner appear here after each scan."}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1.5 text-xs text-[var(--rv-ink-3)]">
-                <span className="text-[10px] font-bold tracking-wider uppercase">
-                  Auto-Refresh:
-                </span>
-                <select
-                  value={refreshIntervalMs}
-                  onChange={(e) => {
-                    const val = Number(e.target.value)
-                    setRefreshIntervalMs(val)
-                    if (typeof window !== "undefined") {
-                      localStorage.setItem(
-                        "riven_perps_refresh_interval",
-                        String(val),
-                      )
-                    }
-                  }}
-                  className="cursor-pointer rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2 py-1 text-xs text-[var(--rv-ink)] transition-colors outline-none hover:border-[var(--rv-blue)] focus:border-[var(--rv-blue)]"
-                >
-                  <option value={600000}>10m (Default)</option>
-                  <option value={300000}>5m</option>
-                  <option value={120000}>2m</option>
-                  <option value={60000}>1m</option>
-                  <option value={30000}>30s</option>
-                  <option value={0}>Manual (Off)</option>
-                </select>
-              </div>
-              <Freshness
-                updatedAt={updatedAt}
-                refreshing={refreshing}
-                onRefresh={() => void loadData(false)}
-              />
-            </div>
-          </div>
-
-          {stats.totalResolved === 0 ? (
-            <p className="mt-3 text-[12px] text-[var(--rv-ink-2)]">
-              No resolved calls yet. A call counts once price reaches a target or the stop, which can take up to 48 hours;
-              until then there is no win rate to show.
-            </p>
-          ) : (
-            <>
-          {stats.confirmedTrades < MIN_SAMPLE && (
-            <p className="mt-3 rounded-md border border-[var(--rv-caution)]/30 bg-[var(--rv-caution)]/10 px-3 py-2 text-[12px] text-[var(--rv-ink-2)]">
-              Small sample: only {stats.confirmedTrades} confirmed call{stats.confirmedTrades === 1 ? "" : "s"} so far (fewer than {MIN_SAMPLE}).
-              Read these rates as early anecdotes, not a settled record.
-            </p>
           )}
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                Win Rate
-              </div>
-              <div
-                className="mt-1 text-lg font-extrabold"
-                style={{
-                  color:
-                    stats.confirmedTrades >= MIN_SAMPLE && stats.winRate >= 60
-                      ? "var(--rv-up)"
-                      : "var(--rv-ink)",
-                }}
-              >
-                {stats.confirmedTrades > 0 ? `${stats.winRate}%` : "—"}
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
-                {stats.wins} wins / {stats.confirmedTrades} confirmed
-              </div>
-            </div>
 
-            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                Stop-Loss Rate
-              </div>
-              <div
-                className="mt-1 text-lg font-extrabold"
-                style={{
-                  color:
-                    stats.confirmedTrades >= MIN_SAMPLE && stats.stopLossRate > 35
-                      ? "var(--rv-risk)"
-                      : "var(--rv-ink)",
-                }}
-              >
-                {stats.confirmedTrades > 0 ? `${stats.stopLossRate}%` : "—"}
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
-                {stats.slHits} stops hit
-              </div>
-            </div>
-
-            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                Missed Entries
-              </div>
-              <div className="mt-1 text-lg font-extrabold text-[var(--rv-caution)]">
-                {stats.missedEntries}
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
-                Unfilled (Excluded)
-              </div>
-            </div>
-
-            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                Target Hits
-              </div>
-              <div className="mt-1 font-mono text-xs font-bold text-[var(--rv-ink)]">
-                T1: {stats.perTargetHit.t1} · T2: {stats.perTargetHit.t2} · T3:{" "}
-                {stats.perTargetHit.t3}
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
-                T1: {stats.perTargetHit.t1Rate}% hit rate
-              </div>
-            </div>
-
-            <div className="col-span-2 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-              <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                Conviction Bands
-              </div>
-              <div className="mt-1 flex items-center justify-between font-mono text-[11px]">
-                <div>
-                  <span className="text-[var(--rv-ink-3)]">High (8-10): </span>
-                  <span className="font-bold text-[var(--rv-up)]">
-                    {stats.confidenceBands.high.total > 0
-                      ? `${stats.confidenceBands.high.winRate}%`
-                      : "—"}
-                  </span>
-                  <span className="text-[10px] text-[var(--rv-ink-3)]">
-                    {" "}
-                    ({stats.confidenceBands.high.wins}/
-                    {stats.confidenceBands.high.total})
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[var(--rv-ink-3)]">Med (5-7): </span>
-                  <span className="font-bold text-[var(--rv-ink)]">
-                    {stats.confidenceBands.medium.total > 0
-                      ? `${stats.confidenceBands.medium.winRate}%`
-                      : "—"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[var(--rv-ink-3)]">Low (1-4): </span>
-                  <span className="font-bold text-[var(--rv-ink-3)]">
-                    {stats.confidenceBands.low.total > 0
-                      ? `${stats.confidenceBands.low.winRate}%`
-                      : "—"}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-1 text-[10px] text-[var(--rv-ink-3)]">
-                Total resolved: {stats.totalResolved} calls
-              </div>
-            </div>
-          </div>
-            </>
-          )}
         </div>
       )}
 
-      {/* Filter Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-3">
-        {/* Left: Status & Exchanges */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Status Switcher */}
-          <div className="flex border border-[var(--rv-stroke)]">
-            <button
-              type="button"
-              onClick={() => setStatusFilter("all")}
-              className={`px-3 py-1.5 text-xs font-bold transition-colors ${
-                statusFilter === "all"
-                  ? "bg-[var(--rv-blue)] text-black"
-                  : "text-[var(--rv-ink-2)] hover:text-white"
-              }`}
-            >
-              All Signals
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter("open")}
-              className={`border-l border-[var(--rv-stroke)] px-3 py-1.5 text-xs font-bold transition-colors ${
-                statusFilter === "open"
-                  ? "bg-[var(--rv-blue)] text-black"
-                  : "text-[var(--rv-ink-2)] hover:text-white"
-              }`}
-            >
-              Open Calls
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter("resolved")}
-              className={`border-l border-[var(--rv-stroke)] px-3 py-1.5 text-xs font-bold transition-colors ${
-                statusFilter === "resolved"
-                  ? "bg-[var(--rv-blue)] text-black"
-                  : "text-[var(--rv-ink-2)] hover:text-white"
-              }`}
-            >
-              Resolved
-            </button>
-          </div>
-
-          {/* Direction Filter */}
-          <div className="flex items-center gap-1">
-            <span className="px-1 text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-              Bias:
-            </span>
-            {(["ALL", "LONG", "SHORT"] as const).map((b) => (
-              <button
-                key={b}
-                type="button"
-                onClick={() => setBiasFilter(b)}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
-                  biasFilter === b
-                    ? b === "LONG"
-                      ? "border border-[var(--rv-up)] bg-[var(--rv-up)]/10 text-[var(--rv-up)]"
-                      : b === "SHORT"
-                        ? "border border-[var(--rv-down)] bg-[var(--rv-down)]/10 text-[var(--rv-down)]"
-                        : "border border-[var(--rv-blue)] bg-[var(--rv-blue)]/10 text-[var(--rv-blue)]"
-                    : "border border-[var(--rv-stroke)] text-[var(--rv-ink-3)] hover:text-white"
-                }`}
-              >
-                {b}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Search box */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Filter ticker (e.g. $SOL, BTC, ETH)…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-52 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-1 text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
-          />
-        </div>
-      </div>
-
-      {/* All perp markets */}
-      {displayedMarkets &&
-        displayedMarkets.length > 0 &&
-        (() => {
-          const groups = {
-            all: displayedMarkets,
-            signal: displayedMarkets.filter((m) =>
-              signalByCoin.has(m.symbol.toUpperCase()),
-            ),
-            meme: displayedMarkets.filter((m) => isMemePerp(m.symbol)),
-            major: displayedMarkets.filter((m) => isMajorPerp(m.symbol)),
-          }
-          const list = groups[marketGroup]
-          return (
-            <div className="border border-[var(--rv-stroke)] bg-[var(--rv-card)]">
-              <div className="flex items-center justify-between border-b border-[var(--rv-stroke)] px-3 py-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {(
-                    [
-                      ["all", "All"],
-                      ["signal", "With signal"],
-                      ["meme", "Meme coins"],
-                      ["major", "Majors"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setMarketGroup(id)}
-                      aria-pressed={marketGroup === id}
-                      className="px-2.5 py-1 text-[11px] font-bold"
-                      style={{
-                        color: marketGroup === id ? "#fff" : "var(--rv-ink-3)",
-                        background:
-                          marketGroup === id ? "var(--rv-blue)" : "transparent",
-                        boxShadow:
-                          marketGroup === id
-                            ? "none"
-                            : "inset 0 0 0 1px var(--rv-stroke)",
-                      }}
-                    >
-                      {label} ({groups[id].length})
-                    </button>
-                  ))}
-                </div>
-                <span className="hidden text-[10px] text-[var(--rv-ink-3)] sm:inline">
-                  Signals first, then by volume · click to open
-                </span>
-              </div>
-              <div className="grid gap-px bg-[var(--rv-stroke)] sm:grid-cols-2 lg:grid-cols-4">
-                {(showAllMarkets || search || marketGroup !== "all"
-                  ? list
-                  : list.slice(0, 24)
-                ).map((m) => {
-                  const sig = signalByCoin.get(m.symbol.toUpperCase())
-                  return (
-                    <Link
-                      key={m.symbol}
-                      href={`/perps/${m.symbol}`}
-                      className="flex items-center justify-between gap-2 bg-[var(--rv-card)] px-3 py-2 text-left hover:bg-[var(--rv-sunken)]"
-                    >
-                      <CoinIcon coin={m.symbol.toUpperCase()} size={22} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 text-xs font-extrabold">
-                          {m.symbol}
-                          {sig && (
-                            <span
-                              className="border px-1 text-[9px] font-bold"
-                              style={{
-                                borderColor:
-                                  sig.bias === "LONG"
-                                    ? "var(--rv-up)"
-                                    : "var(--rv-down)",
-                                color:
-                                  sig.bias === "LONG"
-                                    ? "var(--rv-up)"
-                                    : "var(--rv-down)",
-                              }}
-                            >
-                              {sig.bias} {sig.confidence}/10
-                            </span>
-                          )}
-                        </div>
-                        <div className="font-mono text-[10px] text-[var(--rv-ink-3)]">
-                          {priceUsd(m.markPrice)}
-                        </div>
-                      </div>
-                      <span
-                        className="font-mono text-xs font-bold"
-                        style={{
-                          color:
-                            m.change24h >= 0
-                              ? "var(--rv-up)"
-                              : "var(--rv-down)",
-                        }}
-                      >
-                        {m.change24h >= 0 ? "+" : ""}
-                        {m.change24h.toFixed(2)}%
+      {active === "markets" && (
+        <div
+          role="tabpanel"
+          id="perps-panel-markets"
+          aria-labelledby="perps-tab-markets"
+          className="space-y-4"
+        >
+          <SourceStrip kind="markets">
+            <AgeLabel at={marketsUpdatedAt} prefix="updated" />
+          </SourceStrip>
+          {/* All perp markets */}
+          {displayedMarkets &&
+            displayedMarkets.length > 0 &&
+            (() => {
+              const groups = {
+                all: displayedMarkets,
+                signal: displayedMarkets.filter((m) =>
+                  signalByCoin.has(m.symbol.toUpperCase()),
+                ),
+                meme: displayedMarkets.filter((m) => isMemePerp(m.symbol)),
+                major: displayedMarkets.filter((m) => isMajorPerp(m.symbol)),
+              }
+              const list = groups[marketGroup]
+              return (
+                <div className="border border-[var(--rv-stroke)] bg-[var(--rv-card)]">
+                  <div className="flex items-center justify-between border-b border-[var(--rv-stroke)] px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {(
+                        [
+                          ["all", "All"],
+                          ["signal", "With signal"],
+                          ["meme", "Meme coins"],
+                          ["major", "Majors"],
+                        ] as const
+                      ).map(([id, label]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setMarketGroup(id)}
+                          aria-pressed={marketGroup === id}
+                          className="px-2.5 py-1 text-[11px] font-bold"
+                          style={{
+                            color: marketGroup === id ? "#fff" : "var(--rv-ink-3)",
+                            background:
+                              marketGroup === id ? "var(--rv-blue)" : "transparent",
+                            boxShadow:
+                              marketGroup === id
+                                ? "none"
+                                : "inset 0 0 0 1px var(--rv-stroke)",
+                          }}
+                        >
+                          {label} ({groups[id].length})
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="hidden text-[10px] text-[var(--rv-ink-3)] lg:inline">
+                        Scanner calls first, then by volume · click to open
                       </span>
-                    </Link>
-                  )
-                })}
-              </div>
-              {!showAllMarkets &&
-                !search &&
-                marketGroup === "all" &&
-                list.length > 24 && (
-                  <button
-                    onClick={() => setShowAllMarkets(true)}
-                    className="w-full border-t border-[var(--rv-stroke)] py-2 text-[11px] font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
-                  >
-                    Show all {list.length} markets
-                  </button>
-                )}
-              {list.length === 0 && (
-                <div className="px-3 py-6 text-center text-[11px] text-[var(--rv-ink-3)]">
-                  {marketGroup === "signal"
-                    ? "No open sakz-bot calls match a Hyperliquid market right now."
-                    : "No markets in this group."}
+                      <input
+                        type="text"
+                        placeholder="Filter markets (e.g. SOL, BTC)…"
+                        aria-label="Filter Hyperliquid markets"
+                        value={marketSearch}
+                        onChange={(e) => setMarketSearch(e.target.value)}
+                        className="w-44 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-1 text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)] sm:w-52"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-px bg-[var(--rv-stroke)] sm:grid-cols-2 lg:grid-cols-4">
+                    {(showAllMarkets || marketSearch || marketGroup !== "all"
+                      ? list
+                      : list.slice(0, 24)
+                    ).map((m) => {
+                      const sig = signalByCoin.get(m.symbol.toUpperCase())
+                      return (
+                        <Link
+                          key={m.symbol}
+                          href={`/perps/${m.symbol}`}
+                          className="flex items-center justify-between gap-2 bg-[var(--rv-card)] px-3 py-2 text-left hover:bg-[var(--rv-sunken)]"
+                        >
+                          <CoinIcon coin={m.symbol.toUpperCase()} size={22} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                              {m.symbol}
+                              {sig && (
+                                <ScannerPill
+                                  bias={sig.bias}
+                                  confidence={sig.confidence}
+                                  exchange={sig.exchange}
+                                  scanTime={sig.scanTime}
+                                />
+                              )}
+                            </div>
+                            <div className="font-mono text-[10px] text-[var(--rv-ink-3)]">
+                              {priceUsd(m.markPrice)}
+                            </div>
+                          </div>
+                          <span
+                            className="font-mono text-xs font-bold"
+                            style={{
+                              color:
+                                m.change24h >= 0
+                                  ? "var(--rv-up)"
+                                  : "var(--rv-down)",
+                            }}
+                          >
+                            {m.change24h >= 0 ? "+" : ""}
+                            {m.change24h.toFixed(2)}%
+                          </span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                  {!showAllMarkets &&
+                    !search &&
+                    marketGroup === "all" &&
+                    list.length > 24 && (
+                      <button
+                        onClick={() => setShowAllMarkets(true)}
+                        className="w-full border-t border-[var(--rv-stroke)] py-2 text-[11px] font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+                      >
+                        Show all {list.length} markets
+                      </button>
+                    )}
+                  {list.length === 0 && (
+                    <div className="px-3 py-6 text-center text-[11px] text-[var(--rv-ink-3)]">
+                      {marketGroup === "signal"
+                        ? "No open Riven Scanner calls match a Hyperliquid market right now."
+                        : "No markets in this group."}
+                    </div>
+                  )}
                 </div>
-              )}
+              )
+            })()}
+          {displayedMarkets === null && (
+            <div className="grid gap-px sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, k) => (
+                <Skeleton key={k} className="h-[52px] rounded-none" />
+              ))}
             </div>
-          )
-        })()}
-
-      {/* Signals Content Grid */}
-      <div
-        id="perp-signals"
-        className="flex scroll-mt-28 items-end justify-between gap-2 pt-2"
-      >
-        <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
-          Scanner calls
-          {displayedSignals ? (
-            <span className="rv-num ml-2 text-[12px] font-semibold text-[var(--rv-ink-3)]">
-              {displayedSignals.length}
-            </span>
-          ) : null}
-        </h2>
-        <span className="text-[11.5px] text-[var(--rv-ink-3)]">
-          From sakz-bot · tap a call to see the plan
-        </span>
-      </div>
-      {loading && signals === null ? (
-        <PerpsSignalsSkeleton />
-      ) : displayedSignals && displayedSignals.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
-          {displayedSignals.map((signal) => (
-            <CallCard
-              key={signal.id}
-              signal={signal}
-              onTrade={setSelectedSignal}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-12 text-center">
-          <div className="text-sm font-bold text-[var(--rv-ink)]">
-            No perpetual signals found
-          </div>
-          <p className="mt-1 max-w-md text-xs text-[var(--rv-ink-3)]">
-            {statusFilter === "open"
-              ? "There are currently no active open calls matching your filter criteria. Try toggling to 'Full History'."
-              : "No historical perpetual signals found in database. Signals generated by sakz-bot will automatically mirror here after scan cycles."}
-          </p>
+          )}
+          {displayedMarkets !== null && displayedMarkets.length === 0 && (
+            <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-8 text-center text-xs text-[var(--rv-ink-3)]">
+              No Hyperliquid market matches that search.
+            </div>
+          )}
         </div>
       )}
 
@@ -797,7 +906,7 @@ export function PerpsPanel() {
         <span className="font-bold text-[var(--rv-ink-2)]">
           Paper trading only:
         </span>{" "}
-        {DISCLAIMER} Riven mirrors sakz-bot&apos;s scanner calls read-only. It
+        {DISCLAIMER} Riven Scanner (powered by sakz-bot) is mirrored read-only. It
         never holds funds or places orders for you.
       </div>
 

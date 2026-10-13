@@ -5,7 +5,7 @@ import { Carousel } from "@/components/riven/carousel"
 import type { PerpSignal } from "@/components/perps/perps-panel"
 import { CoinIcon, coinArtUrl } from "@/components/perps/coin-icon"
 import { ago, priceUsd } from "@/lib/format"
-import { signalCoinKey } from "@/lib/perp-symbols"
+import { signalCoinKey, venueName } from "@/lib/perp-symbols"
 import { ArrowIcon } from "@/components/riven/arrow"
 
 const OUTCOME: Record<string, { label: string; color: string }> = {
@@ -43,19 +43,22 @@ function CoinArt({ coin, long }: { coin: string; long: boolean }) {
   )
 }
 
-/** sakz-bot's calls as a gliding row of cards; each opens that pair's page. */
+/** Riven Scanner's calls as a gliding row of cards; each opens that pair's page. */
 export function SignalCarousel({
   signals,
   marks,
+  marksReady,
 }: {
   signals: PerpSignal[]
   /** Live mark price per base coin (Hyperliquid). */
   marks: Map<string, number>
+  /** False until Hyperliquid's prices have loaded, so a missing price isn't mistaken for "not listed". */
+  marksReady: boolean
 }) {
   if (signals.length === 0) {
     return (
       <div className="rv-card px-4 py-6 text-center text-[13px] text-[var(--rv-ink-2)]">
-        No open scanner calls right now — sakz-bot scans every ~10 minutes. Connect Telegram above to get the next one.
+        No open Riven Scanner calls right now. It scans every ~10 minutes; connect Telegram below to get the next one.
       </div>
     )
   }
@@ -103,12 +106,14 @@ export function SignalCarousel({
                     <span className="text-[11.5px] font-semibold text-[var(--rv-ink-3)]"> /USDT</span>
                   </p>
                   <p className="text-[11px] text-[var(--rv-ink-3)]">
-                    {s.exchange} · {ago(s.scanTime)}
+                    Called on {venueName(s.exchange)} · {ago(s.scanTime)}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="rv-num text-[13px] font-bold text-[var(--rv-ink)]">{priceUsd(mark ?? s.entryPrice)}</p>
-                  <p className="text-[10.5px] text-[var(--rv-ink-3)]">{mark ? "now" : "entry"}</p>
+                  <p className="text-[10.5px] text-[var(--rv-ink-3)]">
+                    {mark ? "on Hyperliquid" : marksReady ? "entry · not on Hyperliquid" : "entry"}
+                  </p>
                 </div>
               </div>
               {/* conviction */}
@@ -120,7 +125,7 @@ export function SignalCarousel({
               </div>
               <div className="rv-num grid grid-cols-3 gap-1 text-[10.5px]">
                 <span className="text-[var(--rv-ink-3)]">
-                  Entry
+                  Entry · {venueName(s.exchange)}
                   <b className="block text-[11.5px] text-[var(--rv-ink)]">{priceUsd(s.entryPrice)}</b>
                 </span>
                 <span className="text-[var(--rv-ink-3)]">
