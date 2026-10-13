@@ -295,14 +295,13 @@ export function getMockPerpSignals(params: {
   const signals = filtered.slice(0, take)
 
   // Track record calculated across ALL resolved mock signals
-  const resolved = MOCK_PERP_SIGNALS.filter((s) => s.outcome !== "pending")
+  const resolved = MOCK_PERP_SIGNALS.filter((s) => s.outcome !== "pending" && s.outcome !== "expired")
   const totalResolved = resolved.length
 
   let missedEntries = 0
   let confirmedTrades = 0
   let wins = 0
   let slHits = 0
-  let expired = 0
 
   let t1Hits = 0
   let t2Hits = 0
@@ -328,8 +327,6 @@ export function getMockPerpSignals(params: {
       wins++
     } else if (r.outcome === "sl_hit") {
       slHits++
-    } else if (r.outcome === "expired") {
-      expired++
     }
 
     if (r.bestTargetHit === "t1" || r.outcome === "t1_hit") t1Hits++
@@ -367,7 +364,6 @@ export function getMockPerpSignals(params: {
     missedEntries,
     wins,
     slHits,
-    expired,
     winRate,
     stopLossRate,
     perTargetHit: {
@@ -389,7 +385,7 @@ export function getMockPerpSignals(params: {
     },
     confidenceBands: bands,
     criteria:
-      "Statistical engine verified track record. Missed entries (unfilled) are reported separately and excluded from win-rate calculations.",
+      "Resolved calls only: a target or the stop was hit. Calls that expired without either, and missed entries (never filled), are left out of the rates.",
   }
 
   return { signals, stats }

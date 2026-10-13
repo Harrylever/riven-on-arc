@@ -47,13 +47,15 @@ export interface PerpSignal {
   createdAt: string
 }
 
+/** Below this many confirmed calls the rates are anecdotes, not a track record (same bar as /accuracy). */
+const MIN_SAMPLE = 30
+
 export interface PerpStats {
   totalResolved: number
   confirmedTrades: number
   missedEntries: number
   wins: number
   slHits: number
-  expired: number
   winRate: number
   stopLossRate: number
   perTargetHit: {
@@ -376,7 +378,7 @@ export function PerpsPanel() {
                   Statistical Engine Track Record
                 </span>
                 <span className="rounded-md border border-[var(--rv-blue)]/30 bg-[var(--rv-blue)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--rv-blue)]">
-                  Read-Only Verified
+                  Scanner results · unaudited
                 </span>
               </div>
               <p className="mt-1 text-[11px] text-[var(--rv-ink-3)]">
@@ -418,6 +420,19 @@ export function PerpsPanel() {
             </div>
           </div>
 
+          {stats.totalResolved === 0 ? (
+            <p className="mt-3 text-[12px] text-[var(--rv-ink-2)]">
+              No resolved calls yet. A call counts once price reaches a target or the stop, which can take up to 48 hours;
+              until then there is no win rate to show.
+            </p>
+          ) : (
+            <>
+          {stats.confirmedTrades < MIN_SAMPLE && (
+            <p className="mt-3 rounded-md border border-[var(--rv-caution)]/30 bg-[var(--rv-caution)]/10 px-3 py-2 text-[12px] text-[var(--rv-ink-2)]">
+              Small sample: only {stats.confirmedTrades} confirmed call{stats.confirmedTrades === 1 ? "" : "s"} so far (fewer than {MIN_SAMPLE}).
+              Read these rates as early anecdotes, not a settled record.
+            </p>
+          )}
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
             <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
               <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
@@ -426,10 +441,13 @@ export function PerpsPanel() {
               <div
                 className="mt-1 text-lg font-extrabold"
                 style={{
-                  color: stats.winRate >= 60 ? "var(--rv-up)" : "var(--rv-ink)",
+                  color:
+                    stats.confirmedTrades >= MIN_SAMPLE && stats.winRate >= 60
+                      ? "var(--rv-up)"
+                      : "var(--rv-ink)",
                 }}
               >
-                {stats.winRate > 0 ? `${stats.winRate}%` : "—"}
+                {stats.confirmedTrades > 0 ? `${stats.winRate}%` : "—"}
               </div>
               <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
                 {stats.wins} wins / {stats.confirmedTrades} confirmed
@@ -444,12 +462,12 @@ export function PerpsPanel() {
                 className="mt-1 text-lg font-extrabold"
                 style={{
                   color:
-                    stats.stopLossRate > 35
+                    stats.confirmedTrades >= MIN_SAMPLE && stats.stopLossRate > 35
                       ? "var(--rv-risk)"
                       : "var(--rv-ink)",
                 }}
               >
-                {stats.stopLossRate > 0 ? `${stats.stopLossRate}%` : "—"}
+                {stats.confirmedTrades > 0 ? `${stats.stopLossRate}%` : "—"}
               </div>
               <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
                 {stats.slHits} stops hit
@@ -521,6 +539,8 @@ export function PerpsPanel() {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
       )}
 

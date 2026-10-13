@@ -148,10 +148,16 @@ export async function GET(req: Request) {
       : []
     const signals = [...dbSignals, ...additionalMock].slice(0, take)
 
-    // Track record stats: calculated over all resolved calls
+    // ?stats=0: callers that only need the calls (e.g. the market table's badges) skip
+    // the track-record query, which reads every resolved row.
+    if (searchParams.get("stats") === "0") return NextResponse.json({ signals })
+
+    // Track record stats: only calls that ended at a target or the stop. Expired calls
+    // (neither within 48h) are not a result, and they are purged on a schedule, so counting
+    // them would make the rates move depending on when the last purge ran.
     const resolvedRows = await db.perpSignal.findMany({
       where: {
-        outcome: { not: "pending" },
+        outcome: { notIn: ["pending", "expired"] },
       },
       select: {
         outcome: true,
@@ -166,7 +172,6 @@ export async function GET(req: Request) {
     let confirmedTrades = 0
     let wins = 0
     let slHits = 0
-    let expired = 0
 
     let t1Hits = 0
     let t2Hits = 0
@@ -194,8 +199,6 @@ export async function GET(req: Request) {
         wins++
       } else if (r.outcome === "sl_hit") {
         slHits++
-      } else if (r.outcome === "expired") {
-        expired++
       }
 
       // Reaching T3 means T1 and T2 were reached too: count cumulatively.
@@ -239,7 +242,6 @@ export async function GET(req: Request) {
       missedEntries,
       wins,
       slHits,
-      expired,
       winRate,
       stopLossRate,
       perTargetHit: {
@@ -261,7 +263,7 @@ export async function GET(req: Request) {
       },
       confidenceBands: bands,
       criteria:
-        "Stats computed across all resolved signals in database. Missed entries (entry_confirmed = 0) are reported separately and excluded from win-rate calculations.",
+        "Resolved calls only: a target or the stop was hit. Calls that expired without either, and missed entries (never filled), are left out of the rates.",
     }
 
     return NextResponse.json({ signals, stats })
