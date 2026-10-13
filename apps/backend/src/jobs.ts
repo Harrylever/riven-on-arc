@@ -34,6 +34,9 @@ export function startJobs(s: Services): Cron[] {
     ["telegram.tick", EVERY_20_SECONDS, () => s.telegram.tick()],
     // Scores on their own loop so they stay live while slower indexing catches up.
     ["arcScoring.scoreOnce", EVERY_5_MINUTES, () => s.arcScoring.scoreOnce()],
+    // Prunes score history (and the legacy tables, empty on Arc). It was only in the Solana list, so on Arc it never
+    // ran and score_runs grew without limit.
+    ["retention.pruneOldRows", EVERY_DAY_AT_3AM, () => s.retention.pruneOldRows()],
   ];
   const legacySolanaJobs: Array<[string, string, () => Promise<unknown>]> = [
     [
@@ -68,11 +71,6 @@ export function startJobs(s: Services): Cron[] {
       "kol.pollRecentTrades",
       EVERY_30_MINUTES,
       () => s.kolPoll.pollRecentTrades(),
-    ],
-    [
-      "retention.pruneOldRows",
-      EVERY_DAY_AT_3AM,
-      () => s.retention.pruneOldRows(),
     ],
   ];
   // Arc is the product now: legacy Solana jobs (Helius, KOLs, the frozen trade
