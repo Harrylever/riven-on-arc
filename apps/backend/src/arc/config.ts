@@ -150,3 +150,15 @@ export function cleanText(s: string | null | undefined, max = 200): string {
   // eslint-disable-next-line no-control-regex
   return (s ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max);
 }
+
+/**
+ * `tokens.initial_supply` is numeric(65,30): at most 35 digits before the point. A token can be
+ * created with more than that (a 2^256 supply and 0 decimals is ~1e77), and saving it threw
+ * "numeric field overflow", which aborted the whole indexing batch and froze the indexer on the
+ * same block range every tick. Such a token is still indexed, with its supply capped.
+ */
+export const MAX_STORABLE_SUPPLY = "9".repeat(35);
+export function storableSupply(display: string): string {
+  const whole = (display.split(".")[0] ?? "0").replace(/^0+/, "");
+  return whole.length > 35 ? MAX_STORABLE_SUPPLY : display;
+}

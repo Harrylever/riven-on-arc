@@ -15,7 +15,7 @@ import {
   LAUNCHPAD_SOURCES,
   USDC,
   type LaunchpadSource,
-  cleanText, arcTransport } from "./config";
+  cleanText, arcTransport, storableSupply } from "./config";
 
 const DEFAULT_CHUNK_BLOCKS = 9_999n; // public RPC rejects eth_getLogs ranges of 10k+
 const DEFAULT_MAX_BLOCKS_PER_RUN = 50_000n;
@@ -293,7 +293,7 @@ export class FactoryLogIndexerService {
             discoveredVia: "ARC_FACTORY_INDEXER",
             launchTime: timestamps.get(launch.blockNumber) ?? new Date(),
             // Whole-token units, matching how market-data multiplies price × supply.
-            initialSupply: supply?.display ?? "0",
+            initialSupply: storableSupply(supply?.display ?? "0"),
             launchTxHash: launch.transactionHash,
             links: launch.links,
             launchBlock: launch.blockNumber,

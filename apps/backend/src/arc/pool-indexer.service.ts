@@ -20,7 +20,7 @@ import {
   POOL_MANAGER_DEPLOY_BLOCK,
   POSITION_MANAGER,
   USDC,
-  cleanText, arcTransport } from "./config";
+  cleanText, arcTransport, storableSupply } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
 
 const FORWARD_CURSOR = "v4:pools";
@@ -231,6 +231,9 @@ export class PoolIndexerService {
     for (const p of newTokens) {
       const m = meta.get(p.token);
       if (!m) continue; // not a readable ERC-20: skip rather than store junk
+      // One bad token must never abort the range: the cursor would not advance and the same
+      // range would fail again every tick (the indexer froze this way on a numeric overflow).
+      try {
       let history = "partial";
       if (mode === "complete-if-new") {
         const before = await this.client.getCode({ address: p.token as Address, blockNumber: p.blockNumber - 1n }).catch(() => "0x");
@@ -258,7 +261,7 @@ export class PoolIndexerService {
           launchpad: p.hooks === ARGUS_V4_HOOK.toLowerCase() ? "ARGUS" : "OTHER",
           discoveredVia: "ARC_POOL_INDEXER",
           launchTime: tsOf(p.blockNumber),
-          initialSupply: m.supply,
+          initialSupply: storableSupply(m.supply),
           launchTxHash: p.txHash,
           launchBlock: p.blockNumber,
           holderHistory: history,
@@ -267,6 +270,9 @@ export class PoolIndexerService {
       });
       tokenIds.set(p.token, token.id);
       created++;
+      } catch (err) {
+        console.warn(`[arc] skipped token ${p.token}: ${(err as Error).message.split("\n").pop()}`);
+      }
     }
     for (const p of fresh) {
       const tokenId = tokenIds.get(p.token);
