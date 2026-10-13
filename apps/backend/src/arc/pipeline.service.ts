@@ -8,7 +8,7 @@ import type { CalloutsService } from "./callouts.service";
 import { withTimeout } from "../lib/with-timeout";
 
 /** A step that has not finished by now is treated as hung: it is reported, and the next step runs. */
-const STEP_TIMEOUT_MS = Number(process.env.ARC_STEP_TIMEOUT_MIN ?? "8") * 60_000;
+const stepTimeoutMs = () => Number(process.env.ARC_STEP_TIMEOUT_MIN ?? "8") * 60_000;
 /** A step slower than this is logged, so a slow one shows up before it becomes a hung one. */
 const SLOW_STEP_MS = 60_000;
 
@@ -51,7 +51,7 @@ export class ArcPipelineService {
     const step = async <T>(name: string, fn: () => Promise<T>) => {
       const t0 = Date.now();
       try {
-        const out = await withTimeout(fn(), STEP_TIMEOUT_MS, name);
+        const out = await withTimeout(fn(), stepTimeoutMs(), name);
         const ms = Date.now() - t0;
         this.steps[name] = { at: new Date().toISOString(), ms, ok: true };
         if (ms > SLOW_STEP_MS) console.warn(`[arc] ${name} was slow: ${Math.round(ms / 1000)}s`);

@@ -1,8 +1,15 @@
-import { describe, expect, test } from "bun:test"
+import { afterAll, beforeAll, describe, expect, test } from "bun:test"
+import { ArcPipelineService } from "./pipeline.service"
 
-// The step timeout is read when the module loads, so set a tiny one first (30 ms).
-process.env.ARC_STEP_TIMEOUT_MIN = "0.0005"
-const { ArcPipelineService } = await import("./pipeline.service")
+// A tiny step timeout (30 ms) for these tests; the service reads it at the start of each run.
+const before = process.env.ARC_STEP_TIMEOUT_MIN
+beforeAll(() => {
+  process.env.ARC_STEP_TIMEOUT_MIN = "0.0005"
+})
+afterAll(() => {
+  if (before === undefined) delete process.env.ARC_STEP_TIMEOUT_MIN
+  else process.env.ARC_STEP_TIMEOUT_MIN = before
+})
 
 const ok = (name: string, ran: string[]) => async () => {
   ran.push(name)
