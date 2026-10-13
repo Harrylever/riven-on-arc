@@ -1,6 +1,7 @@
 import {
   ARC_METHODOLOGY,
   computeArcScore,
+  deriveVerdict,
   getDb,
   type ArcAuthorityInput,
   type ArcLpState,
@@ -836,6 +837,23 @@ export class ArcScoringService {
             ),
           },
         });
+        // Keep the lists' index current in the same transaction (Safest, Flagged, band filters).
+        const verdict = deriveVerdict({
+          name: t.name,
+          symbol: t.symbol,
+          run: { score: result.score, methodology: ARC_METHODOLOGY, flags: result.flags },
+          volume24h: m?.volume24h != null ? Number(m.volume24h) : null,
+          usdcInPool: poolUsdc,
+        });
+        const row = {
+          score: verdict.score,
+          band: verdict.band,
+          scoreCodes: verdict.scoreCodes,
+          marketCodes: verdict.marketCodes,
+          methodology: ARC_METHODOLOGY,
+          scoredAt: new Date(),
+        };
+        await tx.tokenScoreLatest.upsert({ where: { tokenId: t.id }, create: { tokenId: t.id, ...row }, update: row });
       }
       if (holders) {
         await tx.holderSnapshot.create({

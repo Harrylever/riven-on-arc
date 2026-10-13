@@ -1,4 +1,4 @@
-import { getDb } from "@riven/shared";
+import { getDb, marketFlagReasons } from "@riven/shared";
 import { createPublicClient, http, parseAbi, type Address, type PublicClient } from "viem";
 import { arc, cleanText, USDC, arcTransport } from "./config";
 
@@ -13,6 +13,14 @@ const GECKO_CALLS_PER_RUN = Number(process.env.ARC_GECKO_CALLS_PER_RUN ?? "4");
 /** DexScreener allows 300 req/min on this endpoint; 40 sequential calls per tick stays well below it. */
 const BATCH = 30;
 const CALLS_PER_RUN = Number(process.env.ARC_MARKET_CALLS_PER_RUN ?? "40");
+
+interface FlagCandidate {
+  id: string;
+  name: string;
+  symbol: string;
+  volume24h: number | null;
+  usdcInPool: number | null;
+}
 
 interface DexPair {
   pairAddress?: string;
@@ -87,25 +95,25 @@ export class MarketSyncService {
             updatedAt: { lt: ago(90 * 1000) },
           },
         },
-        select: { id: true, mint: true },
+        select: { id: true, mint: true, name: true, symbol: true },
         orderBy: { arcMarket: { updatedAt: "asc" } },
         take: Math.round(cap * 0.4),
       }),
       db.token.findMany({
         where: { launchTime: { gte: freshSince }, OR: [{ arcMarket: null }, { arcMarket: { updatedAt: { lt: ago(3 * 60 * 1000) } } }] },
-        select: { id: true, mint: true },
+        select: { id: true, mint: true, name: true, symbol: true },
         orderBy: { launchTime: "desc" },
         take: Math.round(cap * 0.2),
       }),
       db.token.findMany({
         where: { arcMarket: null },
-        select: { id: true, mint: true },
+        select: { id: true, mint: true, name: true, symbol: true },
         orderBy: { launchTime: "desc" },
         take: Math.round(cap * 0.4),
       }),
       db.token.findMany({
         where: { arcMarket: { updatedAt: { lt: ago(6 * 60 * 60 * 1000) } } },
-        select: { id: true, mint: true },
+        select: { id: true, mint: true, name: true, symbol: true },
         orderBy: { arcMarket: { updatedAt: "asc" } },
         take: Math.round(cap * 0.2),
       }),
@@ -129,6 +137,7 @@ export class MarketSyncService {
         continue;
       }
       const best = pickPairs(Array.isArray(pairs) ? pairs : []);
+      const flagCandidates: FlagCandidate[] = [];
       for (const t of batch) {
         const p = best.get(t.mint);
         const data = p
@@ -182,11 +191,48 @@ export class MarketSyncService {
           update: data,
         });
         updated++;
+        flagCandidates.push({
+          id: t.id,
+          name: t.name,
+          symbol: t.symbol,
+          volume24h: data.volume24h === null ? null : Number(data.volume24h),
+          usdcInPool: data.socials.usdcInPool ?? null,
+        });
       }
+      await this.syncMarketFlags(flagCandidates);
     }
     const logos = await this.fillLogos().catch(() => 0);
     const icons = await this.fillIcons();
     return { queued: queue.length, updated, listed, logos, icons };
+  }
+
+  /**
+   * Keeps token_score_latest's market-based flags (wash trading, impersonation) current for tokens that have no
+   * score yet, so they can be listed as flagged. Scored tokens are the scorer's: it uses the on-chain pool figure.
+   * Never throws: a failure here must not stop the market sync.
+   */
+  private async syncMarketFlags(items: FlagCandidate[]) {
+    if (items.length === 0) return;
+    const db = getDb();
+    try {
+      const existing = await db.tokenScoreLatest.findMany({
+        where: { tokenId: { in: items.map((i) => i.id) } },
+        select: { tokenId: true, score: true, marketCodes: true },
+      });
+      const byId = new Map(existing.map((e) => [e.tokenId, e]));
+      for (const it of items) {
+        const row = byId.get(it.id);
+        if (row && row.score !== null) continue;
+        const codes = marketFlagReasons(it, it.volume24h, it.usdcInPool).map((r) => r.code);
+        const same = row ? row.marketCodes.length === codes.length && codes.every((c) => row.marketCodes.includes(c)) : codes.length === 0;
+        if (same) continue;
+        if (!row) await db.tokenScoreLatest.create({ data: { tokenId: it.id, marketCodes: codes } });
+        else if (codes.length === 0) await db.tokenScoreLatest.delete({ where: { tokenId: it.id } });
+        else await db.tokenScoreLatest.update({ where: { tokenId: it.id }, data: { marketCodes: codes } });
+      }
+    } catch (err) {
+      console.warn(`[arc-market] flag sync skipped: ${(err as Error).message.split("\n").pop()}`);
+    }
   }
 
   private readonly iconTried = new Set<string>();
