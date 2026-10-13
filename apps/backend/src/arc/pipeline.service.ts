@@ -5,6 +5,19 @@ import type { PoolIndexerService } from "./pool-indexer.service";
 import type { MarketSyncService } from "./market-sync.service";
 import type { HolderBackfillService } from "./holder-backfill.service";
 import type { CalloutsService } from "./callouts.service";
+import { withTimeout } from "../lib/with-timeout";
+
+/** A step that has not finished by now is treated as hung: it is reported, and the next step runs. */
+const STEP_TIMEOUT_MS = Number(process.env.ARC_STEP_TIMEOUT_MIN ?? "8") * 60_000;
+/** A step slower than this is logged, so a slow one shows up before it becomes a hung one. */
+const SLOW_STEP_MS = 60_000;
+
+export interface StepStatus {
+  at: string;
+  ms: number;
+  ok: boolean;
+  error?: string;
+}
 
 /**
  * One Arc tick, in dependency order: launchpad launches → every USDC pool on
@@ -13,6 +26,15 @@ import type { CalloutsService } from "./callouts.service";
  * run on whatever data is already stored.
  */
 export class ArcPipelineService {
+  /** When each step last finished and how: shown on /arc/health so a stall is visible without reading logs. */
+  private readonly steps: Record<string, StepStatus> = {};
+  private lastStartedAt: string | null = null;
+  private lastFinishedAt: string | null = null;
+
+  getStatus() {
+    return { lastStartedAt: this.lastStartedAt, lastFinishedAt: this.lastFinishedAt, steps: this.steps };
+  }
+
   constructor(
     private readonly launches: FactoryLogIndexerService,
     private readonly pools: PoolIndexerService,
@@ -25,12 +47,20 @@ export class ArcPipelineService {
 
   /** `score: false` when scoring runs on its own loop (jobs, dev worker). */
   async runOnce({ score = true }: { score?: boolean } = {}) {
+    this.lastStartedAt = new Date().toISOString();
     const step = async <T>(name: string, fn: () => Promise<T>) => {
+      const t0 = Date.now();
       try {
-        return await fn();
+        const out = await withTimeout(fn(), STEP_TIMEOUT_MS, name);
+        const ms = Date.now() - t0;
+        this.steps[name] = { at: new Date().toISOString(), ms, ok: true };
+        if (ms > SLOW_STEP_MS) console.warn(`[arc] ${name} was slow: ${Math.round(ms / 1000)}s`);
+        return out;
       } catch (err) {
-        console.error(`[arc] ${name} failed: ${(err as Error).message}`);
-        return { error: (err as Error).message };
+        const message = (err as Error).message;
+        this.steps[name] = { at: new Date().toISOString(), ms: Date.now() - t0, ok: false, error: message.slice(0, 200) };
+        console.error(`[arc] ${name} failed: ${message}`);
+        return { error: message };
       }
     };
     const launches = await step("launch indexing", () => this.launches.indexLaunchpadsOnce());
@@ -44,6 +74,7 @@ export class ArcPipelineService {
     const callouts = this.callouts
       ? await step("X callouts", () => this.callouts!.indexOnce())
       : { skipped: "not configured" };
+    this.lastFinishedAt = new Date().toISOString();
     return { launches, pools, quotes, activity, market, backfill, scoring, callouts };
   }
 }

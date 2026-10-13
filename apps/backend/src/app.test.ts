@@ -23,6 +23,11 @@ function stubServices() {
     },
     arcPipeline: {
       runOnce: async () => ({ launches: { head: "1", sources: [] } }),
+      getStatus: () => ({
+        lastStartedAt: "2026-10-14T00:00:00.000Z",
+        lastFinishedAt: "2026-10-14T00:00:05.000Z",
+        steps: { "market sync": { at: "2026-10-14T00:00:04.000Z", ms: 900, ok: true } },
+      }),
     },
   } as unknown as Services;
   return { services, calls };
@@ -130,6 +135,8 @@ describe("Arc read-only endpoints", () => {
       status: "ok",
       chainId: 5042,
       chainMatches: true,
+      // when each pipeline step last ran, so a stalled indexer is visible without reading logs
+      pipeline: { lastFinishedAt: "2026-10-14T00:00:05.000Z", steps: { "market sync": { ok: true } } },
     });
   });
 

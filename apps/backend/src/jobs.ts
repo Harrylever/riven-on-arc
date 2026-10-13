@@ -1,6 +1,7 @@
 import { Cron } from "croner";
 import { Logger } from "./lib/logger";
 import type { Services } from "./container";
+import { withTimeout } from "./lib/with-timeout";
 
 /**
  * Every schedule the NestJS @Cron decorators declared, in one place.
@@ -17,6 +18,12 @@ const EVERY_5_MINUTES = "0 */5 * * * *";
 const EVERY_10_MINUTES = "0 */10 * * * *";
 const EVERY_30_MINUTES = "0 */30 * * * *";
 const EVERY_DAY_AT_3AM = "0 0 3 * * *";
+
+/**
+ * No job may hold its slot longer than this. `protect` skips a tick while the previous run is unfinished, so a run
+ * that hangs once (a dead connection, a stuck call) would otherwise stop that job until the process restarts.
+ */
+const JOB_TIMEOUT_MS = Number(process.env.JOB_TIMEOUT_MIN ?? "15") * 60_000;
 
 export function startJobs(s: Services): Cron[] {
   const arcIndexing: Array<[string, string, () => Promise<unknown>]> = [
@@ -79,7 +86,7 @@ export function startJobs(s: Services): Cron[] {
     ([name, pattern, run]) =>
       new Cron(pattern, { name, protect: true }, async () => {
         try {
-          await run();
+          await withTimeout(run(), JOB_TIMEOUT_MS, name);
         } catch (err) {
           logger.error(`${name} failed: ${(err as Error).message}`);
         }

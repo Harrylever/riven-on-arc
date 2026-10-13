@@ -67,7 +67,7 @@ export function createApp(s: Services) {
       if (!result.chainMatches) {
         return c.json({ status: "wrong_chain", ...result }, 503);
       }
-      return c.json({ status: "ok", ...result });
+      return c.json({ status: "ok", ...result, pipeline: s.arcPipeline.getStatus() });
     } catch (err) {
       console.error(`[arc] health check failed: ${(err as Error).message}`);
       // viem errors embed the RPC URL (and any API key in it): log, don't return.
