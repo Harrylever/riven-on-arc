@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+# Local runtime state (on Railway these live on the /data volume)
+*.db
+*.pkl
+.pytest_cache/
+.env
+.venv/
+*.db-shm
+*.db-wal
+*.db-journal

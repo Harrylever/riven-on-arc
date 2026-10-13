@@ -1,10 +1,11 @@
 # Deploying Riven
 
-Riven runs as three pieces that share one Postgres:
+Riven runs as four pieces that share one Postgres:
 
 | Piece | Where | What it does |
 |---|---|---|
 | `apps/backend` | Railway (this repo's `.railway/railway.ts`) | Bun + Hono worker: Arc indexers, scoring, alerts, cron jobs |
+| `services/sakz` | Railway (same `.railway/railway.ts`) | Python worker: the perp-signal scanner (sakz-bot's engine, headless) |
 | `apps/frontend` | Vercel | Next.js 16 UI and read APIs (`/api/arc/*`) |
 | Postgres | Railway | One database, **UTF-8**. The backend writes, the frontend reads |
 
@@ -45,6 +46,18 @@ Notes:
 - The first boot starts indexing about 24 hours back (or from `ARC_INDEX_START_BLOCK`). Expect a sparse screener for the first hours.
 - On the first tick after a deploy the backend verifies each pool's USDC type (ERC-20 or native) from the PositionManager. This needs a working `ARC_RPC_URL`.
 - The repo is private. The grant needs it public: rotate the MadeOnSol key in git history first.
+
+### Perp scanner worker (`services/sakz`)
+
+`.railway/railway.ts` also defines a `sakz` service and a `sakz-data` volume. It builds from `services/sakz/Dockerfile` (Python 3.11) and runs `headless.py`: a scan every 10 minutes, outcome tracking, and a mirror of each call into `perp_signals` in the shared Postgres. It never places an order.
+
+- `RIVEN_DATABASE_URL` is a reference to `Postgres.DATABASE_URL`; no other secret is needed (no exchange keys, no Telegram token).
+- The volume is mounted at `/data`: sakz-bot's SQLite history (`SAKZ_DB_PATH`) and the trained models (`SAKZ_DATA_DIR`). Without it every deploy forgets its history and the self-training never has data.
+- The first deploy starts with an empty history. To carry over the existing history, upload your local `sakz_data.db` to `/data/sakz_data.db` once (for example `railway ssh`, or a one-off deploy that copies it), then restart the service.
+- Run **one** scanner. A local `headless.py` or a backend started with `SAKZ_DIR` set would write the same calls twice: leave `SAKZ_DIR` unset on the backend service.
+- Plan first (`railway config plan`): adding this service shows `+ Create volume sakz-data` and `+ Create service sakz`.
+
+See `services/sakz/README.md` for running it locally.
 
 ## 2. Frontend (Vercel)
 

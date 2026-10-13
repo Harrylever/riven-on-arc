@@ -1,0 +1,33 @@
+[project]
+name = "riven-sakz"
+version = "0.1.0"
+description = "Riven's perp-signal scanner: sakz-bot's engine, run headless"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "python-dotenv>=1.0.0,<2.0.0",
+    "requests>=2.31.0,<3.0.0",
+    # Optional: lets requests decode Brotli responses (MEXC serves some endpoints as br).
+    "brotli>=1.1.0",
+    "pandas>=2.1.0,<3.0.0",
+    "numpy>=1.26.0,<2.0.0",
+    "ta>=0.11.0,<1.0.0",
+    "scikit-learn>=1.3.0,<2.0.0",
+    "xgboost>=2.0.0,<3.0.0",
+    # sakz_engine_outcomes imports telegram types at module load; no bot token is used here.
+    "python-telegram-bot[job-queue]==21.3",
+    # riven_sync.py (the mirror into Riven's Postgres) uses psycopg2; headless.py uses psycopg 3.
+    "psycopg2-binary>=2.9.0,<3.0.0",
+    "psycopg[binary]>=3.1.0,<4.0.0",
+    # Not included on purpose: libsql-experimental (Turso). Local SQLite on the volume is used instead.
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.uv]
+# Scripts, not an installable package: `uv sync` installs the dependencies only.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["."]

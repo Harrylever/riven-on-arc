@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 /**
  * Runs sakz-bot's perp scanner alongside Riven's backend, so signals flow to
  * the site without anyone starting it by hand. It launches
- * scripts/perps/sakz_headless.py (scan every 10 min, self-training, outcome
+ * services/sakz/headless.py (scan every 10 min, self-training, outcome
  * tracking, mirror into Postgres) and restarts it if it ever exits.
  *
  * Enabled when SAKZ_DIR points at a sakz-bot checkout (with its Python deps
@@ -20,7 +20,7 @@ export function startSakzRunner(opts: { databaseUrl?: string } = {}) {
   const db = opts.databaseUrl ?? process.env.RIVEN_DATABASE_URL ?? process.env.CLAWDEX_DATABASE_URL ?? process.env.DATABASE_URL;
   if (!db) return { started: false, reason: "no database URL" };
 
-  const script = resolve(import.meta.dir, "../../../../scripts/perps/sakz_headless.py");
+  const script = resolve(import.meta.dir, "../../../../services/sakz/headless.py");
   const python = process.env.SAKZ_PYTHON ?? (process.platform === "win32" ? "python" : "python3");
   const interval = process.env.SAKZ_SCAN_INTERVAL_S ?? "600";
   let stopped = false;
@@ -30,7 +30,7 @@ export function startSakzRunner(opts: { databaseUrl?: string } = {}) {
   const launch = () => {
     if (stopped) return;
     child = Bun.spawn([python, script, "--interval", interval], {
-      env: { ...process.env, RIVEN_DATABASE_URL: db, CLAWDEX_DATABASE_URL: db, SAKZ_DIR: sakzDir, PYTHONIOENCODING: "utf-8", PYTHONUNBUFFERED: "1" },
+      env: { ...process.env, RIVEN_DATABASE_URL: db, SAKZ_DIR: sakzDir, PYTHONIOENCODING: "utf-8", PYTHONUNBUFFERED: "1" },
       stdout: "pipe",
       stderr: "pipe",
     });

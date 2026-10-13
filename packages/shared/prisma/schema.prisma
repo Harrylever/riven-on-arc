@@ -395,7 +395,7 @@ enum PerpBias {
 /// non-workspace Python trading-signal bot (see AGENTS.md "Perpetual futures
 /// signals" section for why it isn't rebuilt as Riven-native code). One row
 /// per finalized perp-futures call sakz-bot registered for outcome tracking,
-/// written by sakz-bot's own best-effort `clawdex_sync.py` module. Riven's
+/// written by sakz-bot's own best-effort `riven_sync.py` module (services/sakz). Riven's
 /// own apps never write to this table, only read it.
 /// No FK to Token: these are CEX perp-futures symbols (e.g. BTCUSDT on Bybit),
 /// not Riven-indexed Solana tokens — nothing to relate them to.

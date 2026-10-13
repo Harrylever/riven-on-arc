@@ -2,16 +2,18 @@
 
 sakz-bot is normally a Telegram bot; its scanner (`run_full_scan`) and outcome
 checker (`_check_signal_outcomes_blocking`) are plain functions that already
-mirror into Riven's `perp_signals` table through `clawdex_sync` whenever
+mirror into Riven's `perp_signals` table through `riven_sync` whenever
 RIVEN_DATABASE_URL is set. This runner calls them on a timer — no Telegram
 token, no exchange keys, and it never places an order (signals only).
 
 Usage (from anywhere):
     set RIVEN_DATABASE_URL=postgresql://...      (Riven's Postgres)
-    set SAKZ_DIR=C:\\path\\to\\sakz-bot-main          (defaults to the sibling folder)
-    python scripts/perps/sakz_headless.py --backfill      # import saved history once
-    python scripts/perps/sakz_headless.py                 # scan every 10 min, forever
-    python scripts/perps/sakz_headless.py --once          # one scan + outcome pass
+    set SAKZ_DIR=...                                 (defaults to this folder)
+    set SAKZ_DB_PATH=...                             (sakz-bot's SQLite; defaults to ./sakz_data.db)
+    set SAKZ_DATA_DIR=...                            (where trained models are saved; defaults to ./)
+    python headless.py --backfill      # import resolved history once (--db FILE, --dry-run)
+    python headless.py                 # scan every 10 min, forever
+    python headless.py --once          # one scan + outcome pass
 """
 
 from __future__ import annotations
@@ -30,21 +32,27 @@ from datetime import datetime, timezone
 # land in the machine's local time — hours in the future on a non-UTC box.
 os.environ["PGTZ"] = "UTC"
 
+# A .env next to this file is optional (RIVEN_DATABASE_URL etc.). Load it before anything
+# reads the environment; real environment variables win over the file.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+except ImportError:
+    pass
+
 log = logging.getLogger("riven.sakz")
 
 
 def _sakz_dir() -> str:
+    """The folder holding the sakz-bot modules: SAKZ_DIR, else this file's own folder."""
     env = os.environ.get("SAKZ_DIR", "").strip()
-    if env:
-        return env
-    here = os.path.dirname(os.path.abspath(__file__))
-    for guess in (
-        os.path.join(here, "..", "..", "..", "sakz-bot-main"),
-        os.path.join(os.path.expanduser("~"), "OneDrive", "Desktop", "sakz-bot-main"),
-    ):
-        if os.path.isdir(guess):
-            return os.path.abspath(guess)
-    sys.exit("Set SAKZ_DIR to the sakz-bot-main folder.")
+    return os.path.abspath(env) if env else os.path.dirname(os.path.abspath(__file__))
+
+
+def _db_path(sakz: str) -> str:
+    """sakz-bot's SQLite file (same rule as config.DB_PATH)."""
+    return os.path.abspath(os.environ.get("SAKZ_DB_PATH", os.path.join(sakz, "sakz_data.db")))
 
 
 def _iso(v: str | None) -> datetime | None:
@@ -58,13 +66,21 @@ def _iso(v: str | None) -> datetime | None:
     return d.astimezone(timezone.utc)  # naive → interpreted as this machine's local time
 
 
-def backfill(sakz: str, db_url: str) -> int:
-    """Copy sakz-bot's saved signal_outcomes into perp_signals (skips ones already there)."""
+RESOLVED = ("t1_hit", "t2_hit", "t3_hit", "sl_hit")
+
+
+def backfill(sakz: str, db_url: str, db_file: str | None = None, dry_run: bool = False) -> int:
+    """Copy sakz-bot's *resolved* calls (target or stop hit) into perp_signals, skipping ones
+    already there. Pending calls are deliberately not imported: old ones were never closed
+    out, so they would show up as live open calls and be judged against today's prices.
+    With dry_run, nothing is written; returns how many rows would be added."""
     import psycopg
 
-    src = sqlite3.connect(os.path.join(sakz, "sakz_data.db"))
+    # read-only: never modify the history file
+    src = sqlite3.connect(f"file:{os.path.abspath(db_file or _db_path(sakz))}?mode=ro", uri=True)
     src.row_factory = sqlite3.Row
-    rows = src.execute("SELECT * FROM signal_outcomes ORDER BY scan_time").fetchall()
+    marks = ",".join("?" * len(RESOLVED))
+    rows = src.execute(f"SELECT * FROM signal_outcomes WHERE outcome IN ({marks}) ORDER BY scan_time", RESOLVED).fetchall()
     added = 0
     with psycopg.connect(db_url, connect_timeout=10) as conn, conn.cursor() as cur:
         for r in rows:
@@ -76,10 +92,13 @@ def backfill(sakz: str, db_url: str) -> int:
                 continue
             cur.execute(
                 "SELECT 1 FROM perp_signals WHERE exchange = %s::perp_exchange AND symbol = %s"
-                " AND bias = %s::perp_bias AND scan_time = %s LIMIT 1",
+                " AND bias = %s::perp_bias AND scan_time = %s::timestamp(3) LIMIT 1",
                 (ex, r["symbol"], bias, scan),
             )
             if cur.fetchone():
+                continue
+            if dry_run:
+                added += 1
                 continue
             cur.execute(
                 """
@@ -95,12 +114,13 @@ def backfill(sakz: str, db_url: str) -> int:
                     float(r["entry_price"]), float(r["entry_low"]), float(r["entry_high"]),
                     float(r["stop_loss"]), float(r["t1"]), float(r["t2"]), float(r["t3"]),
                     scan, r["outcome"] or "pending", int(r["entry_confirmed"] or 0),
-                    r["best_target_hit"], int(r["sl_after_target"] or 0), _iso(r["resolved_at"]),
+                    r["best_target_hit"], int(r["sl_after_target"] or 0), _iso(r["resolved_at"]) if "resolved_at" in r.keys() else None,
                     datetime.now(timezone.utc),
                 ),
             )
             added += 1
-        conn.commit()
+        if not dry_run:
+            conn.commit()
     return added
 
 
@@ -111,7 +131,7 @@ RETRAIN_NEW_RESULTS = 10
 
 def resolved_count(sakz: str) -> int:
     try:
-        c = sqlite3.connect(os.path.join(sakz, "sakz_data.db"))
+        c = sqlite3.connect(_db_path(sakz))
         n = c.execute(
             "SELECT COUNT(*) FROM signal_outcomes WHERE outcome IN ('t1_hit','t2_hit','t3_hit','sl_hit')"
         ).fetchone()[0]
@@ -140,7 +160,7 @@ class SelfTrainer:
         if not due:
             return
         try:
-            self.meta = rf_train.train(os.path.join(self.sakz, "sakz_data.db"))
+            self.meta = rf_train.train(_db_path(self.sakz))
             log.info(
                 "Retrained on %d resolved calls: win rate %.0f%%, CV AUC %.2f, calibration %s",
                 self.meta["n_samples"],
@@ -180,19 +200,19 @@ class SelfTrainer:
 
 def install_calibration(trainer: SelfTrainer, db_url: str) -> None:
     """Wrap the mirror: calibrate each call first, then record raw score + win odds."""
-    import clawdex_sync
+    import riven_sync
     import psycopg
 
-    original = clawdex_sync.mirror_signals
+    original = riven_sync.mirror_signals
 
-    def mirror_calibrated(results):
+    def mirror_calibrated(results, *args, **kwargs):
         notes = []
         for r in results or []:
             raw = int(r.get("confidence", 5) or 5)
             cal, p = trainer.calibrate(r)
             r["confidence"] = cal
             notes.append((raw, p, str(r.get("exchange", "")).upper(), str(r.get("symbol", "")).upper(), str(r.get("bias", "")).upper()))
-        n = original(results)
+        n = original(results, *args, **kwargs)
         try:
             with psycopg.connect(db_url, connect_timeout=5) as conn, conn.cursor() as cur:
                 for raw, p, ex, sym, bias in notes:
@@ -207,8 +227,26 @@ def install_calibration(trainer: SelfTrainer, db_url: str) -> None:
             log.warning("Couldn't record calibration: %s", err)
         return n
 
-    clawdex_sync.mirror_signals = mirror_calibrated
+    riven_sync.mirror_signals = mirror_calibrated
     # sakz_engine_scan imports the function by name inside the scan, so patching the module is enough.
+
+
+def init_database() -> None:
+    """Create sakz-bot's SQLite tables if they don't exist yet.
+
+    The Telegram bot does this in its own startup. Without it a fresh database (a new
+    Railway volume) has no tables: every pair fails to score and no call is ever made.
+    All statements are CREATE TABLE IF NOT EXISTS, so running it every start is safe."""
+    import sakz_db
+
+    sakz_db.db_init()
+    sakz_db.db_init_user_tracking()
+    try:
+        import sakz_paper
+
+        sakz_paper.paper_init_db(sakz_db.db_connect)
+    except ImportError:  # paper trading tables are optional
+        pass
 
 
 def purge_expired(db_url: str) -> None:
@@ -227,17 +265,15 @@ def purge_expired(db_url: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--backfill", action="store_true", help="import sakz-bot's saved signals, then exit")
+    ap.add_argument("--backfill", action="store_true", help="import sakz-bot's saved *resolved* calls, then exit")
+    ap.add_argument("--db", help="with --backfill: the sakz_data.db to read (default: SAKZ_DB_PATH or ./sakz_data.db)")
+    ap.add_argument("--dry-run", action="store_true", help="with --backfill: show what would be imported, write nothing")
     ap.add_argument("--once", action="store_true", help="one scan + outcome pass, then exit")
-    ap.add_argument("--interval", type=int, default=600, help="seconds between scans (default 600)")
+    ap.add_argument("--interval", type=int, default=int(os.environ.get("SAKZ_SCAN_INTERVAL_S", "600")), help="seconds between scans (default 600, or SAKZ_SCAN_INTERVAL_S)")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
-    # sakz-bot's own mirror module (clawdex_sync, outside this repo) still reads the
-    # legacy name, so mirror the value into it.
     db_url = (os.environ.get("RIVEN_DATABASE_URL") or os.environ.get("CLAWDEX_DATABASE_URL") or "").strip()
-    if db_url:
-        os.environ["CLAWDEX_DATABASE_URL"] = db_url
     if not db_url:
         sys.exit("Set RIVEN_DATABASE_URL to Riven's Postgres (the mirror is a no-op without it).")
     sakz = _sakz_dir()
@@ -245,16 +281,17 @@ def main() -> None:
     os.chdir(sakz)  # sakz-bot resolves its own files (DB, model) relative to its folder
 
     if args.backfill:
-        log.info("Imported %d saved signal(s) from sakz-bot.", backfill(sakz, db_url))
+        n = backfill(sakz, db_url, db_file=args.db, dry_run=args.dry_run)
+        log.info("%s %d resolved call(s) from sakz-bot.", "Would import" if args.dry_run else "Imported", n)
         return
 
-    import clawdex_sync
+    import riven_sync
     import sakz_engine_outcomes
     import sakz_engine_scan
 
-    # clawdex_sync reads naive timestamps as UTC, but sakz-bot writes local
+    # riven_sync reads naive timestamps as UTC, but sakz-bot writes local
     # time — off by the machine's UTC offset anywhere but a UTC server.
-    _parse = clawdex_sync._parse_datetime
+    _parse = riven_sync._parse_datetime
 
     def _parse_local(val):
         if isinstance(val, datetime) and val.tzinfo is None:
@@ -265,8 +302,9 @@ def main() -> None:
                 return d
         return _parse(val)
 
-    clawdex_sync._parse_datetime = _parse_local
+    riven_sync._parse_datetime = _parse_local
 
+    init_database()
     trainer = SelfTrainer(sakz)
     install_calibration(trainer, db_url)
 

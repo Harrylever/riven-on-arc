@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.db
+*.pkl
+.venv/
+.env
+README.md
+.pytest_cache/
