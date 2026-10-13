@@ -17,8 +17,8 @@ import type { PerpSignal } from "@/components/perps/perps-panel"
 import { signalCoinKey } from "@/lib/perp-symbols"
 import { ago, priceUsd } from "@/lib/format"
 import { venueName } from "@/lib/perp-symbols"
-import { DISCLAIMER } from "@/lib/site"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { RivenRead } from "@/components/perps/riven-read"
 
 const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 
@@ -35,6 +35,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
   const [signals, setSignals] = useState<PerpSignal[] | null>(null)
   const [order, setOrder] = useState<PerpSignal | null>(null)
   const [flash, setFlash] = useState(0)
+  const [readOpen, setReadOpen] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -107,6 +108,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
       onPress: () => void loadInsight(),
       onDone: () => {
         setFlash((f) => f + 1)
+        setReadOpen(true)
         document.getElementById("read")?.scrollIntoView({ behavior: "smooth", block: "start" })
       },
     },
@@ -153,37 +155,8 @@ export function PerpPairClient({ coin }: { coin: string }) {
         </button>
       </header>
 
-      {/* Riven's read: the analysis engine's plain-English take */}
-      <section
-        id="read"
-        key={`read-${flash}`}
-        className="rv-card scroll-mt-28 p-4"
-        style={flash ? { animation: "rv-flash 1.6s ease-out" } : undefined}
-      >
-        <div className="flex items-center gap-2">
-          <p className="rv-label">Riven&apos;s read</p>
-          {insight && (
-            <span className="rv-num ml-auto text-[11.5px] text-[var(--rv-ink-3)]">
-              Activity {insight.activity}/10 · not a buy score
-            </span>
-          )}
-        </div>
-        {insight ? (
-          <>
-            <p className="mt-1.5 text-[15px] leading-snug font-semibold text-[var(--rv-ink)]">{insight.why}</p>
-            <ul className="mt-2 flex flex-col gap-1 text-[13px] leading-relaxed text-[var(--rv-ink-2)]">
-              {insight.bullets.map((b, i) => (
-                <li key={i}>• {b}</li>
-              ))}
-            </ul>
-            <p className="mt-2 text-[11.5px] text-[var(--rv-ink-3)]">
-              Live market prices, calls from Riven Scanner, plus crypto news. Riven explains; you decide. {DISCLAIMER}
-            </p>
-          </>
-        ) : (
-          <div className="mt-2 h-16 animate-pulse rounded-md bg-white/[0.04]" />
-        )}
-      </section>
+      {/* Riven's read: the analysis engine's plain-English take (a drop-down; it closes once scrolled past) */}
+      <RivenRead insight={insight} open={readOpen} onOpenChange={setReadOpen} flash={flash} />
 
       {market && markets ? (
         <PerpTerminal
