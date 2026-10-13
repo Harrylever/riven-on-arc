@@ -7,7 +7,9 @@ import { Toaster } from "@/components/ui/toast"
 import { RivenShell } from "@/components/riven/riven-shell"
 import { ReactNode } from "react"
 import {
+  buildSiteJsonLd,
   getSiteUrl,
+  serializeJsonLd,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TAGLINE,
@@ -41,15 +43,11 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   authors: [{ name: SITE_NAME }],
   category: "finance",
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
     title: `${SITE_NAME} — ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
-    url: "/",
   },
   twitter: {
     card: "summary_large_image",
@@ -65,6 +63,9 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
     },
   },
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
   icons: {
     // /favicon.ico is served from app/favicon.ico; the PNGs live in public/.
     icon: [
@@ -84,11 +85,18 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const siteJsonLd = serializeJsonLd(buildSiteJsonLd(getSiteUrl()))
   return (
     <html
       lang="en"
       className={cn("h-full", "antialiased", "font-sans", inter.variable)}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: siteJsonLd }}
+        />
+      </head>
       <body className="rv-body text-foreground flex min-h-full flex-col">
         <TooltipProvider>
           <RivenShell>{children}</RivenShell>

@@ -1,18 +1,24 @@
 import type { MetadataRoute } from "next"
-import { getSiteUrl } from "@/lib/site"
+import { PERPS_ENABLED } from "@/lib/flags"
+import { getSiteUrl, sitemapShardUrls } from "@/lib/site"
+import { generateSitemaps as generateTokenSitemaps } from "./token/sitemap"
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
   const siteUrl = getSiteUrl()
+  const tokenShards = await generateTokenSitemaps()
   return {
     rules: {
       userAgent: "*",
       allow: "/",
-      // /login: an auth entry point, no unique content to index.
-      // /watchlist: purely a browser-localStorage view — empty for any
-      // crawler, and whatever it renders is one visitor's own data anyway.
-      // /api/*: JSON endpoints, not pages.
-      disallow: ["/watchlist", "/api/"],
+      // Utility pages stay crawlable so their page-level noindex can be read.
+      // JSON endpoints are never search results.
+      disallow: ["/api/"],
     },
-    sitemap: `${siteUrl}/sitemap.xml`,
+    sitemap: [
+      `${siteUrl}/sitemap.xml`,
+      ...sitemapShardUrls(siteUrl, "token", tokenShards),
+      `${siteUrl}/creator/sitemap.xml`,
+      ...(PERPS_ENABLED ? [`${siteUrl}/perps/sitemap.xml`] : []),
+    ],
   }
 }

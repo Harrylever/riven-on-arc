@@ -1,12 +1,13 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { buildPageMetadata } from "@/lib/site"
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "How the score works",
   description:
     "Riven's arc-v5 methodology: five sub-scores, automatic red flags, and where every number comes from.",
-}
+  path: "/methodology",
+})
 
 const PARTS = [
   {

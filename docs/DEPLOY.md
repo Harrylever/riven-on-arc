@@ -84,7 +84,8 @@ Environment variables (Production and Preview):
 | `NEXT_PUBLIC_CHAIN_MODE` | `arc` |
 | `NEXT_PUBLIC_TRADING_ENABLED` | `false` until the swap encoder has been tried with real funds (see `docs/TRADING-TEST.md`) |
 | `NEXT_PUBLIC_PERPS_ENABLED` | `true` (paper trading) or `false` to hide the perps terminal |
-| `NEXT_PUBLIC_APP_URL` | the public site URL |
+| `NEXT_PUBLIC_APP_URL` | the permanent public site origin, with no path (for example `https://riven.app`). Required for canonical URLs, Open Graph URLs, robots.txt and sitemaps; do not use a preview deployment URL |
+| `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | optional Google Search Console HTML-tag verification token (the `content` value only) |
 | `ANTHROPIC_API_KEY` | optional; Ask Riven falls back to its rule-based answers |
 
 Do **not** run migrations from the frontend build.

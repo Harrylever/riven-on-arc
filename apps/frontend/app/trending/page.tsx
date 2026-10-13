@@ -1,15 +1,15 @@
-import type { Metadata } from "next"
 import { getMarketTotals, getScreener } from "@/lib/arc-data"
 import { parseFilters } from "@/lib/screener-params"
 import { Screener } from "@/components/riven/screener"
+import { buildPageMetadata } from "@/lib/site"
 
 export const dynamic = "force-dynamic"
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Trending on Arc",
   description: "Every token on Arc, ranked live like DexScreener, each with a 1–10 Riven safety score.",
-  alternates: { canonical: "/trending" },
-}
+  path: "/trending",
+})
 
 export default async function TrendingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const filters = parseFilters(await searchParams)

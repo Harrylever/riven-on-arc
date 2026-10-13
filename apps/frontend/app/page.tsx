@@ -23,6 +23,18 @@ export const metadata: Metadata = {
   title: { absolute: `${SITE_NAME} — ${SITE_TAGLINE}` },
   description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+  },
 }
 
 const settle = <T,>(p: Promise<T>, fallback: T) =>

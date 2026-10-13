@@ -1,14 +1,15 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 import { getAccuracy } from "@/lib/arc-data"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { buildPageMetadata } from "@/lib/site"
 
 export const dynamic = "force-dynamic"
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Does the score warn in time?",
   description:
     "Riven's own track record: how often tokens it rated Risk, Caution or Healthy later saw liquidity pulled or a creator sell out.",
-}
+  path: "/accuracy",
+})
 
 const BAND_LABEL = { risk: "Risk", caution: "Caution", healthy: "Healthy" } as const
 const BAND_COLOR = { risk: "var(--rv-risk)", caution: "var(--rv-caution)", healthy: "var(--rv-healthy)" } as const

@@ -1,4 +1,3 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 import { getAlerts } from "@/lib/arc-data"
 import { age } from "@/lib/riven-format"
@@ -7,12 +6,14 @@ import { AlertSettings } from "@/components/riven/alert-settings"
 import { TelegramConnect } from "@/components/riven/telegram-connect"
 import { PageHero } from "@/components/riven/page-hero"
 import type { Holo } from "@/components/mascot/mascot"
+import { buildPageMetadata } from "@/lib/site"
 
 export const dynamic = "force-dynamic"
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Rug radar",
   description: "Live anti-rug alerts for Arc tokens.",
-}
+  path: "/alerts",
+})
 
 const META: Record<string, { label: string; color: string }> = {
   RUG_PULL: { label: "Liquidity pulled", color: "var(--rv-risk)" },

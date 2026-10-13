@@ -3,12 +3,19 @@ import { notFound } from "next/navigation"
 import { getCreatorRecord } from "@/lib/arc-data"
 import { CreatorTrack } from "@/components/riven/token-view"
 import { shortAddr } from "@/lib/riven-format"
+import { buildPageMetadata } from "@/lib/site"
 
 export const dynamic = "force-dynamic"
 
 export async function generateMetadata({ params }: { params: Promise<{ wallet: string }> }): Promise<Metadata> {
   const { wallet } = await params
-  return { title: `Creator ${shortAddr(wallet.toLowerCase())}`, description: "Every Arc token this wallet has launched, and how each turned out." }
+  const address = wallet.toLowerCase()
+  return buildPageMetadata({
+    title: `Creator ${shortAddr(address)}`,
+    description: "Every Arc token this wallet has launched, and how each turned out.",
+    path: `/creator/${address}`,
+    index: /^0x[0-9a-f]{40}$/.test(address),
+  })
 }
 
 /** A creator's whole launch history, from Riven's own index of every Argus and Tolly launch. */

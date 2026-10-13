@@ -1,9 +1,13 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 import { PERPS_ENABLED } from "@/lib/flags"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { buildPageMetadata } from "@/lib/site"
 
-export const metadata: Metadata = { title: "More" }
+export const metadata = buildPageMetadata({
+  title: "More",
+  description: "Explore Riven's Arc ecosystem, methodology, accuracy, portfolio tools and paper-trading terminal.",
+  path: "/more",
+})
 
 const LINKS = [
   {

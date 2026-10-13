@@ -1,4 +1,3 @@
-import type { Metadata } from "next"
 import { Suspense } from "react"
 import { PageHero } from "@/components/riven/page-hero"
 import {
@@ -11,12 +10,14 @@ import {
   parseLimit,
   parseTab,
 } from "@/components/riven/markets-sections"
+import { buildPageMetadata } from "@/lib/site"
 
 export const dynamic = "force-dynamic"
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Markets",
-  description: "Arc at a glance: new pairs, top volume, safest tokens and everything Riven caught.",
-}
+  description: "Arc at a glance: new pairs, top volume, safest tokens and everything Riven flagged.",
+  path: "/markets",
+})
 
 /**
  * Arc at a glance. The page shell and every list load independently (Suspense), so one slow query can no

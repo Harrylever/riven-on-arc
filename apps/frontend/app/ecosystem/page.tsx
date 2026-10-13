@@ -1,15 +1,16 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 import { EXPLORER, getEcosystem } from "@/lib/arc-data"
 import { shortAddr, usd } from "@/lib/riven-format"
 import { ScoreBadge } from "@/components/riven/score-badge"
 import { TokenAvatar } from "@/components/riven/token-avatar"
+import { buildPageMetadata } from "@/lib/site"
 
 export const dynamic = "force-dynamic"
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Ecosystem",
   description: "Arc launchpads compared: launches, fakes, risk and volume.",
-}
+  path: "/ecosystem",
+})
 
 export default async function EcosystemPage() {
   const eco = await getEcosystem().catch(() => null)
