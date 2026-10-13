@@ -1,10 +1,16 @@
 import type { Metadata } from "next"
-import { getScreener } from "@/lib/arc-data"
-import { DEFAULT_FILTERS } from "@/lib/screener-params"
-import { MarketBoard, type Panel } from "@/components/riven/market-board"
+import { Suspense } from "react"
 import { PageHero } from "@/components/riven/page-hero"
-import type { Holo } from "@/components/mascot/mascot"
-import { usd } from "@/lib/riven-format"
+import {
+  ListSkeleton,
+  MarketsTabs,
+  SummarySkeleton,
+  SummaryStrip,
+  TABS,
+  TabContent,
+  parseLimit,
+  parseTab,
+} from "@/components/riven/markets-sections"
 
 export const dynamic = "force-dynamic"
 export const metadata: Metadata = {
@@ -12,85 +18,43 @@ export const metadata: Metadata = {
   description: "Arc at a glance: new pairs, top volume, safest tokens and everything Riven caught.",
 }
 
-const empty = { tokens: [], total: 0, page: 1, pages: 1 }
-
-export default async function MarketsPage() {
-  const q = (patch: Partial<typeof DEFAULT_FILTERS>) =>
-    getScreener({ ...DEFAULT_FILTERS, ...patch }, 15).catch((err: Error) => {
-      console.error(`[markets] ${err.message}`)
-      return empty
-    })
-  const [fresh, volume, safest, caught] = await Promise.all([
-    q({ sort: "new", view: "all" }),
-    q({ sort: "volume", view: "all" }),
-    q({ sort: "safest", view: "listed" }),
-    q({ sort: "new", view: "caught" }),
-  ])
-  const panels: Panel[] = [
-    {
-      id: "new",
-      title: "New pairs",
-      hint: "Just launched",
-      accent: "var(--rv-healthy)",
-      icon: "M12 5v14M5 12h14",
-      href: "/trending?sort=new&view=all",
-      tokens: fresh.tokens,
-    },
-    {
-      id: "volume",
-      title: "Top volume",
-      hint: "Most traded · 24h",
-      accent: "var(--rv-blue)",
-      icon: "M3 17l6-6 4 4 8-8M15 7h6v6",
-      href: "/trending?view=all",
-      tokens: volume.tokens,
-    },
-    {
-      id: "safest",
-      title: "Safest",
-      hint: "Highest Riven score, not flagged",
-      accent: "var(--rv-healthy)",
-      icon: "M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z",
-      href: "/trending?sort=safest",
-      tokens: safest.tokens,
-      empty: "No unflagged token has earned a score yet — new launches are still being read. Riven never guesses a score.",
-    },
-    {
-      id: "caught",
-      title: "Caught",
-      hint: "Flagged, with the evidence",
-      accent: "var(--rv-risk)",
-      icon: "M12 3 2 20h20L12 3zm0 6v5m0 3h.01",
-      href: "/trending?view=caught",
-      tokens: caught.tokens,
-      showWhy: true,
-    },
-  ]
+/**
+ * Arc at a glance. The page shell and every list load independently (Suspense), so one slow query can no
+ * longer blank the page, and a list that fails says so instead of rendering an empty "all clear".
+ * Tabs are URLs (?tab=flagged&n=50), so a list can be linked and only the open tab is queried.
+ */
+export default async function MarketsPage({ searchParams }: { searchParams: Promise<{ tab?: string; n?: string }> }) {
+  const sp = await searchParams
+  const tab = parseTab(sp.tab)
+  const limit = parseLimit(sp.n)
+  const def = TABS.find((t) => t.id === tab)!
   // eslint-disable-next-line react-hooks/purity -- per-request server render
   const now = Date.now()
-  const lead = volume.tokens[0]
-  const holos: Holo[] = [
-    ...(lead
-      ? [{ title: `Top volume · ${lead.symbol}`, value: usd(lead.volume.h24), note: "Traded in the last 24h", tone: "blue" as const }]
-      : []),
-    { title: "Tokens listed", value: String(fresh.total), note: "Every Arc token with a pool", tone: "green" as const },
-    { title: "Caught · recent", value: String(caught.total), note: "Flagged with on-chain evidence", tone: "red" as const },
-  ]
   return (
     <div className="flex flex-col gap-4">
       <PageHero
         eyebrow="Arc at a glance"
         title="Markets"
-        holos={holos}
         lines={[
           "“Safest” only shows tokens I've scored that aren't flagged.",
-          "New pairs land first — I score them as soon as I can.",
+          "New pairs land first, and I score them as soon as I can.",
           "Tap any row for the full rug check.",
         ]}
       >
-        New pairs, top volume, the safest tokens and everything Riven caught — every list scored.
+        What just launched, what is trading, what looks safest and what Riven has flagged. Unscored tokens are labelled, never guessed.
       </PageHero>
-      <MarketBoard panels={panels} serverNow={now} />
+      <Suspense fallback={<SummarySkeleton />}>
+        <SummaryStrip serverNow={now} />
+      </Suspense>
+      <section className="rv-card overflow-hidden" aria-label={def.label}>
+        <div className="px-2 sm:px-3">
+          <MarketsTabs active={tab} />
+        </div>
+        <p className="border-b border-[var(--rv-stroke)] px-4 py-2.5 text-[12px] leading-relaxed text-[var(--rv-ink-3)]">{def.hint}</p>
+        <Suspense key={`${tab}-${limit}`} fallback={<ListSkeleton />}>
+          <TabContent tab={tab} limit={limit} serverNow={now} />
+        </Suspense>
+      </section>
     </div>
   )
 }
