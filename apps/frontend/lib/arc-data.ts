@@ -3,11 +3,10 @@
 import { cached } from "./memo"
 import {
   ARC_METHODOLOGY,
-  FAKE_FLAG_CODES,
   arcBand,
+  deriveVerdict,
   getDb,
-  impersonates,
-  isWash,
+  withFlagCodes,
   type ArcBand,
   type ArcFlag,
   type SubScoreKey,
@@ -168,78 +167,9 @@ export function imageUrl(raw: string | null | undefined): string | null {
 const num = (v: unknown): number | null =>
   v === null || v === undefined ? null : Number(v)
 
-/** arc-v2 rows predate flag codes: derive them from the (stable) flag text. */
-const TEXT_CODES: Array<[RegExp, string]> = [
-  [/^(Volume looks fake|Fake volume)/, "WASH"],
-  [/^Holders own only/, "DEAD"],
-  [/^Serial launcher/, "SERIAL"],
-  [/^Creator (dumped|sold)/, "CREATOR_DUMP"],
-  [/^Liquidity has already been removed/, "LP_REMOVED"],
-  [/^Liquidity is not locked/, "LP_UNLOCKED"],
-  [/^Contract can still create/, "MINT"],
-  [/^Contract is upgradeable/, "UPGRADE"],
-  [/^Someone can pause/, "RESTRICT"],
-  [/^No sells seen yet/, "NO_SELLS"],
-  [/wallets funded by the creator/, "INSIDERS"],
-  [/^Creator holds/, "CREATOR_HEAVY"],
-  [/^Snipers/, "SNIPERS"],
-  [/^Copycat/, "COPYCAT"],
-]
-type Reason = { code: string; text: string }
-
-/**
- * Flags that need no holder history, so unscored tokens get caught too. Same
- * rules as the shared scorer (one source of truth), applied to market data.
- */
-function marketFakeReasons(
-  t: { name: string; symbol: string },
-  vol24: number | null,
-  usdcInPool: number | null,
-): Reason[] {
-  const out: Reason[] = []
-  const brand = impersonates(t)
-  if (brand)
-    out.push({
-      code: "IMPERSONATION",
-      text: `Impersonates ${brand} — not an official token`,
-    })
-  if (isWash(vol24, usdcInPool)) {
-    out.push({
-      code: "WASH",
-      text: `Fake volume: $${Math.round(vol24!).toLocaleString()} traded in 24h through a pool holding only $${usdcInPool! < 10 ? usdcInPool!.toFixed(2) : Math.round(usdcInPool!)} of USDC`,
-    })
-  }
-  return out
-}
-
-/**
- * Flag codes from runs scored before arc-v5 carried known false positives
- * (DEAD on busy tokens, WASH from a wrong pool-USDC figure, LP_REMOVED and
- * CREATOR_DUMP from mis-summed liquidity/burns). Until a token is rescored,
- * only trust the codes that weren't affected.
- */
-const TRUSTED_LEGACY_CODES = new Set(["SERIAL", "IMPERSONATION"])
-function scoredReasons(
-  flags: ArcFlag[],
-  methodology: string | null | undefined,
-): Reason[] {
-  const current = methodology === ARC_METHODOLOGY
-  return flags
-    .filter((f) => (FAKE_FLAG_CODES as readonly string[]).includes(f.code))
-    .filter((f) => current || TRUSTED_LEGACY_CODES.has(f.code))
-    .map((f) => ({ code: f.code, text: f.text }))
-}
-
-function withCodes(flags: ArcFlag[] | undefined): ArcFlag[] {
-  return (flags ?? []).map((f) =>
-    f.code
-      ? f
-      : {
-          ...f,
-          code: TEXT_CODES.find(([re]) => re.test(f.text))?.[1] ?? "INFO",
-        },
-  )
-}
+// The verdict rules (flag codes, which old flags to trust, wash trading, impersonation) live in
+// @riven/shared so the scorer, the market sync and this page cannot disagree.
+const withCodes = withFlagCodes
 const PAD_LABEL: Record<string, string> = {
   ARGUS: "Argus",
   TOLLY: "Tolly",
@@ -251,45 +181,57 @@ const INCLUDE = {
   scoreRuns: { orderBy: { calculatedAt: "desc" as const }, take: 1 },
 }
 
+/** What summarize() reads from a token's latest score run. */
+interface RunLike {
+  score: unknown
+  methodology: string | null
+  signals: unknown
+  calculatedAt: Date
+}
+
+/**
+ * The latest score run for each token, in one indexed query. Loading it as a nested relation made Prisma
+ * fetch every historical run (and its large signals blob) for every token on the page: 2.4s for 15 rows.
+ */
+async function latestRuns(ids: string[]): Promise<Map<string, RunLike>> {
+  if (ids.length === 0) return new Map()
+  const found = await getDb().$queryRaw<
+    Array<{ token_id: string; score: unknown; methodology: string | null; signals: unknown; calculated_at: Date }>
+  >`
+    SELECT DISTINCT ON (token_id) token_id, score, methodology, signals, calculated_at
+    FROM score_runs WHERE token_id = ANY(${ids}::text[])
+    ORDER BY token_id, calculated_at DESC`
+  return new Map(
+    found.map((r) => [r.token_id, { score: r.score, methodology: r.methodology, signals: r.signals, calculatedAt: r.calculated_at }]),
+  )
+}
+
+async function withRuns<T extends { id: string }>(list: T[]): Promise<Array<T & { scoreRuns: RunLike[] }>> {
+  const runs = await latestRuns(list.map((t) => t.id))
+  return list.map((t) => ({ ...t, scoreRuns: runs.has(t.id) ? [runs.get(t.id)!] : [] }))
+}
+
 type TokenRow = Awaited<ReturnType<typeof rows>>[number]
 async function rows(where: object, orderBy: object | object[], take: number) {
-  return getDb().token.findMany({
+  const list = await getDb().token.findMany({
     where: { pools: { some: {} }, ...where },
     orderBy,
     take,
-    include: INCLUDE,
+    include: { arcMarket: true },
   })
-}
-
-/** v2 rows were stored 0–100; v3+ store the 1–10 score directly. */
-function scoreOf(
-  run: { score: unknown; methodology: string | null } | undefined,
-): number | null {
-  if (!run) return null
-  const s = Number(run.score)
-  return run.methodology === "arc-v2" || run.methodology === null
-    ? Math.max(1, Math.round(s) / 10)
-    : s
+  return withRuns(list)
 }
 
 /** How many other tokens share each ticker (case-insensitive), for copycat warnings. */
 async function copyCounts(symbols: string[]): Promise<Map<string, number>> {
-  const unique = [...new Set(symbols.map((s) => s.trim()).filter(Boolean))]
+  const unique = [...new Set(symbols.map((s) => s.trim().toLowerCase()).filter(Boolean))]
   if (unique.length === 0) return new Map()
-  const rows = await getDb().token.findMany({
-    where: {
-      OR: unique.map((sym) => ({
-        symbol: { equals: sym, mode: "insensitive" as const },
-      })),
-    },
-    select: { symbol: true },
-  })
-  const counts = new Map<string, number>()
-  for (const r of rows) {
-    const k = r.symbol.trim().toLowerCase()
-    counts.set(k, (counts.get(k) ?? 0) + 1)
-  }
-  return counts
+  // lower(symbol) is indexed (tokens_symbol_lower_idx); a case-insensitive ILIKE scanned every token.
+  const found = await getDb().$queryRaw<Array<{ s: string; c: number }>>`
+    SELECT lower(symbol) AS s, count(*)::int AS c
+    FROM tokens WHERE lower(symbol) = ANY(${unique}::text[])
+    GROUP BY 1`
+  return new Map(found.map((r) => [r.s, r.c]))
 }
 
 async function withCopies<T extends TokenSummary>(list: T[]): Promise<T[]> {
@@ -305,7 +247,6 @@ function summarize(t: TokenRow): TokenSummary {
   const sig = (run?.signals ?? {}) as Signals
   const flags = withCodes(sig.flags)
   const m = t.arcMarket
-  const score = scoreOf(run)
   const socialsJson = (m?.socials ?? null) as {
     usdcInPool?: number | null
     profile?: boolean
@@ -315,13 +256,15 @@ function summarize(t: TokenRow): TokenSummary {
     websites?: string[]
   } | null
   const usdcInPool = sig.market?.poolUsdc ?? socialsJson?.usdcInPool ?? null
-  const scored = scoredReasons(flags, run?.methodology)
-  const reasons = [
-    ...scored,
-    ...marketFakeReasons(t, num(m?.volume24h), usdcInPool).filter(
-      (r) => !scored.some((x) => x.code === r.code),
-    ),
-  ]
+  const verdict = deriveVerdict({
+    name: t.name,
+    symbol: t.symbol,
+    run: run ? { score: run.score, methodology: run.methodology, flags: sig.flags } : null,
+    volume24h: num(m?.volume24h),
+    usdcInPool,
+  })
+  const score = verdict.score
+  const reasons = verdict.reasons
   return {
     address: t.mint,
     name: t.name || t.symbol || "Unnamed",
@@ -377,6 +320,11 @@ const AGE_MS: Record<Exclude<AgeFilter, "all">, number> = {
   "7d": 7 * 24 * 3_600_000,
 }
 
+interface ScreenerOpts {
+  /** false skips the exact row count (3.5s over 83k tokens); `total` is then just the rows returned. */
+  total?: boolean
+}
+
 /**
  * The screener: every indexed Arc token, filtered and sorted like DexScreener.
  * Fake tokens (wash trading, dead, serial launcher, creator dump, pulled LP)
@@ -386,6 +334,7 @@ const AGE_MS: Record<Exclude<AgeFilter, "all">, number> = {
 async function getScreenerRaw(
   f: ScreenerFilters,
   pageSize = PAGE_SIZE,
+  opts: ScreenerOpts = {},
 ): Promise<{
   tokens: TokenSummary[]
   total: number
@@ -445,18 +394,29 @@ async function getScreenerRaw(
   if (!needsScore) {
     const db = getDb()
     const fullWhere = { pools: { some: {} }, ...where }
-    const total = await db.token.count({ where: fullWhere })
-    const pages = Math.max(1, Math.ceil(total / pageSize))
+    const total = opts.total === false ? null : await db.token.count({ where: fullWhere })
+    const pages = total === null ? Math.max(1, f.page ?? 1) : Math.max(1, Math.ceil(total / pageSize))
     const page = Math.min(f.page ?? 1, pages)
     const found = await db.token.findMany({
       where: fullWhere,
       orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
-      include: INCLUDE,
+      include: { arcMarket: true },
     })
-    const tokens = await withCopies(found.map(summarize))
-    return { tokens, total, page, pages }
+    const tokens = await withCopies((await withRuns(found)).map(summarize))
+    return { tokens, total: total ?? tokens.length, page, pages }
+  }
+
+  // Score-based views (Safest, Flagged, band and score filters) are answered from token_score_latest, which the
+  // scorer and market sync keep current: an indexed lookup instead of loading and scoring thousands of tokens.
+  if (f.sort !== "gap") {
+    try {
+      return await screenFromSummary(f, pageSize, where, orderBy, opts)
+    } catch (err) {
+      // Only before the migration has been applied: fall through to the slow in-memory path below.
+      if (!isMissingSummaryTable(err)) throw err
+    }
   }
 
   // Score-based views need the computed verdict, so filter in memory over the
@@ -993,9 +953,88 @@ export const getArcPulse = () => cached("pulse", 30000, () => getArcPulseRaw())
 
 export const getMarketTotals = () => cached("totals", 30000, () => getMarketTotalsRaw())
 
+const isMissingSummaryTable = (err: unknown) =>
+  (err as { code?: string })?.code === "P2021" || /token_score_latest/.test(String((err as Error)?.message))
+
+/** Flagged = a trusted score flag or a market/name flag; no row at all means not scored and not flagged. */
+const FLAGGED = { OR: [{ scoreCodes: { isEmpty: false } }, { marketCodes: { isEmpty: false } }] }
+const NOT_FLAGGED = { scoreCodes: { isEmpty: true }, marketCodes: { isEmpty: true } }
+
+async function screenFromSummary(
+  f: ScreenerFilters,
+  pageSize: number,
+  where: Record<string, unknown>,
+  orderBy: object | object[],
+  opts: ScreenerOpts,
+) {
+  const db = getDb()
+  const and: object[] = []
+  if (f.view === "caught") and.push({ scoreLatest: { is: FLAGGED } })
+  if (f.view === "listed") and.push({ OR: [{ scoreLatest: { is: null } }, { scoreLatest: { is: NOT_FLAGGED } }] })
+  if (f.band === "unscored") and.push({ OR: [{ scoreLatest: { is: null } }, { scoreLatest: { is: { score: null } } }] })
+  else if (f.band !== "all") and.push({ scoreLatest: { is: { band: f.band } } })
+  if (f.minScore > 0) and.push({ scoreLatest: { is: { score: { gte: f.minScore } } } })
+  if (f.sort === "safest") and.push({ scoreLatest: { is: { score: { not: null } } } })
+  const order =
+    f.sort === "safest"
+      ? [{ scoreLatest: { score: { sort: "desc" as const, nulls: "last" as const } } }, { arcMarket: { volume24h: { sort: "desc" as const, nulls: "last" as const } } }]
+      : orderBy
+  const fullWhere = { pools: { some: {} }, ...where, AND: and }
+  const total = opts.total === false ? null : await db.token.count({ where: fullWhere })
+  const pages = total === null ? Math.max(1, f.page ?? 1) : Math.max(1, Math.ceil(total / pageSize))
+  const page = Math.min(f.page ?? 1, pages)
+  const found = await db.token.findMany({
+    where: fullWhere,
+    orderBy: order,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    include: { arcMarket: true },
+  })
+  const tokens = await withCopies((await withRuns(found)).map(summarize))
+  return { tokens, total: total ?? tokens.length, page, pages }
+}
+
 /** Screener lists, cached briefly per filter set (the list refreshes every ~15s anyway). */
-export const getScreener = (f: ScreenerFilters, pageSize = PAGE_SIZE) =>
-  cached(`screener:${JSON.stringify(f)}:${pageSize}`, 15_000, () => getScreenerRaw(f, pageSize))
+export const getScreener = (f: ScreenerFilters, pageSize = PAGE_SIZE, opts: ScreenerOpts = {}) =>
+  cached(`screener:${JSON.stringify(f)}:${pageSize}:${opts.total === false ? "n" : "t"}`, 15_000, () => getScreenerRaw(f, pageSize, opts))
+
+export interface MarketsSummary {
+  volume24h: number
+  trading: number
+  liquidity: number
+  /** Approximate (the planner's row estimate): counting 83k tokens exactly takes seconds. */
+  tokens: number
+  launches24h: number
+  flaggedTotal: number
+  flagged24h: number
+  syncedAt: string | null
+}
+
+async function getMarketsSummaryRaw(): Promise<MarketsSummary> {
+  const db = getDb()
+  const since = new Date(Date.now() - 24 * 3_600_000)
+  const [m, est, launches, flaggedTotal, flagged24h, cursor] = await Promise.all([
+    db.$queryRaw<Array<{ v: unknown; trading: bigint; liq: unknown }>>`
+      SELECT COALESCE(sum(volume_24h), 0) AS v, count(*) FILTER (WHERE volume_24h > 0) AS trading, COALESCE(sum(liquidity_usd), 0) AS liq
+      FROM arc_markets`,
+    db.$queryRaw<Array<{ n: bigint }>>`SELECT reltuples::bigint AS n FROM pg_class WHERE relname = 'tokens'`,
+    db.token.count({ where: { launchTime: { gte: since } } }),
+    db.tokenScoreLatest.count({ where: FLAGGED }),
+    db.tokenScoreLatest.count({ where: { AND: [FLAGGED, { token: { launchTime: { gte: since } } }] } }),
+    db.arcIndexerCursor.findUnique({ where: { source: "arc:activity" } }),
+  ])
+  return {
+    volume24h: Number(m[0]?.v ?? 0),
+    trading: Number(m[0]?.trading ?? 0),
+    liquidity: Number(m[0]?.liq ?? 0),
+    tokens: Number(est[0]?.n ?? 0),
+    launches24h: launches,
+    flaggedTotal,
+    flagged24h,
+    syncedAt: cursor ? cursor.updatedAt.toISOString() : null,
+  }
+}
+export const getMarketsSummary = () => cached("markets-summary", 30_000, () => getMarketsSummaryRaw())
 
 export const getAlerts = (
   opts: { addresses?: string[]; limit?: number } = {},
