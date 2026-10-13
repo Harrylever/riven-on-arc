@@ -28,7 +28,8 @@ test("with CHAIN_MODE unset, only Arc indexing runs (no stray Solana jobs)", () 
   delete process.env.CHAIN_MODE;
   const jobs = startJobs(createServices());
   try {
-    expect(jobs.map((j) => j.name)).toEqual(["arcPipeline.runOnce", "telegram.tick", "arcScoring.scoreOnce"]);
+    // retention is not Solana polling: score_runs would grow without limit on Arc without it
+    expect(jobs.map((j) => j.name)).toEqual(["arcPipeline.runOnce", "telegram.tick", "arcScoring.scoreOnce", "retention.pruneOldRows"]);
   } finally {
     jobs.forEach((j) => j.stop());
   }
@@ -38,7 +39,8 @@ test("Arc mode schedules only Arc indexing and avoids legacy Solana polling", ()
   process.env.CHAIN_MODE = "arc";
   const jobs = startJobs(createServices());
   try {
-    expect(jobs.map((j) => j.name)).toEqual(["arcPipeline.runOnce", "telegram.tick", "arcScoring.scoreOnce"]);
+    // retention is not Solana polling: score_runs would grow without limit on Arc without it
+    expect(jobs.map((j) => j.name)).toEqual(["arcPipeline.runOnce", "telegram.tick", "arcScoring.scoreOnce", "retention.pruneOldRows"]);
   } finally {
     jobs.forEach((j) => j.stop());
     delete process.env.CHAIN_MODE;
