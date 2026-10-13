@@ -1,7 +1,7 @@
 "use client"
 
 // The perps page mixes two data sources that must never be confused:
-//   Markets        - live prices, 24h change and volume from Hyperliquid
+//   Markets        - live prices, 24h change and volume
 //   Riven Scanner  - trade setups found on Bybit, MEXC and Binance (powered by sakz-bot)
 // Everything here exists to keep them visibly apart: one tab each, a strip that says where
 // the data comes from, an outlined pill for scanner opinions (never styled like a price),
@@ -63,7 +63,7 @@ export function SourceTabs({
 }) {
   const tabs: Array<{ id: SourceTab; label: string; sub: string; count: number | null }> = [
     { id: "scanner", label: "Riven Scanner", sub: "setups from Bybit, MEXC, Binance", count: scannerCount },
-    { id: "markets", label: "Markets", sub: "live prices from Hyperliquid", count: marketCount },
+    { id: "markets", label: "Markets", sub: "live perp prices", count: marketCount },
   ]
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return
@@ -134,13 +134,13 @@ export function SourceStrip({ kind, children }: { kind: SourceTab; children?: Re
             <ScannerGlyph className="text-[var(--rv-blue)]" /> Riven Scanner
           </>
         ) : (
-          "Hyperliquid markets"
+          "Live markets"
         )}
       </span>
       <span className="min-w-0 flex-1 text-[var(--rv-ink-3)]">
         {scanner
-          ? "Setups found on Bybit, MEXC and Binance, powered by sakz-bot. Entry, stop and targets are priced on that exchange, not on Hyperliquid."
-          : "Live price, 24h change and volume for every perp Hyperliquid lists. A scanner pill marks a coin with an open Riven Scanner call."}
+          ? "Setups found on Bybit, MEXC and Binance, powered by sakz-bot. Entry, stop and targets are priced on that exchange, so they can differ from live market prices."
+          : "Live price, 24h change and volume for every perp market. A scanner pill marks a coin with an open Riven Scanner call."}
       </span>
       {children && <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">{children}</span>}
     </div>
@@ -187,7 +187,7 @@ export function PriceGap({
   entry: number
   mark: number | null | undefined
   scanTime: string
-  /** False for finished calls: today's Hyperliquid price says nothing about them. */
+  /** False for finished calls: today's market price says nothing about them. */
   showNow?: boolean
 }) {
   const gap = mark ? ((mark - entry) / entry) * 100 : null
@@ -199,13 +199,12 @@ export function PriceGap({
       </p>
       {showNow && <p>
         {mark === undefined ? (
-          "Hyperliquid price loading…"
+          "Live market price loading…"
         ) : mark === null ? (
-          "Not listed on Hyperliquid, so it can't be paper-traded here"
+          "No live market for this coin, so it can't be paper-traded here"
         ) : (
           <>
-            Now on <b className="text-[var(--rv-ink-2)]">Hyperliquid</b>{" "}
-            <b className="text-[var(--rv-ink-2)]">{priceUsd(mark)}</b>
+            Live market price now <b className="text-[var(--rv-ink-2)]">{priceUsd(mark)}</b>
             {gap !== null && ` (${gap >= 0 ? "+" : ""}${gap.toFixed(1)}% vs entry)`}
           </>
         )}

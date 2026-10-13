@@ -9,7 +9,7 @@ const LINKS = [
   {
     href: "/perps",
     label: "Perps terminal",
-    hint: "Hyperliquid perps, TradingView chart, Riven Scanner calls and price alerts",
+    hint: "Live perps, TradingView charts, Riven Scanner calls and price alerts",
   },
   {
     href: "/watchlist",

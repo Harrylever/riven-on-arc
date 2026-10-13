@@ -78,7 +78,7 @@ export async function getPerpInsight(coinRaw: string): Promise<PerpInsight> {
   if (m) {
     const ch = m.change24h
     const big = Math.abs(ch) >= 5
-    bullets.push(`${coin} is ${pct(ch)} in 24h at ${price(m.markPrice)} (Hyperliquid mark).`)
+    bullets.push(`${coin} is ${pct(ch)} in 24h at ${price(m.markPrice)} (live mark price).`)
     bullets.push(`24h volume ${money(m.volume24h)}; open interest ${money(m.openInterestUsd)}.`)
     const oiTurn = m.openInterestUsd > 0 ? m.volume24h / m.openInterestUsd : 0
     if (oiTurn > 3) bullets.push("Trading is heavy relative to open positions — lots of short-term flipping.")
@@ -105,7 +105,7 @@ export async function getPerpInsight(coinRaw: string): Promise<PerpInsight> {
     mood = big && ch > 0 ? "happy" : big && ch < 0 ? "warn" : "idle"
     if (m.fundingBias !== "NEUTRAL" && big) mood = "warn"
   } else {
-    why = `Riven has no live Hyperliquid market for ${coin}.`
+    why = `Riven has no live perp market for ${coin}.`
   }
 
   if (recent.length > 0) {
@@ -115,7 +115,7 @@ export async function getPerpInsight(coinRaw: string): Promise<PerpInsight> {
   }
   if (call) {
     bullets.push(
-      `Riven Scanner has an open ${call.bias} call from ${venueName(call.exchange)}, conviction ${call.confidence}/10: entry ${price(call.entryPrice)}, stop ${price(call.stopLoss)}, first target ${price(call.t1)}. Those levels are ${venueName(call.exchange)} prices, not Hyperliquid's.`,
+      `Riven Scanner has an open ${call.bias} call from ${venueName(call.exchange)}, conviction ${call.confidence}/10: entry ${price(call.entryPrice)}, stop ${price(call.stopLoss)}, first target ${price(call.t1)}. Those levels are ${venueName(call.exchange)} prices, which can differ from the live market price.`,
     )
   }
 
@@ -128,6 +128,6 @@ export function insightFacts(i: PerpInsight) {
     `Pair: ${i.coin}-PERP. Activity ${i.activity}/10 (how much is going on — not a buy score).`,
     `Likely reason: ${i.why}`,
     ...i.bullets.map((b) => `• ${b}`),
-    "Source: Hyperliquid market data (prices), Riven Scanner (calls), crypto news RSS (Cointelegraph, Decrypt, CoinDesk, Bitcoin Magazine).",
+    "Source: live perp market data (prices), Riven Scanner (calls), crypto news RSS (Cointelegraph, Decrypt, CoinDesk, Bitcoin Magazine).",
   ].join("\n")
 }

@@ -152,12 +152,12 @@ export function CallCard({
               disabled={mark === null}
               title={
                 mark === null
-                  ? "Hyperliquid doesn't list this coin"
-                  : "Levels come from the scanner's exchange; the paper order fills at Hyperliquid's price"
+                  ? "No live market for this coin"
+                  : "Levels come from the scanner's exchange; the paper order fills at the live market price"
               }
               className="rv-btn ml-auto h-8 px-3 text-[12px] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Paper trade on Hyperliquid
+              Paper trade
             </button>
           )}
         </div>

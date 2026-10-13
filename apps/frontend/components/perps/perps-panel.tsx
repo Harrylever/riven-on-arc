@@ -811,7 +811,7 @@ export function PerpsPanel() {
                       <input
                         type="text"
                         placeholder="Filter markets (e.g. SOL, BTC)…"
-                        aria-label="Filter Hyperliquid markets"
+                        aria-label="Filter live markets"
                         value={marketSearch}
                         onChange={(e) => setMarketSearch(e.target.value)}
                         className="w-44 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-1 text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)] sm:w-52"
@@ -877,7 +877,7 @@ export function PerpsPanel() {
                   {list.length === 0 && (
                     <div className="px-3 py-6 text-center text-[11px] text-[var(--rv-ink-3)]">
                       {marketGroup === "signal"
-                        ? "No open Riven Scanner calls match a Hyperliquid market right now."
+                        ? "No open Riven Scanner calls match a live market right now."
                         : "No markets in this group."}
                     </div>
                   )}
@@ -893,7 +893,7 @@ export function PerpsPanel() {
           )}
           {displayedMarkets !== null && displayedMarkets.length === 0 && (
             <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-8 text-center text-xs text-[var(--rv-ink-3)]">
-              No Hyperliquid market matches that search.
+              No market matches that search.
             </div>
           )}
         </div>

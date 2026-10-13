@@ -178,7 +178,7 @@ export async function perpsOverview(lower: string): Promise<AgentReply> {
       ...calls.map((c) => `• ${c.symbol} ${c.bias} — confidence ${c.confidence}/10${c.winProb != null ? `, calibrated hit chance ${Math.round(Number(c.winProb) * 100)}%` : ""}`),
     )
   else parts.push("No open scanner calls right now.")
-  parts.push(`Source: Hyperliquid market data (prices) and Riven Scanner (calls, priced on Bybit, MEXC or Binance). Calls are data, not advice. ${DISCLAIMER}`)
+  parts.push(`Source: Riven's live perp market feed (prices) and Riven Scanner (calls, priced on Bybit, MEXC or Binance). Calls are data, not advice. ${DISCLAIMER}`)
   return { text: parts.join("\n"), tokens: [] }
 }
 

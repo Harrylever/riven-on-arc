@@ -129,7 +129,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
             {coin}
             <span className="text-[16px] font-semibold text-[var(--rv-ink-3)]">-PERP</span>
           </h1>
-          <p className="text-[12px] text-[var(--rv-ink-3)]">Hyperliquid · paper trading · max {market?.maxLeverage ?? "—"}x</p>
+          <p className="text-[12px] text-[var(--rv-ink-3)]">Live market · paper trading · max {market?.maxLeverage ?? "—"}x</p>
         </div>
         {market && (
           <div className="ml-2">
@@ -177,7 +177,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
               ))}
             </ul>
             <p className="mt-2 text-[11.5px] text-[var(--rv-ink-3)]">
-              Prices from Hyperliquid, calls from Riven Scanner, plus crypto news. Riven explains; you decide. {DISCLAIMER}
+              Live market prices, calls from Riven Scanner, plus crypto news. Riven explains; you decide. {DISCLAIMER}
             </p>
           </>
         ) : (
@@ -195,7 +195,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
         />
       ) : markets ? (
         <p className="rv-card px-4 py-8 text-center text-[13px] text-[var(--rv-ink-2)]">
-          Hyperliquid has no {coin} perp. <Link href="/perps" className="text-[var(--rv-ice)] hover:underline">See all pairs</Link>
+          There is no live {coin} perp market. <Link href="/perps" className="text-[var(--rv-ice)] hover:underline">See all pairs</Link>
         </p>
       ) : (
         <div className="rv-card h-[420px] animate-pulse" />
@@ -214,7 +214,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
             <b className="text-[var(--rv-ink)]">Riven Scanner call</b> from {venueName(open.exchange)} · conviction {open.confidence}/10 · entry {priceUsd(open.entryLow)}–
             {priceUsd(open.entryHigh)} · stop {priceUsd(open.stopLoss)} · targets {priceUsd(open.t1)} / {priceUsd(open.t2)} /{" "}
             {priceUsd(open.t3)} · {ago(open.scanTime)} ago. Levels are {venueName(open.exchange)} prices; the chart and paper
-            orders use Hyperliquid&apos;s.
+            orders use live market prices.
           </div>
           <button type="button" onClick={() => setOrder(open)} className="rv-btn h-9 px-4 text-[13px]">
             Paper trade this call

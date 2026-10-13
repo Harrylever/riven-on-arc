@@ -112,7 +112,7 @@ export function SignalCarousel({
                 <div className="shrink-0 text-right">
                   <p className="rv-num text-[13px] font-bold text-[var(--rv-ink)]">{priceUsd(mark ?? s.entryPrice)}</p>
                   <p className="text-[10.5px] text-[var(--rv-ink-3)]">
-                    {mark ? "on Hyperliquid" : marksReady ? "entry · not on Hyperliquid" : "entry"}
+                    {mark ? "live price" : marksReady ? "entry · no live market" : "entry"}
                   </p>
                 </div>
               </div>
