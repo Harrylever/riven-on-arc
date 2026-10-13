@@ -158,6 +158,11 @@ export function openSession(question: string, history: Turn[], ctx: ToolContext)
   return null
 }
 
+/** Tests pass a stub instead of mocking the module (module mocks leak across test files). */
+export interface AgentDeps {
+  runTool: typeof runTool
+}
+
 /**
  * Run the tool loop. Throws on any model/transport failure — the caller then
  * falls back to the rule-based answer.
@@ -165,6 +170,7 @@ export function openSession(question: string, history: Turn[], ctx: ToolContext)
 export async function runAgent(
   session: ModelSession,
   ctx: ToolContext,
+  deps: AgentDeps = { runTool },
 ): Promise<AgentReply & { mode: ModelSession["mode"]; toolsUsed: string[] }> {
   const tokens = new Map<string, TokenSummary>()
   const toolsUsed: string[] = []
@@ -177,7 +183,7 @@ export async function runAgent(
     const results: ToolResultMsg[] = await Promise.all(
       step.calls.map(async (call) => {
         if (!run.includes(call)) return { call, text: "Skipped: tool-call limit reached for this question." }
-        const reply = await runTool(call.name, call.args, ctx)
+        const reply = await deps.runTool(call.name, call.args, ctx)
         for (const t of reply.tokens) tokens.set(t.address, t)
         toolsUsed.push(call.name)
         return { call, text: reply.text }

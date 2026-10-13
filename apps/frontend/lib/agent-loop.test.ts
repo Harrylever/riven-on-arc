@@ -1,17 +1,18 @@
-import { describe, expect, mock, test } from "bun:test"
+import { describe, expect, test } from "bun:test"
+import { MAX_TOOL_CALLS, runAgent as run, type AgentDeps } from "./agent-loop"
 import type { ToolContext } from "./agent-tools"
+import { DISCLAIMER } from "./riven-agent"
 
+// A stub tool runner passed in directly. (Not mock.module: Bun applies a module mock to the whole
+// test process, so it leaked into agent-tools.test.ts whenever this file happened to load first.)
 const ran: Array<{ name: string; args: unknown; ctx: ToolContext }> = []
-mock.module("./agent-tools", () => ({
-  TOOLS: [],
-  runTool: async (name: string, args: unknown, ctx: ToolContext) => {
+const deps: AgentDeps = {
+  runTool: async (name, args, ctx) => {
     ran.push({ name, args, ctx })
-    return { text: `facts from ${name}`, tokens: name === "get_token" ? [{ address: "0xabc" }] : [] }
+    return { text: `facts from ${name}`, tokens: name === "get_token" ? ([{ address: "0xabc" }] as never) : [] }
   },
-}))
-
-const { MAX_TOOL_CALLS, runAgent } = await import("./agent-loop")
-const { DISCLAIMER } = await import("./riven-agent")
+}
+const runAgent = (session: Parameters<typeof run>[0], ctx: ToolContext) => run(session, ctx, deps)
 
 type Step = { text: string; calls: Array<{ id: string; name: string; args: unknown }> }
 function stub(steps: Step[]) {
