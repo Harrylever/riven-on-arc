@@ -156,7 +156,7 @@ export function PerpWatch({
       </div>
 
       <form
-        className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--rv-stroke)] pt-3"
+        className="mt-3 grid grid-cols-[auto_1fr] items-center gap-2 border-t border-[var(--rv-stroke)] pt-3 sm:flex sm:flex-wrap"
         onSubmit={(e) => {
           e.preventDefault()
           addAlert(market.symbol, direction, Number(price))
@@ -168,14 +168,14 @@ export function PerpWatch({
             void Notification.requestPermission()
         }}
       >
-        <span className="text-[12px] text-[var(--rv-ink-2)]">
+        <span className="col-span-2 text-[12px] text-[var(--rv-ink-2)]">
           Alert me when {market.symbol} goes
         </span>
         <select
           value={direction}
           onChange={(e) => setDirection(e.target.value as "above" | "below")}
           aria-label="Direction"
-          className="rv-input h-8 px-2 text-[12px]"
+          className="rv-input h-11 px-2 text-[13px] sm:h-8 sm:text-[12px]"
         >
           <option value="above">above</option>
           <option value="below">below</option>
@@ -186,11 +186,11 @@ export function PerpWatch({
           onChange={(e) => setPrice(e.target.value)}
           placeholder={priceUsd(market.markPrice).replace("$", "")}
           aria-label="Alert price"
-          className="rv-input h-8 w-28 px-2 text-[12px]"
+          className="rv-input h-11 w-full px-2 text-[13px] sm:h-8 sm:w-28 sm:text-[12px]"
         />
         <button
           type="submit"
-          className="h-8 rounded-md bg-[var(--rv-blue)] px-3 text-[12px] font-semibold text-[var(--rv-on-blue)]"
+          className="col-span-2 h-11 rounded-md bg-[var(--rv-blue)] px-3 text-[13px] font-semibold text-[var(--rv-on-blue)] sm:h-8 sm:text-[12px]"
         >
           Set alert
         </button>

@@ -35,11 +35,11 @@ export function NewsFeed({ coin, limit = 12, title }: { coin?: string; limit?: n
 
   return (
     <section id="news" className="scroll-mt-28">
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
         <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
           {title ?? (coin ? `${coin} in the news` : "Trending crypto news")}
         </h2>
-        <span className="ml-auto text-[11.5px] text-[var(--rv-ink-3)]">Cointelegraph · Decrypt · CoinDesk · Bitcoin Magazine</span>
+        <span className="text-[11.5px] text-[var(--rv-ink-3)] sm:ml-auto">Cointelegraph · Decrypt · CoinDesk · Bitcoin Magazine</span>
       </div>
       {news === null ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

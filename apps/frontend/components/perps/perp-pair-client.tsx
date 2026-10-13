@@ -203,20 +203,20 @@ export function PerpPairClient({ coin }: { coin: string }) {
 
       {/* Riven Scanner's call on this pair */}
       {open && (
-        <section className="rv-card flex flex-wrap items-center gap-3 p-4">
+        <section className="rv-card flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center">
           <span
-            className="rounded px-2 py-0.5 text-[12px] font-extrabold"
+            className="self-start rounded px-2 py-0.5 text-[12px] font-extrabold sm:self-auto"
             style={{ color: "#0b0b0d", background: open.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)" }}
           >
             {open.bias}
           </span>
-          <div className="rv-num min-w-0 flex-1 text-[13px] text-[var(--rv-ink-2)]">
+          <div className="rv-num min-w-0 text-[13px] leading-relaxed text-[var(--rv-ink-2)] sm:flex-1">
             <b className="text-[var(--rv-ink)]">Riven Scanner call</b> from {venueName(open.exchange)} · conviction {open.confidence}/10 · entry {priceUsd(open.entryLow)}–
             {priceUsd(open.entryHigh)} · stop {priceUsd(open.stopLoss)} · targets {priceUsd(open.t1)} / {priceUsd(open.t2)} /{" "}
             {priceUsd(open.t3)} · {ago(open.scanTime)} ago. Levels are {venueName(open.exchange)} prices; the chart and paper
             orders use live market prices.
           </div>
-          <button type="button" onClick={() => setOrder(open)} className="rv-btn h-9 px-4 text-[13px]">
+          <button type="button" onClick={() => setOrder(open)} className="rv-btn h-11 w-full px-4 text-[13px] sm:h-9 sm:w-auto">
             Paper trade this call
           </button>
         </section>
