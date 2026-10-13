@@ -140,7 +140,7 @@ export async function marketOverview(): Promise<AgentReply> {
       "Arc right now:",
       `• ${totals.trading} tokens traded in the last 24h — ${usd(totals.volume24h)} volume over ${totals.txns24h.toLocaleString()} trades.`,
       `• ${usd(pulse.realUsdcInTradingPools)} of real USDC sits in ${pulse.tradingPools} trading pools.`,
-      `• Last 24h: ${pulse.liquidityPulls24h} liquidity pulls, ${pulse.creatorSells24h} big creator sales, ${pulse.whaleSells24h} whale sales caught; ${pulse.scoresComputed24h} score updates.`,
+      `• Last 24h: ${pulse.liquidityPulls24h} liquidity pulls, ${pulse.creatorSells24h} big creator sales, ${pulse.whaleSells24h} whale sales caught; ${pulse.scoresComputed24h} tokens re-scored.`,
       pulse.livePerpCalls ? `• ${pulse.livePerpCalls} live perp calls from the scanner.` : "",
       hot.tokens.length ? `Trending: ${hot.tokens.map((t) => `${t.symbol} (${t.score === null ? "unscored" : `${t.score.toFixed(1)}/10`})`).join(", ")}.` : "",
       alerts.length ? `Latest alerts: ${alerts.map((a) => `${a.token.symbol} — ${a.message}`).join("; ")}.` : "",

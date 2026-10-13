@@ -869,7 +869,8 @@ async function getArcPulseRaw() {
     db.alert.groupBy({ by: ["type"], where: { createdAt: { gte: since } }, _count: true }),
     db.arcMarket.findMany({ where: { volume24h: { gt: 0 } }, select: { socials: true, liquidityUsd: true } }),
     db.perpSignal.count({ where: { outcome: "pending" } }).catch(() => 0),
-    db.scoreRun.count({ where: { calculatedAt: { gte: since } } }),
+    // Distinct tokens, not rows: old runs are pruned, so a row count would shrink as the table is cleaned.
+    db.$queryRaw<Array<{ n: bigint }>>`SELECT count(DISTINCT token_id) AS n FROM score_runs WHERE calculated_at >= ${since}`,
   ])
   const count = (t: string) => byType.find((x) => x.type === t)?._count ?? 0
   const realUsdc = markets.reduce((sum, m) => {
@@ -886,7 +887,7 @@ async function getArcPulseRaw() {
     realUsdcInTradingPools: realUsdc,
     tradingPools: markets.length,
     livePerpCalls: liveCalls,
-    scoresComputed24h: rescans,
+    scoresComputed24h: Number(rescans[0]?.n ?? 0),
   }
 }
 
