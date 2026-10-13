@@ -831,8 +831,7 @@ export interface Callout {
   token: TokenSummary
 }
 
-/** Latest KOL callouts on X, newest first, each with the token's live Riven summary. */
-export async function getCallouts(limit = 12, tokenAddress?: string): Promise<Callout[]> {
+async function getCalloutsRaw(limit: number, tokenAddress?: string): Promise<Callout[]> {
   const db = getDb()
   const rows = await db.arcCallout.findMany({
     where: tokenAddress ? { token: { mint: tokenAddress.toLowerCase() } } : undefined,
@@ -853,6 +852,10 @@ export async function getCallouts(limit = 12, tokenAddress?: string): Promise<Ca
     token: summaries[i]!,
   }))
 }
+
+/** Latest KOL callouts on X, newest first, each with the token's live Riven summary. Cached a minute, shared. */
+export const getCallouts = (limit = 12, tokenAddress?: string): Promise<Callout[]> =>
+  cached(`callouts:${limit}:${tokenAddress?.toLowerCase() ?? ""}`, 60_000, () => getCalloutsRaw(limit, tokenAddress), { shared: true })
 
 /**
  * Arc in numbers for the home page — things only Arc makes possible to measure
@@ -945,13 +948,13 @@ async function getAccuracyRaw() {
   }
 }
 
-export const getAccuracy = () => cached("accuracy", 300_000, () => getAccuracyRaw())
+export const getAccuracy = () => cached("accuracy", 300_000, () => getAccuracyRaw(), { shared: true })
 
-export const getStats = () => cached("stats", 30000, () => getStatsRaw())
+export const getStats = () => cached("stats", 60_000, () => getStatsRaw(), { shared: true })
 
-export const getArcPulse = () => cached("pulse", 30000, () => getArcPulseRaw())
+export const getArcPulse = () => cached("pulse", 60_000, () => getArcPulseRaw(), { shared: true })
 
-export const getMarketTotals = () => cached("totals", 30000, () => getMarketTotalsRaw())
+export const getMarketTotals = () => cached("totals", 60_000, () => getMarketTotalsRaw(), { shared: true })
 
 const isMissingSummaryTable = (err: unknown) =>
   (err as { code?: string })?.code === "P2021" || /token_score_latest/.test(String((err as Error)?.message))
@@ -994,9 +997,9 @@ async function screenFromSummary(
   return { tokens, total: total ?? tokens.length, page, pages }
 }
 
-/** Screener lists, cached briefly per filter set (the list refreshes every ~15s anyway). */
+/** Screener lists, cached for a minute per filter set and shared across instances. */
 export const getScreener = (f: ScreenerFilters, pageSize = PAGE_SIZE, opts: ScreenerOpts = {}) =>
-  cached(`screener:${JSON.stringify(f)}:${pageSize}:${opts.total === false ? "n" : "t"}`, 15_000, () => getScreenerRaw(f, pageSize, opts))
+  cached(`screener:${JSON.stringify(f)}:${pageSize}:${opts.total === false ? "n" : "t"}`, 60_000, () => getScreenerRaw(f, pageSize, opts), { shared: true })
 
 export interface MarketsSummary {
   volume24h: number
@@ -1034,9 +1037,9 @@ async function getMarketsSummaryRaw(): Promise<MarketsSummary> {
     syncedAt: cursor ? cursor.updatedAt.toISOString() : null,
   }
 }
-export const getMarketsSummary = () => cached("markets-summary", 30_000, () => getMarketsSummaryRaw())
+export const getMarketsSummary = () => cached("markets-summary", 60_000, () => getMarketsSummaryRaw(), { shared: true })
 
 export const getAlerts = (
   opts: { addresses?: string[]; limit?: number } = {},
 ) =>
-  cached(`alerts:${JSON.stringify(opts)}`, 15_000, () => getAlertsRaw(opts))
+  cached(`alerts:${JSON.stringify(opts)}`, 60_000, () => getAlertsRaw(opts), { shared: true })
