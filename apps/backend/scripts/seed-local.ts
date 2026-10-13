@@ -126,10 +126,13 @@ for (let i = 0; i < 400; i++) {
   if (run) scored++;
   if (v.fake) flagged++;
 }
+// The activity cursor marks how far swaps and transfers have been read. It must sit near the chain head (a real
+// empty database starts it at the oldest token's launch block): block 1 would make a local backend replay the whole
+// chain from the beginning. Keep any cursor an earlier run or a local backend has already written.
 await db.arcIndexerCursor.upsert({
   where: { source: "arc:activity" },
-  create: { source: "arc:activity", lastBlock: 1n },
-  update: { lastBlock: 1n },
+  create: { source: "arc:activity", lastBlock: 25_760_000n },
+  update: {},
 });
 console.log(`Seeded 400 tokens (${scored} scored, ${flagged} flagged).`);
 process.exit(0);
