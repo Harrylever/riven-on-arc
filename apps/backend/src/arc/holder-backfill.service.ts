@@ -10,6 +10,7 @@ import {
 import { arc, POOL_MANAGER, POSITION_MANAGER, arcTransport } from "./config";
 import { interpretSwap } from "./activity-indexer.service";
 import { scanBlockRange } from "./factory-log-indexer.service";
+import { SCORE_SCHEDULE } from "./score-schedule";
 
 const ACTIVITY_CURSOR = "arc:activity";
 /** Token-filtered transfer queries are light: Blockdaemon serves big ranges (halved automatically when an RPC refuses). */
@@ -19,6 +20,8 @@ const MAX_SPAN = BigInt(process.env.ARC_BACKFILL_MAX_BLOCKS ?? "7000000");
 const MIN_LIQUIDITY_USD = Number(process.env.ARC_BACKFILL_MIN_LIQUIDITY ?? "1000");
 /** Tokens replayed per pipeline tick, most-traded first. */
 const TOKENS_PER_RUN = Number(process.env.ARC_BACKFILL_TOKENS_PER_RUN ?? "20");
+/** Extra tokens per tick that a visitor asked for, ahead of the rest and whatever their liquidity. */
+const REQUESTED_PER_RUN = Number(process.env.ARC_BACKFILL_REQUESTED_PER_RUN ?? "10");
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 const TRANSFER = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)");
@@ -53,7 +56,20 @@ export class HolderBackfillService {
     if (!cursor) return { skipped: "activity indexer has not started" };
     // Only tokens the live indexer has already passed: newer ones would be
     // skipped forever and block the queue.
-    const tokens = await db.token.findMany({
+    // A token a visitor opened and asked to have scored goes first, with no liquidity floor: it is the token
+    // someone is looking at, and without its holder history it can never be scored.
+    const requested = await db.token.findMany({
+      where: {
+        holderHistory: "partial",
+        pools: { some: {} },
+        rescoreRequestedAt: { gte: new Date(Date.now() - SCORE_SCHEDULE.requestWindowMs) },
+        OR: [{ launchBlock: null }, { launchBlock: { lte: cursor.lastBlock } }],
+      },
+      orderBy: { rescoreRequestedAt: "desc" },
+      include: { pools: true },
+      take: REQUESTED_PER_RUN,
+    });
+    const popular = await db.token.findMany({
       where: {
         holderHistory: "partial",
         arcMarket: { liquidityUsd: { gte: MIN_LIQUIDITY_USD } },
@@ -67,6 +83,7 @@ export class HolderBackfillService {
       include: { pools: true },
       take: TOKENS_PER_RUN,
     });
+    const tokens = [...new Map([...requested, ...popular].map((t) => [t.id, t])).values()];
     if (tokens.length === 0) return { backfilled: null };
     const done: unknown[] = [];
     for (const t of tokens) {

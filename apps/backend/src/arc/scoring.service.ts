@@ -28,13 +28,10 @@ import {
   STATE_VIEW,
   USDC, arcTransport, quoteDecimals, quoteIsCurrency0 } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
+import { SCORE_SCHEDULE, isDue } from "./score-schedule";
 
 const ACTIVITY_CURSOR = "arc:activity";
-// Sized for a 5-minute tick (was 60 per minute).
-const MAX_TOKENS_PER_RUN = 300;
-const FRESH_MS = 24 * 60 * 60 * 1000;
-const RESCORE_FRESH_MS = 2 * 60 * 1000;
-const RESCORE_OLD_MS = 15 * 60 * 1000;
+// How often each token is scored, and how many per pass, lives in score-schedule.ts.
 /** A launch receipt the RPC could not find is not asked for again for this long (it was retried for ~300 tokens every tick). */
 const RECEIPT_RETRY_MS = 30 * 60 * 1000;
 /** Bought within ~5s of launch (10 blocks × ~510ms) = sniper. */
@@ -235,17 +232,22 @@ export class ArcScoringService {
   async scoreOnce() {
     const db = getDb();
     const now = Date.now();
+    const cfg = SCORE_SCHEDULE;
+    // Candidates only need to say when they were last scored. Each run's JSON blob (flags, signals) is large, and
+    // loading it for ~800 candidates to score at most 300 was most of this query's cost: it is read below, for the
+    // tokens actually being scored.
     const include = {
       pools: { orderBy: { createdAt: "asc" as const } }, // first pool = the launch pool
       arcMarket: true,
-      scoreRuns: { orderBy: { calculatedAt: "desc" as const }, take: 1 },
+      scoreRuns: { orderBy: { calculatedAt: "desc" as const }, take: 1, select: { calculatedAt: true, methodology: true } },
     };
+    const freshCutoff = new Date(now - cfg.freshMs);
     const [requestedRows, freshRows, liquidRows] = await Promise.all([
-      // "Scan this token" requests from the site come first.
+      // "Score this token" requests from the site come first (the token page asks when it opens an unscored token).
       db.token.findMany({
-        where: { pools: { some: {} }, rescoreRequestedAt: { gte: new Date(now - 10 * 60 * 1000) } },
+        where: { pools: { some: {} }, rescoreRequestedAt: { gte: new Date(now - cfg.requestWindowMs) } },
         orderBy: { rescoreRequestedAt: "desc" },
-        take: 20,
+        take: 50,
         include,
       }),
       db.token.findMany({
@@ -263,21 +265,46 @@ export class ArcScoringService {
     ]);
     // Only tokens whose holder history is complete up to the activity cursor
     // can get a score; the rest would come back "unscored" and burn the slots
-    // every pass, starving tokens that are ready. So also pull ready ones directly.
+    // every pass, starving tokens that are ready. So also pull ready ones directly,
+    // leaving out the ones the schedule would not score yet (recently scored, or old and dead),
+    // or they would fill the 200 slots every pass and push out tokens that are due.
     const activityCursor = await db.arcIndexerCursor.findUnique({ where: { source: ACTIVITY_CURSOR } });
     const readyRows = activityCursor
       ? await db.token.findMany({
           where: {
             pools: { some: {} },
-            OR: [{ holderHistory: null }, { holderHistory: "complete" }],
             launchBlock: { lte: activityCursor.lastBlock },
-            scoreRuns: { none: { calculatedAt: { gte: new Date(now - RESCORE_OLD_MS) } } },
+            AND: [
+              { OR: [{ holderHistory: null }, { holderHistory: "complete" }] },
+              { scoreRuns: { none: { calculatedAt: { gte: new Date(now - cfg.rescoreActiveMs) } } } },
+              // old and quiet, scored within the quiet window: not due
+              {
+                NOT: {
+                  AND: [
+                    { launchTime: { lt: freshCutoff } },
+                    { OR: [{ arcMarket: null }, { arcMarket: { volume24h: null } }, { arcMarket: { volume24h: 0 } }] },
+                    { scoreRuns: { some: { calculatedAt: { gte: new Date(now - cfg.rescoreQuietMs) } } } },
+                  ],
+                },
+              },
+              // old, never scored, known dead: only when asked for
+              {
+                NOT: {
+                  AND: [
+                    { scoreRuns: { none: {} } },
+                    { launchTime: { lt: freshCutoff } },
+                    { arcMarket: { liquidityUsd: { lt: cfg.deadLiquidityUsd } } },
+                  ],
+                },
+              },
+            ],
           },
           orderBy: [{ arcMarket: { liquidityUsd: { sort: "desc", nulls: "last" } } }, { launchTime: "desc" }],
           take: 200,
           include,
         })
       : [];
+    // Requested tokens come first, so the per-pass ceiling never cuts a visitor's token.
     const candidates = [
       ...new Map([...requestedRows, ...liquidRows, ...readyRows, ...freshRows].map((t) => [t.id, t])).values(),
     ];
@@ -286,18 +313,32 @@ export class ArcScoringService {
       activityCursor !== null &&
       t.launchBlock !== null &&
       activityCursor.lastBlock >= t.launchBlock
-    const due = candidates
+    const dueBase = candidates
       .filter(ready)
-      .filter((t) => {
-        const last = t.scoreRuns[0]?.calculatedAt.getTime();
-        if (t.rescoreRequestedAt && (last === undefined || t.rescoreRequestedAt.getTime() > last)) return true;
-        // A methodology change rescores everything promptly, not on the slow cadence.
-        if (t.scoreRuns[0] && t.scoreRuns[0].methodology !== ARC_METHODOLOGY) return true;
-        if (last === undefined) return true;
-        const fresh = now - t.launchTime.getTime() < FRESH_MS;
-        return now - last > (fresh ? RESCORE_FRESH_MS : RESCORE_OLD_MS);
-      })
-      .slice(0, MAX_TOKENS_PER_RUN);
+      .filter((t) =>
+        isDue(
+          {
+            launchTime: t.launchTime,
+            rescoreRequestedAt: t.rescoreRequestedAt,
+            liquidityUsd: t.arcMarket?.liquidityUsd != null ? Number(t.arcMarket.liquidityUsd) : null,
+            volume24h: t.arcMarket?.volume24h != null ? Number(t.arcMarket.volume24h) : null,
+            lastScoredAt: t.scoreRuns[0]?.calculatedAt.getTime(),
+            lastMethodology: t.scoreRuns[0]?.methodology,
+          },
+          now,
+          ARC_METHODOLOGY,
+        ),
+      )
+      .slice(0, cfg.maxPerRun);
+    // The previous run's JSON, for the alert comparison, only for what is being scored now.
+    const prevRuns = dueBase.length
+      ? await db.$queryRaw<Array<{ token_id: string; signals: unknown; band: string | null; methodology: string | null }>>`
+          SELECT DISTINCT ON (token_id) token_id, signals, band, methodology
+          FROM score_runs WHERE token_id = ANY(${dueBase.map((t) => t.id)}::text[])
+          ORDER BY token_id, calculated_at DESC`
+      : [];
+    const prevById = new Map(prevRuns.map((r) => [r.token_id, { signals: r.signals, band: r.band, methodology: r.methodology }]));
+    const due = dueBase.map((t) => ({ ...t, scoreRuns: prevById.has(t.id) ? [prevById.get(t.id)!] : [] }));
     if (due.length === 0) return { scored: 0, unscored: 0 };
 
     const [activity, head] = await Promise.all([

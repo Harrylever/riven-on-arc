@@ -64,15 +64,23 @@ export class RetentionService {
       },
       {
         label: 'ScoreRun',
-        run: () =>
-          // Keep Arc score history: Riven reads each token's latest run, and a
-          // token not rescored in 30 days must not lose its score.
-          db.scoreRun.deleteMany({
-            where: {
-              calculatedAt: { lt: cutoff },
-              OR: [{ methodology: null }, { NOT: { methodology: { startsWith: 'arc-' } } }],
-            },
-          }),
+        // Active tokens are rescored every few minutes and each run carries a JSON blob, so this table is
+        // the one that grows fastest. Keep, per token: the latest 5 runs, the latest of all (always), and
+        // its FIRST run per methodology (the accuracy page judges a token by how it was rated when first
+        // scored). Everything else is dropped once it is older than 7 days, or beyond the latest 5.
+        run: async () => ({
+          count: await db.$executeRaw`
+            DELETE FROM score_runs WHERE id IN (
+              SELECT id FROM (
+                SELECT id, calculated_at,
+                       row_number() OVER (PARTITION BY token_id ORDER BY calculated_at DESC) AS newest,
+                       row_number() OVER (PARTITION BY token_id, methodology ORDER BY calculated_at ASC) AS first_of_method
+                FROM score_runs
+              ) r
+              WHERE r.newest > 1 AND r.first_of_method > 1
+                AND (r.newest > 5 OR r.calculated_at < now() - interval '7 days')
+            )`,
+        }),
       },
     ];
 
