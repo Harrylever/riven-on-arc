@@ -69,7 +69,7 @@ export function TokenView({
   const dangers = t.flags.filter((f) => f.level === "danger")
   const warnings = t.flags.filter((f) => f.level === "warning")
   const goods = t.flags.filter((f) => f.level === "good")
-  const [tab, setTab] = useState<"trades" | "holders" | "creator" | "callouts">(
+  const [tab, setTab] = useState<"trades" | "holders" | "bubblemaps" | "creator" | "callouts">(
     "trades",
   )
 
@@ -301,7 +301,7 @@ export function TokenView({
           {/* Tabs */}
           <section className="rv-card overflow-hidden">
             <div
-              className="flex items-center gap-1 border-b border-[var(--rv-stroke)] px-2 pt-2"
+              className="flex items-center gap-1 overflow-x-auto border-b border-[var(--rv-stroke)] px-2 pt-2"
               role="tablist"
             >
               {(
@@ -311,6 +311,7 @@ export function TokenView({
                     `Trades${t.trades.length ? ` ${t.trades.length}` : ""}`,
                   ],
                   ["holders", "Holders"],
+                  ["bubblemaps", "Bubble maps"],
                   ["creator", "Creator"],
                   [
                     "callouts",
@@ -324,7 +325,7 @@ export function TokenView({
                   role="tab"
                   aria-selected={tab === id}
                   onClick={() => setTab(id)}
-                  className="relative px-3 pt-1.5 pb-2.5 text-[13px] font-semibold transition-colors"
+                  className="relative shrink-0 px-3 pt-1.5 pb-2.5 text-[13px] font-semibold whitespace-nowrap transition-colors"
                   style={{
                     color: tab === id ? "var(--rv-ink)" : "var(--rv-ink-3)",
                   }}
@@ -345,7 +346,8 @@ export function TokenView({
                     No indexed trades yet.
                   </p>
                 ))}
-              {tab === "holders" && <Holders t={t} />}
+              {tab === "holders" && <Holders t={t} onBubbleMaps={() => setTab("bubblemaps")} />}
+              {tab === "bubblemaps" && <BubbleMap address={t.address} symbol={t.symbol} />}
               {tab === "creator" &&
                 (t.creatorRecord ? (
                   <CreatorTrack record={t.creatorRecord} now={now} />
@@ -1136,55 +1138,145 @@ function PriceChart({ series }: { series: Array<{ t: number; p: number }> }) {
   )
 }
 
-function Holders({ t }: { t: TokenDetail }) {
+/** Top-10 share of supply, the dev wallet, and a way into the Bubblemaps holder map. */
+function Holders({ t, onBubbleMaps }: { t: TokenDetail; onBubbleMaps: () => void }) {
+  // topHolders is exactly the ten largest wallets with pool, burn and launchpad contracts left out,
+  // so their percentages add up to the top-10 share (the same figure the score uses).
+  const top10 = t.topHolders.length > 0 ? Math.min(100, t.topHolders.reduce((sum, h) => sum + h.pct, 0)) : null
   return (
     <section className="rv-card p-4">
-      <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
-        Top holders
-      </h2>
-      <p className="text-[11px] text-[var(--rv-ink-3)]">
-        Pool, burn and launchpad contracts excluded.
-      </p>
-      {t.topHolders.length === 0 ? (
-        <p className="mt-2 text-[13px] text-[var(--rv-ink-2)]">
+      <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">Holders</h2>
+      {top10 === null ? (
+        <p className="text-[13px] text-[var(--rv-ink-2)]">
           {t.holderHistory === "partial" || t.holderHistory === "too_long"
             ? "Riven is still loading this token's holder history."
             : "Almost no wallets hold this token — nearly all of the supply is back in the pool."}
         </p>
       ) : (
-        <ol className="mt-2.5 flex flex-col gap-1.5">
-          {t.topHolders.map((h, i) => (
-            <li
-              key={h.address}
-              className="flex items-center gap-2 text-[12px]"
-            >
-              <span className="rv-num w-4 text-[var(--rv-ink-3)]">{i + 1}</span>
-              <a
-                href={`${EXPLORER}/address/${h.address}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rv-num text-[var(--rv-ink-2)] hover:text-[var(--rv-ice)]"
-              >
-                {shortAddr(h.address)}
-              </a>
-              {h.tag && (
-                <span className="rounded bg-[rgba(251,191,36,0.12)] px-1.5 text-[10px] font-semibold text-[var(--rv-caution)] uppercase">
-                  {h.tag}
-                </span>
-              )}
-              <span className="mx-2 h-1 flex-1 overflow-hidden rounded-sm bg-white/[0.05]">
-                <span
-                  className="block h-full bg-[var(--rv-blue)]"
-                  style={{ width: `${Math.min(100, Math.max(1, h.pct))}%` }}
-                />
-              </span>
-              <span className="rv-num w-12 text-right text-[var(--rv-ink)]">
-                {pct(h.pct)}
-              </span>
-            </li>
-          ))}
-        </ol>
+        <div>
+          <p className="rv-label">Top 10 holders</p>
+          <p className="rv-num mt-1 text-[34px] leading-none font-bold text-[var(--rv-ink)]">
+            {pct(top10)}
+            <span className="ml-2 text-[13px] font-medium text-[var(--rv-ink-3)]">of supply</span>
+          </p>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]" aria-hidden>
+            <div className="h-full rounded-full bg-[var(--rv-blue)]" style={{ width: `${top10}%` }} />
+          </div>
+          <p className="mt-1.5 text-[11px] text-[var(--rv-ink-3)]">Pool, burn and launchpad contracts excluded.</p>
+        </div>
       )}
+
+      <DevWallet creator={t.creator} launchpad={t.launchpad} />
+
+      <button type="button" onClick={onBubbleMaps} className="rv-btn mt-4 h-11 w-full gap-2 px-4 text-[13px] sm:h-10 sm:w-auto">
+        View bubble map
+        <ArrowIcon />
+      </button>
+    </section>
+  )
+}
+
+/** The wallet that created the token, in full, with copy and explorer links. */
+function DevWallet({ creator, launchpad }: { creator: string; launchpad: string }) {
+  const [copied, setCopied] = useState(false)
+  const known = /^0x[0-9a-f]{40}$/.test(creator)
+  // Tokens found through the pool indexer have no factory event; the wallet that created the pool stands in.
+  const factoryLaunch = launchpad === "Argus" || launchpad === "Tolly"
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(creator)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      // clipboard blocked: the address is still selectable on screen
+    }
+  }
+  return (
+    <div className="mt-4 border-t border-[var(--rv-stroke)] pt-4">
+      <p className="rv-label">Dev wallet</p>
+      {known ? (
+        <>
+          <p className="rv-num mt-1 text-[12px] leading-snug text-[var(--rv-ink)] sm:text-[13px]">
+            {creator.slice(0, 21)}
+            <wbr />
+            {creator.slice(21)}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => void copy()} className="rv-btn-ghost h-9 px-3 text-[12px]">
+              {copied ? "Copied" : "Copy address"}
+            </button>
+            <a
+              href={`${EXPLORER}/address/${creator}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center gap-1 px-1 text-[12px] font-semibold text-[var(--rv-ice)] hover:underline"
+            >
+              View on explorer
+              <ArrowIcon className="size-3" />
+            </a>
+          </div>
+          {!factoryLaunch && (
+            <p className="mt-1.5 text-[11px] text-[var(--rv-ink-3)]">
+              This token wasn&apos;t launched through a factory Riven reads, so this is the wallet that created its trading pool.
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="mt-1 text-[13px] text-[var(--rv-ink-2)]">Riven hasn&apos;t found who created this token yet.</p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Bubblemaps' holder map, loaded only once this tab is opened. It supports Arc (chain "arc").
+ * Embedding from a production domain needs the domain registered with a Bubblemaps partner ID
+ * (NEXT_PUBLIC_BUBBLEMAPS_PARTNER_ID); without one the demo ID works on localhost, so the link
+ * out below is always offered.
+ */
+function BubbleMap({ address, symbol }: { address: string; symbol: string }) {
+  // Bubblemaps builds a token's map on first sight: 5–15 seconds for a token it hasn't seen (instant after).
+  // The frame is cross-origin, so we can't tell when it has painted; the note simply expires.
+  const [building, setBuilding] = useState(true)
+  useEffect(() => {
+    const id = setTimeout(() => setBuilding(false), 15_000)
+    return () => clearTimeout(id)
+  }, [])
+  const partner = process.env.NEXT_PUBLIC_BUBBLEMAPS_PARTNER_ID || "demo"
+  const src = `https://iframe.bubblemaps.io/map?address=${address}&chain=arc&partnerId=${encodeURIComponent(partner)}`
+  return (
+    <section className="rv-card p-4">
+      <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">Bubble map</h2>
+      <p className="text-[12px] text-[var(--rv-ink-3)]">
+        Each bubble is a wallet; links show wallets that moved tokens between each other.
+      </p>
+      <div className="relative mt-3 h-[460px] overflow-hidden rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-black sm:h-[580px]">
+        {building && (
+          <p className="pointer-events-none absolute top-2 left-2 z-10 rounded-full bg-black/75 px-3 py-1 text-[11.5px] text-[var(--rv-ink-2)]">
+            Building the map… a new token can take up to ~15 seconds the first time.
+          </p>
+        )}
+        <iframe
+          src={src}
+          title={`Bubblemaps holder map for ${symbol}`}
+          className="h-full w-full"
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        />
+      </div>
+      <p className="mt-2 text-[11.5px] text-[var(--rv-ink-3)]">
+        Powered by Bubblemaps. If the map stays blank,{" "}
+        <a
+          href={`https://app.bubblemaps.io/arc/token/${address}`}
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-[var(--rv-ice)] hover:underline"
+        >
+          open it on Bubblemaps
+        </a>
+        .
+      </p>
     </section>
   )
 }
