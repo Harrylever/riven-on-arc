@@ -34,6 +34,8 @@ const MAX_TOKENS_PER_RUN = 300;
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const RESCORE_FRESH_MS = 2 * 60 * 1000;
 const RESCORE_OLD_MS = 15 * 60 * 1000;
+/** A launch receipt the RPC could not find is not asked for again for this long (it was retried for ~300 tokens every tick). */
+const RECEIPT_RETRY_MS = 30 * 60 * 1000;
 /** Bought within ~5s of launch (10 blocks × ~510ms) = sniper. */
 const SNIPER_BLOCKS = 10n;
 /** Window around launch in which creator USDC transfers mark a wallet as creator-funded. */
@@ -216,6 +218,8 @@ const MAX_ACTIVITY_LAG_BLOCKS = 3_600n;
 export class ArcScoringService {
   private readonly client: PublicClient;
   private readonly authorityCache = new Map<string, ArcAuthorityInput>();
+  /** launch tx hash -> when a failed receipt lookup may be tried again */
+  private readonly receiptRetryAt = new Map<string, number>();
   private swapsFresh: { ok: boolean; at: number } | null = null;
 
   constructor(client?: PublicClient) {
@@ -300,15 +304,21 @@ export class ArcScoringService {
       this.client.getBlockNumber(),
     ]);
 
+    if (this.receiptRetryAt.size > 5000) {
+      for (const [hash, at] of this.receiptRetryAt) if (at < now) this.receiptRetryAt.delete(hash);
+    }
     for (const t of due) {
       const pool = t.pools[0];
       if (!pool || pool.launchInfo || !t.launchTxHash) continue;
+      if ((this.receiptRetryAt.get(t.launchTxHash) ?? 0) > now) continue;
       try {
         const info = await this.readLaunchReceipt(t.launchTxHash as Hex, t.launchpad);
         Object.assign(pool, info);
         await db.pool.update({ where: { id: pool.id }, data: info });
+        this.receiptRetryAt.delete(t.launchTxHash);
       } catch (err) {
-        console.warn(`[arc-score] receipt for ${t.mint} failed: ${(err as Error).message}`);
+        this.receiptRetryAt.set(t.launchTxHash, now + RECEIPT_RETRY_MS);
+        console.warn(`[arc-score] receipt for ${t.mint} failed (retry in 30 min): ${(err as Error).message.split("\n")[0]}`);
       }
     }
 
