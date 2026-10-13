@@ -187,7 +187,7 @@ const GLOSSARY: Array<[RegExp, string]> = [
   ],
   [
     /perp|perpetual|futures/,
-    "A perp (perpetual future) is a contract that tracks a coin's price with no expiry, so you can bet on it going up (long) or down (short), often with leverage. Riven shows Hyperliquid perp markets, the news moving them and sakz-bot's scanner calls, and lets you use Arc USDC as margin. Leverage magnifies losses as much as gains.",
+    "A perp (perpetual future) is a contract that tracks a coin's price with no expiry, so you can bet on it going up (long) or down (short), often with leverage. Riven shows Hyperliquid perp markets, the news moving them and Riven Scanner's calls (setups found on Bybit, MEXC and Binance), and lets you use Arc USDC as margin. Leverage magnifies losses as much as gains.",
   ],
   [
     /funding/,
@@ -215,7 +215,7 @@ const GLOSSARY: Array<[RegExp, string]> = [
   ],
   [
     /signal|call|sakz|scanner|confidence|win prob/,
-    "Perp calls come from sakz-bot, a scanner that runs alongside Riven. Each call has a bias (long/short), entry, stop loss and three targets, plus a confidence that's calibrated against how its past calls actually played out. Expired calls are deleted. Calls are data, not advice.",
+    "Perp calls come from Riven Scanner (powered by sakz-bot), which looks for setups on Bybit, MEXC and Binance; the prices and paper trading on Riven are Hyperliquid's. Each call has a bias (long/short), entry, stop loss and three targets, plus a confidence that's calibrated against how its past calls actually played out. Expired calls are deleted. Calls are data, not advice.",
   ],
 ]
 

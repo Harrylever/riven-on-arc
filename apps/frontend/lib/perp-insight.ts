@@ -5,7 +5,7 @@
 import { getDb } from "@riven/shared"
 import { getHyperliquidMarkets, type PerpMarket } from "./hyperliquid"
 import { getNews, type NewsItem } from "./news"
-import { signalCoinKey } from "./perp-symbols"
+import { signalCoinKey, venueName } from "./perp-symbols"
 
 export interface PerpCall {
   id: string
@@ -115,7 +115,7 @@ export async function getPerpInsight(coinRaw: string): Promise<PerpInsight> {
   }
   if (call) {
     bullets.push(
-      `sakz-bot has an open ${call.bias} call, conviction ${call.confidence}/10: entry ${price(call.entryPrice)}, stop ${price(call.stopLoss)}, first target ${price(call.t1)}.`,
+      `Riven Scanner has an open ${call.bias} call from ${venueName(call.exchange)}, conviction ${call.confidence}/10: entry ${price(call.entryPrice)}, stop ${price(call.stopLoss)}, first target ${price(call.t1)}. Those levels are ${venueName(call.exchange)} prices, not Hyperliquid's.`,
     )
   }
 
@@ -128,6 +128,6 @@ export function insightFacts(i: PerpInsight) {
     `Pair: ${i.coin}-PERP. Activity ${i.activity}/10 (how much is going on — not a buy score).`,
     `Likely reason: ${i.why}`,
     ...i.bullets.map((b) => `• ${b}`),
-    "Source: Hyperliquid market data, sakz-bot scanner, crypto news RSS (Cointelegraph, Decrypt, CoinDesk, Bitcoin Magazine).",
+    "Source: Hyperliquid market data (prices), Riven Scanner (calls), crypto news RSS (Cointelegraph, Decrypt, CoinDesk, Bitcoin Magazine).",
   ].join("\n")
 }

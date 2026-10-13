@@ -75,3 +75,10 @@ export function isMemePerp(symbol: string): boolean {
 export function isMajorPerp(symbol: string): boolean {
   return MAJORS.has(symbol.toUpperCase())
 }
+
+const VENUE: Record<string, string> = { BYBIT: "Bybit", MEXC: "MEXC", BINANCE: "Binance" }
+
+/** "BYBIT" -> "Bybit": the exchange a Riven Scanner call was priced on. */
+export function venueName(exchange: string): string {
+  return VENUE[exchange.toUpperCase()] ?? exchange
+}
