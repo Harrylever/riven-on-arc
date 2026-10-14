@@ -27,6 +27,13 @@ import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
 import { visibleInterval } from "@/lib/visible-interval"
 import { ArrowIcon } from "@/components/riven/arrow"
+import {
+  Select as UiSelect,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const REFRESH_MS = 60_000
 /** Where "Dispute a score" goes: NEXT_PUBLIC_DISPUTE_URL, else the methodology page. */
@@ -249,6 +256,7 @@ export function Screener({
           ))}
           <Select
             label="More rankings"
+            hideFirst
             value={
               MORE_RANKS.some((s) => s.id === filters.sort)
                 ? filters.sort
@@ -452,35 +460,57 @@ function Stat({
   )
 }
 
+/**
+ * A chip-style dropdown on the shadcn Select (Base UI), restyled to match the page's other chips. `hideFirst` keeps the
+ * first option as the closed label (e.g. "More") without listing it as something to pick.
+ */
 function Select<T extends string>({
   label,
   value,
   onChange,
   options,
+  hideFirst = false,
 }: {
   label: string
   value: T
   onChange: (v: T) => void
   options: Array<[T, string]>
+  hideFirst?: boolean
 }) {
+  const active = value !== options[0]![0]
   return (
-    <select
-      aria-label={label}
+    <UiSelect
       value={value}
-      onChange={(e) => onChange(e.target.value as T)}
-      className="rv-chip shrink-0 cursor-pointer outline-none"
-      style={
-        value !== options[0]![0]
-          ? { color: "var(--rv-ink)", borderColor: "var(--rv-stroke-strong)" }
-          : undefined
-      }
+      onValueChange={(v) => v !== null && onChange(v as T)}
+      items={options.map(([v, l]) => ({ value: v, label: l }))}
     >
-      {options.map(([v, l]) => (
-        <option key={v} value={v}>
-          {l}
-        </option>
-      ))}
-    </select>
+      <SelectTrigger
+        aria-label={label}
+        className="h-[30px] shrink-0 cursor-pointer gap-1.5 rounded-md border border-[color:var(--rv-stroke)] bg-[var(--rv-card)] px-2.5 py-0 text-[12px] font-semibold text-[var(--rv-ink-2)] outline-none hover:border-[color:var(--rv-stroke-strong)] focus-visible:border-[color:var(--rv-blue)] data-[popup-open]:border-[color:var(--rv-stroke-strong)] data-[size=default]:h-[30px]"
+        style={
+          active
+            ? { color: "var(--rv-ink)", borderColor: "var(--rv-stroke-strong)" }
+            : undefined
+        }
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent
+        align="start"
+        alignItemWithTrigger={false}
+        className="min-w-40 rounded-md border border-[color:var(--rv-stroke-strong)] bg-[var(--rv-card-solid)] p-1 text-[var(--rv-ink)] shadow-xl ring-0"
+      >
+        {options.slice(hideFirst ? 1 : 0).map(([v, l]) => (
+          <SelectItem
+            key={v}
+            value={v}
+            className="rounded-[5px] py-1.5 pr-8 pl-2.5 text-[12.5px] font-medium text-[var(--rv-ink-2)] data-[highlighted]:bg-[var(--rv-card-hover)] data-[highlighted]:text-[var(--rv-ink)] data-[selected]:text-[var(--rv-ink)]"
+          >
+            {l}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </UiSelect>
   )
 }
 
