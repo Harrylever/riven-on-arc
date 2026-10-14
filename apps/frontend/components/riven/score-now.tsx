@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import type { ScanStatus } from "@/lib/scan-status"
 import { visibleInterval } from "@/lib/visible-interval"
+import { Button } from "@/components/ui/button"
 
 /** Stop polling after this long. A very long history can take longer; the page says so and offers a re-check. */
 const GIVE_UP_MS = 4 * 60_000
@@ -30,7 +31,9 @@ export function ScoreNow({ address }: { address: string }) {
     const poll = async () => {
       if (stopped.current) return
       try {
-        const res = await fetch(`/api/arc/tokens/${address}/scan`, { cache: "no-store" })
+        const res = await fetch(`/api/arc/tokens/${address}/scan`, {
+          cache: "no-store",
+        })
         if (!res.ok || !alive) return
         const next = (await res.json()) as ScanStatus
         setStatus(next)
@@ -50,7 +53,10 @@ export function ScoreNow({ address }: { address: string }) {
     // Queue it first (the server ignores repeats), then watch it.
     void fetch(`/api/arc/tokens/${address}/rescore?auto=1`, { method: "POST" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j: { queued?: boolean } | null) => alive && setAsked(j?.queued ?? null))
+      .then(
+        (j: { queued?: boolean } | null) =>
+          alive && setAsked(j?.queued ?? null),
+      )
       .catch(() => {})
       .finally(() => void poll())
     const stop = visibleInterval(poll, POLL_MS)
@@ -73,12 +79,24 @@ export function ScoreNow({ address }: { address: string }) {
     setBusy(false)
   }
 
-  const working = status ? status.state === "scoring" || status.state === "reading_holders" || status.state === "waiting_indexer" : true
+  const working = status
+    ? status.state === "scoring" ||
+      status.state === "reading_holders" ||
+      status.state === "waiting_indexer"
+    : true
   const terminal = status?.state === "cannot"
   return (
-    <div className="mt-3 rounded-lg border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-3" aria-live="polite">
+    <div
+      className="mt-3 rounded-lg border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-3"
+      aria-live="polite"
+    >
       <p className="flex items-center gap-2 text-[12.5px] font-semibold text-[var(--rv-ink)]">
-        {working && !gaveUp && <span className="size-2 animate-pulse rounded-full bg-[var(--rv-blue)]" aria-hidden />}
+        {working && !gaveUp && (
+          <span
+            className="size-2 animate-pulse rounded-full bg-[var(--rv-blue)]"
+            aria-hidden
+          />
+        )}
         {terminal
           ? "Can't be scored"
           : gaveUp
@@ -96,15 +114,25 @@ export function ScoreNow({ address }: { address: string }) {
       <p className="mt-1 text-[12px] leading-snug text-[var(--rv-ink-2)]">
         {gaveUp
           ? "A long history can take several minutes. You can leave this page: the score is saved and will be here when you come back."
-          : (status?.message ?? "Opening a token asks Riven to score it. This page updates by itself when the score is ready.")}
+          : (status?.message ??
+            "Opening a token asks Riven to score it. This page updates by itself when the score is ready.")}
       </p>
       {asked === false && status?.state === "idle" && (
-        <p className="mt-1 text-[11.5px] text-[var(--rv-ink-3)]">It was asked for a moment ago and is already in line.</p>
+        <p className="mt-1 text-[11.5px] text-[var(--rv-ink-3)]">
+          It was asked for a moment ago and is already in line.
+        </p>
       )}
       {!terminal && (status?.state === "idle" || gaveUp) && (
-        <button type="button" disabled={busy} onClick={askAgain} className="rv-btn mt-3 h-9 px-4 text-[12.5px]">
+        <Button
+          variant="riven"
+          size="rv"
+          type="button"
+          disabled={busy}
+          onClick={askAgain}
+          className="mt-3 h-9 px-4 text-[12.5px]"
+        >
           {busy ? "Asking…" : gaveUp ? "Check again" : "Score now"}
-        </button>
+        </Button>
       )}
     </div>
   )

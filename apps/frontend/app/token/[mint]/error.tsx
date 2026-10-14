@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default function TokenError({
   error,
@@ -24,13 +25,15 @@ export default function TokenError({
         </p>
       )}
       <div className="mt-5 flex justify-center gap-2">
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={() => reset()}
           className="rounded-lg bg-[var(--rv-blue)] px-4 py-2 text-sm font-semibold text-[var(--rv-on-blue)]"
         >
           Try again
-        </button>
+        </Button>
         <Link
           href="/"
           className="rounded-lg px-4 py-2 text-sm font-semibold text-[var(--rv-ink-2)] ring-1 ring-[var(--rv-stroke)]"

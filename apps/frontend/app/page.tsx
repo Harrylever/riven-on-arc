@@ -1,6 +1,12 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { getAlerts, getArcPulse, getCallouts, getScreener, getStats } from "@/lib/arc-data"
+import {
+  getAlerts,
+  getArcPulse,
+  getCallouts,
+  getScreener,
+  getStats,
+} from "@/lib/arc-data"
 import { DEFAULT_FILTERS } from "@/lib/screener-params"
 import { REASON_LABEL } from "@/lib/reasons"
 import { compact, usd } from "@/lib/riven-format"
@@ -16,6 +22,7 @@ import { MascotStage } from "@/components/mascot/mascot-stage"
 import { BigOrb } from "@/components/riven/orb-field"
 import type { Holo } from "@/components/mascot/mascot"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { Button } from "@/components/ui/button"
 
 export const dynamic = "force-dynamic"
 
@@ -47,7 +54,13 @@ export default async function Home() {
   const [stats, topRaw, caught, alerts, callouts, pulse] = await Promise.all([
     settle(getStats(), null),
     // carousel: what's trading right now with real liquidity (flagged ones dropped below)
-    settle(getScreener({ ...DEFAULT_FILTERS, view: "all", minLiq: 1000, tf: "1h" }, 24), null),
+    settle(
+      getScreener(
+        { ...DEFAULT_FILTERS, view: "all", minLiq: 1000, tf: "1h" },
+        24,
+      ),
+      null,
+    ),
     settle(
       getScreener({ ...DEFAULT_FILTERS, view: "caught", sort: "new" }, 6),
       null,
@@ -161,16 +174,25 @@ export default async function Home() {
               check on-chain — and the evidence when a token is faking it.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start">
-              <Link href="/trending" className="rv-btn h-12 gap-1.5 px-6 text-[15px]">
+              <Button
+                nativeButton={false}
+                variant="riven"
+                size="rv"
+                render={<Link href="/trending" />}
+                className="h-12 gap-1.5 px-6 text-[15px]"
+              >
                 Open the screener
                 <ArrowIcon className="size-4" />
-              </Link>
-              <Link
-                href="/methodology"
-                className="rv-btn-ghost h-12 px-6 text-[15px]"
+              </Button>
+              <Button
+                nativeButton={false}
+                variant="rivenGhost"
+                size="rv"
+                render={<Link href="/methodology" />}
+                className="h-12 px-6 text-[15px]"
               >
                 How the score works
-              </Link>
+              </Button>
             </div>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13px] font-semibold text-[var(--rv-ink-3)] lg:justify-start">
               <span className="rv-label">Reads directly from</span>
@@ -183,8 +205,15 @@ export default async function Home() {
           </div>
           <div className="relative order-first h-[300px] sm:h-[380px] lg:order-none lg:h-[520px]">
             {/* Riven's "thinking" orb, cycling through every state behind him */}
-            <div className="pointer-events-none absolute inset-0 grid place-items-center" aria-hidden>
-              <BigOrb size={560} showLabel className="w-[min(560px,108%)] opacity-90" />
+            <div
+              className="pointer-events-none absolute inset-0 grid place-items-center"
+              aria-hidden
+            >
+              <BigOrb
+                size={560}
+                showLabel
+                className="w-[min(560px,108%)] opacity-90"
+              />
             </div>
             <div
               className="pointer-events-none absolute inset-x-10 bottom-6 h-24 rounded-[100%] bg-[radial-gradient(ellipse,rgba(124,196,232,0.25),transparent_70%)] blur-xl"
@@ -263,10 +292,22 @@ export default async function Home() {
           </div>
           <div className="mt-3 grid gap-2 text-[12.5px] text-[var(--rv-ink-2)] sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["USDC is gas", "Every Arc fee and pool is in dollars — so Riven's checks read in plain dollars too."],
-              ["Real dollars, not paper liquidity", "Riven reads each pool's actual USDC on-chain, not the token valued at its own price."],
-              ["⚡ 10 USDC flash buy", "Non-custodial: you sign every swap in your own wallet. Riven never holds keys."],
-              ["Perps with Arc USDC", "Your Arc USDC balance becomes your perps margin — practise on 100+ markets."],
+              [
+                "USDC is gas",
+                "Every Arc fee and pool is in dollars — so Riven's checks read in plain dollars too.",
+              ],
+              [
+                "Real dollars, not paper liquidity",
+                "Riven reads each pool's actual USDC on-chain, not the token valued at its own price.",
+              ],
+              [
+                "⚡ 10 USDC flash buy",
+                "Non-custodial: you sign every swap in your own wallet. Riven never holds keys.",
+              ],
+              [
+                "Perps with Arc USDC",
+                "Your Arc USDC balance becomes your perps margin — practise on 100+ markets.",
+              ],
             ].map(([t, d]) => (
               <div key={t} className="rv-card px-3 py-2.5">
                 <p className="font-semibold text-[var(--rv-ink)]">{t}</p>
@@ -350,15 +391,25 @@ function PulseCard({
 }) {
   const body = (
     <>
-      <p className="rv-num text-[26px] leading-none font-bold" style={{ color }}>
+      <p
+        className="rv-num text-[26px] leading-none font-bold"
+        style={{ color }}
+      >
         {value}
       </p>
-      <p className="mt-1.5 text-[13px] font-semibold text-[var(--rv-ink)]">{label}</p>
-      <p className="mt-0.5 text-[11.5px] leading-snug text-[var(--rv-ink-3)]">{hint}</p>
+      <p className="mt-1.5 text-[13px] font-semibold text-[var(--rv-ink)]">
+        {label}
+      </p>
+      <p className="mt-0.5 text-[11.5px] leading-snug text-[var(--rv-ink-3)]">
+        {hint}
+      </p>
     </>
   )
   return href ? (
-    <Link href={href} className="rv-card block p-4 hover:border-[var(--rv-stroke-strong)]">
+    <Link
+      href={href}
+      className="rv-card block p-4 hover:border-[var(--rv-stroke-strong)]"
+    >
       {body}
     </Link>
   ) : (

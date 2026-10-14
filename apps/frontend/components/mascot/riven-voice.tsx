@@ -10,6 +10,7 @@ import {
 } from "@/lib/robot-voice"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
+import { Button } from "@/components/ui/button"
 
 /**
  * Talk to Riven. Double-tap him to open (and double-tap again to close) a
@@ -352,7 +353,9 @@ export function VoicePanel({
           role="radiogroup"
           aria-label="How Riven replies"
         >
-          <button
+          <Button
+            variant="plain"
+            size="bare"
             type="button"
             role="radio"
             aria-checked={chat.reply === "robot"}
@@ -361,8 +364,10 @@ export function VoicePanel({
             title="Riven's own robot voice"
           >
             🤖 Riven
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="plain"
+            size="bare"
             type="button"
             role="radio"
             aria-checked={chat.reply === "natural"}
@@ -371,8 +376,10 @@ export function VoicePanel({
             title="Your browser's natural voice"
           >
             🗣 Natural
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="plain"
+            size="bare"
             type="button"
             role="radio"
             aria-checked={chat.reply === "text"}
@@ -380,16 +387,18 @@ export function VoicePanel({
             className="!px-2 !py-1 !text-[11px]"
           >
             Text
-          </button>
+          </Button>
         </div>
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={onClose}
           className="grid size-6 place-items-center rounded-full text-[var(--rv-ink-3)] hover:bg-white/[0.06] hover:text-[var(--rv-ink)]"
           aria-label="Close voice chat (or double-tap Riven)"
         >
           ×
-        </button>
+        </Button>
       </div>
 
       <div className="flex max-h-[42vh] min-h-[90px] flex-col gap-2 overflow-y-auto px-3 py-2.5">
@@ -447,7 +456,9 @@ export function VoicePanel({
         }}
         className="flex items-center gap-2 border-t border-[var(--rv-stroke)] p-2"
       >
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={chat.listening ? onStop : onListen}
           disabled={!chat.micSupported}
@@ -465,7 +476,7 @@ export function VoicePanel({
           }
         >
           <MicIcon />
-        </button>
+        </Button>
         <Input
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
@@ -474,13 +485,15 @@ export function VoicePanel({
           }
           className={`${RV_INPUT} h-9 min-w-0 flex-1 px-3 text-[13px]`}
         />
-        <button
+        <Button
+          variant="riven"
+          size="rv"
           type="submit"
           disabled={!typed.trim() || chat.thinking}
-          className="rv-btn h-9 px-3 text-[13px] disabled:opacity-50"
+          className="h-9 px-3 text-[13px] disabled:opacity-50"
         >
           Ask
-        </button>
+        </Button>
       </form>
       <p className="px-3 pb-2 text-[10.5px] text-[var(--rv-ink-3)]">
         Riven explains; he never tells you to trade. Not financial advice.{" "}

@@ -16,6 +16,7 @@ import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { Why } from "./screener"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { Button } from "@/components/ui/button"
 
 export function SectionTitle({
   title,
@@ -34,10 +35,16 @@ export function SectionTitle({
         {title}
       </h2>
       {href && (
-        <Link href={href} className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]">
+        <Button
+          nativeButton={false}
+          variant="rivenGhost"
+          size="rv"
+          render={<Link href={href} />}
+          className="ml-auto h-8 gap-1 px-3 text-[12px]"
+        >
           {cta ?? "View all"}
           <ArrowIcon />
-        </Link>
+        </Button>
       )}
     </div>
   )

@@ -7,8 +7,20 @@ import type { PerpMarket } from "@/lib/hyperliquid"
 import { priceUsd } from "@/lib/format"
 import { venueName } from "@/lib/perp-symbols"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { DIALOG, DIALOG_TITLE, RV_SLIDER } from "@/components/riven/card-style"
 import {
   buildTradeSetup,
@@ -18,7 +30,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 
-const sideColor = (s: PerpSide) => (s === "LONG" ? "var(--rv-up)" : "var(--rv-down)")
+const sideColor = (s: PerpSide) =>
+  s === "LONG" ? "var(--rv-up)" : "var(--rv-down)"
 
 /** Order form with one-click "Trade setup" (entry, SL, TP1-3) and a confirm step. */
 export function PerpTradePanel({
@@ -49,7 +62,12 @@ export function PerpTradePanel({
   // Levels to 6 significant digits: the raw maths gave boxes like 83034.74816895297.
   const raw = buildTradeSetup(side, market.markPrice, orderType, signal)
   const sig6 = (n: number) => Number(n.toPrecision(6))
-  const suggested = { ...raw, entry: sig6(raw.entry), stopLoss: sig6(raw.stopLoss), tps: raw.tps.map(sig6) }
+  const suggested = {
+    ...raw,
+    entry: sig6(raw.entry),
+    stopLoss: sig6(raw.stopLoss),
+    tps: raw.tps.map(sig6),
+  }
   const num = (key: string, fallback: number) =>
     edits[key] === undefined ? fallback : Number(edits[key])
   const setup = {
@@ -115,7 +133,9 @@ export function PerpTradePanel({
             const on = collateral === c
             const amt = c === "USDT" ? usdtBalance : cashBalance
             return (
-              <button
+              <Button
+                variant="plain"
+                size="bare"
                 key={c}
                 type="button"
                 role="radio"
@@ -136,7 +156,7 @@ export function PerpTradePanel({
                   {c}
                 </span>
                 <span className="font-mono">${amt.toFixed(2)}</span>
-              </button>
+              </Button>
             )
           })}
         </div>
@@ -144,7 +164,9 @@ export function PerpTradePanel({
 
       <div className="grid grid-cols-2 gap-1.5">
         {(["LONG", "SHORT"] as const).map((s) => (
-          <button
+          <Button
+            variant="plain"
+            size="bare"
             key={s}
             onClick={() => {
               setSide(s)
@@ -157,13 +179,15 @@ export function PerpTradePanel({
             }}
           >
             {s}
-          </button>
+          </Button>
         ))}
       </div>
 
       <div className="flex gap-4 border-b border-[var(--rv-stroke)]">
         {(["MARKET", "LIMIT"] as const).map((t) => (
-          <button
+          <Button
+            variant="plain"
+            size="bare"
             key={t}
             onClick={() => {
               setOrderType(t)
@@ -176,7 +200,7 @@ export function PerpTradePanel({
             }`}
           >
             {t === "MARKET" ? "Market" : "Limit"}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -192,7 +216,9 @@ export function PerpTradePanel({
       </label>
       <div className="flex gap-1">
         {[0.25, 0.5, 0.75, 1].map((pct) => (
-          <button
+          <Button
+            variant="plain"
+            size="bare"
             key={pct}
             onClick={() =>
               setUsdSize(
@@ -203,7 +229,7 @@ export function PerpTradePanel({
             className="flex-1 border border-[var(--rv-stroke)] py-1 text-[10px] font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
           >
             {pct * 100}%
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -262,12 +288,14 @@ export function PerpTradePanel({
             Margin ${margin.toFixed(2)} · fee ${fee.toFixed(2)}
           </span>
           {Object.keys(edits).length > 0 && (
-            <button
+            <Button
+              variant="plain"
+              size="bare"
               onClick={resetEdits}
               className="shrink-0 font-bold text-[var(--rv-blue)] hover:underline"
             >
               Reset
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -283,7 +311,9 @@ export function PerpTradePanel({
         </div>
       )}
 
-      <button
+      <Button
+        variant="plain"
+        size="bare"
         onClick={() => {
           setError(null)
           setSuccess(null)
@@ -296,7 +326,7 @@ export function PerpTradePanel({
       >
         Trade setup · {orderType === "LIMIT" ? "Limit" : "Market"} {side}{" "}
         {market.symbol}
-      </button>
+      </Button>
       <p className="text-center text-[10px] text-[var(--rv-ink-3)]">
         One click sets entry, stop loss and TP1–3 together. You confirm before
         anything is placed.
@@ -373,107 +403,128 @@ function ConfirmSetup({
     side === "LONG" ? setup.stopLoss <= liq : setup.stopLoss >= liq
   return (
     <Dialog open onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent showCloseButton={false} className={`${DIALOG} w-[min(440px,calc(100vw-24px))] ring-[var(--rv-blue)]`}>
-      <div className="space-y-3 p-4 text-xs">
-        <div>
-          <div className="text-[10px] font-bold tracking-[0.14em] text-[var(--rv-ice)] uppercase">
-            Confirm trade setup
+      <DialogContent
+        showCloseButton={false}
+        className={`${DIALOG} w-[min(440px,calc(100vw-24px))] ring-[var(--rv-blue)]`}
+      >
+        <div className="space-y-3 p-4 text-xs">
+          <div>
+            <div className="text-[10px] font-bold tracking-[0.14em] text-[var(--rv-ice)] uppercase">
+              Confirm trade setup
+            </div>
+            <DialogTitle className={`${DIALOG_TITLE} mt-1 text-lg`}>
+              Are you sure you want to set up this trade?
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-xs text-[var(--rv-ink-3)]">
+              <b style={{ color: sideColor(side) }}>
+                {orderType} {side} {symbol}
+              </b>{" "}
+              · ${notional.toFixed(2)} at {leverage}x · margin $
+              {margin.toFixed(2)} {collateral} · fee ${fee.toFixed(2)}
+            </DialogDescription>
           </div>
-          <DialogTitle className={`${DIALOG_TITLE} mt-1 text-lg`}>
-            Are you sure you want to set up this trade?
-          </DialogTitle>
-          <DialogDescription className="mt-1 text-xs text-[var(--rv-ink-3)]">
-            <b style={{ color: sideColor(side) }}>
-              {orderType} {side} {symbol}
-            </b>{" "}
-            · ${notional.toFixed(2)} at {leverage}x · margin $
-            {margin.toFixed(2)} {collateral} · fee ${fee.toFixed(2)}
-          </DialogDescription>
-        </div>
-        <Table className="font-mono text-xs">
-          <TableHeader>
-            <TableRow className="border-0 text-left text-[10px] text-[var(--rv-ink-3)] uppercase hover:bg-transparent">
-              <TableHead className="h-auto px-0 py-1 text-[10px] font-normal tracking-normal">Level</TableHead>
-              <TableHead className="h-auto px-0 py-1 text-right text-[10px] font-normal tracking-normal">Price</TableHead>
-              <TableHead className="h-auto px-0 py-1 text-right text-[10px] font-normal tracking-normal">Move</TableHead>
-              <TableHead className="h-auto px-0 py-1 text-right text-[10px] font-normal tracking-normal">If hit</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map(([label, price, color]) => {
-              const pnl = label === "Entry" ? 0 : pnlAt(price)
-              return (
-                <TableRow key={label} className="border-0 border-t border-[var(--rv-stroke)]">
-                  <TableCell className="px-0 py-1.5 font-sans text-xs font-bold" style={{ color }}>
-                    {label}
-                  </TableCell>
-                  <TableCell className="px-0 py-1.5 text-right text-xs">{priceUsd(price)}</TableCell>
-                  <TableCell className="px-0 py-1.5 text-right text-xs text-[var(--rv-ink-3)]">
-                    {label === "Entry"
-                      ? "—"
-                      : `${move(price) >= 0 ? "+" : ""}${move(price).toFixed(2)}%`}
-                  </TableCell>
-                  <TableCell
-                    className="px-0 py-1.5 text-right text-xs"
-                    style={{
-                      color:
-                        pnl > 0
-                          ? "var(--rv-up)"
-                          : pnl < 0
-                            ? "var(--rv-down)"
-                            : undefined,
-                    }}
+          <Table className="font-mono text-xs">
+            <TableHeader>
+              <TableRow className="border-0 text-left text-[10px] text-[var(--rv-ink-3)] uppercase hover:bg-transparent">
+                <TableHead className="h-auto px-0 py-1 text-[10px] font-normal tracking-normal">
+                  Level
+                </TableHead>
+                <TableHead className="h-auto px-0 py-1 text-right text-[10px] font-normal tracking-normal">
+                  Price
+                </TableHead>
+                <TableHead className="h-auto px-0 py-1 text-right text-[10px] font-normal tracking-normal">
+                  Move
+                </TableHead>
+                <TableHead className="h-auto px-0 py-1 text-right text-[10px] font-normal tracking-normal">
+                  If hit
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map(([label, price, color]) => {
+                const pnl = label === "Entry" ? 0 : pnlAt(price)
+                return (
+                  <TableRow
+                    key={label}
+                    className="border-0 border-t border-[var(--rv-stroke)]"
                   >
-                    {label === "Entry"
-                      ? "—"
-                      : `${pnl >= 0 ? "+" : "−"}$${Math.abs(pnl).toFixed(2)}`}
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-        <div className="grid grid-cols-2 gap-2 border-t border-[var(--rv-stroke)] pt-2 font-mono">
-          <div>
-            <div className="font-sans text-[10px] text-[var(--rv-ink-3)] uppercase">
-              Est. liquidation
+                    <TableCell
+                      className="px-0 py-1.5 font-sans text-xs font-bold"
+                      style={{ color }}
+                    >
+                      {label}
+                    </TableCell>
+                    <TableCell className="px-0 py-1.5 text-right text-xs">
+                      {priceUsd(price)}
+                    </TableCell>
+                    <TableCell className="px-0 py-1.5 text-right text-xs text-[var(--rv-ink-3)]">
+                      {label === "Entry"
+                        ? "—"
+                        : `${move(price) >= 0 ? "+" : ""}${move(price).toFixed(2)}%`}
+                    </TableCell>
+                    <TableCell
+                      className="px-0 py-1.5 text-right text-xs"
+                      style={{
+                        color:
+                          pnl > 0
+                            ? "var(--rv-up)"
+                            : pnl < 0
+                              ? "var(--rv-down)"
+                              : undefined,
+                      }}
+                    >
+                      {label === "Entry"
+                        ? "—"
+                        : `${pnl >= 0 ? "+" : "−"}$${Math.abs(pnl).toFixed(2)}`}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+          <div className="grid grid-cols-2 gap-2 border-t border-[var(--rv-stroke)] pt-2 font-mono">
+            <div>
+              <div className="font-sans text-[10px] text-[var(--rv-ink-3)] uppercase">
+                Est. liquidation
+              </div>
+              <div className="font-bold text-[var(--rv-down)]">
+                {priceUsd(liq)}
+              </div>
             </div>
-            <div className="font-bold text-[var(--rv-down)]">{priceUsd(liq)}</div>
+            <div>
+              <div className="font-sans text-[10px] text-[var(--rv-ink-3)] uppercase">
+                Risk : reward
+              </div>
+              <div className="font-bold">1 : {rr.toFixed(2)}</div>
+            </div>
           </div>
-          <div>
-            <div className="font-sans text-[10px] text-[var(--rv-ink-3)] uppercase">
-              Risk : reward
+          {stopBeyondLiq && (
+            <div className="border border-red-500/40 bg-red-500/10 p-2 text-red-300">
+              Your stop loss is past the liquidation price — you&apos;d be
+              liquidated before it triggers. Lower the leverage.
             </div>
-            <div className="font-bold">1 : {rr.toFixed(2)}</div>
+          )}
+          <p className="text-[10px] text-[var(--rv-ink-3)]">
+            Paper trade on Riven&apos;s practice account — nothing is sent to an
+            exchange. Not financial advice.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              onClick={onCancel}
+              className="h-10 rounded-none border-[var(--rv-stroke)] text-xs font-bold tracking-normal text-[var(--rv-ink-3)] normal-case hover:text-[var(--rv-ink)]"
+            >
+              No, go back
+            </Button>
+            <Button
+              onClick={onConfirm}
+              className="h-10 rounded-none text-xs font-extrabold tracking-normal text-black normal-case hover:opacity-90"
+              style={{ background: sideColor(side) }}
+            >
+              Yes, set it up
+            </Button>
           </div>
         </div>
-        {stopBeyondLiq && (
-          <div className="border border-red-500/40 bg-red-500/10 p-2 text-red-300">
-            Your stop loss is past the liquidation price — you&apos;d be
-            liquidated before it triggers. Lower the leverage.
-          </div>
-        )}
-        <p className="text-[10px] text-[var(--rv-ink-3)]">
-          Paper trade on Riven&apos;s practice account — nothing is sent to an
-          exchange. Not financial advice.
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            className="h-10 rounded-none border-[var(--rv-stroke)] text-xs font-bold tracking-normal normal-case text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
-          >
-            No, go back
-          </Button>
-          <Button
-            onClick={onConfirm}
-            className="h-10 rounded-none text-xs font-extrabold tracking-normal normal-case text-black hover:opacity-90"
-            style={{ background: sideColor(side) }}
-          >
-            Yes, set it up
-          </Button>
-        </div>
-      </div>
       </DialogContent>
     </Dialog>
   )

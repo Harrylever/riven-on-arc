@@ -1,6 +1,15 @@
 "use client"
 
-import { Children, Fragment, isValidElement, useEffect, useRef, useState, type ReactNode } from "react"
+import {
+  Children,
+  Fragment,
+  isValidElement,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
+import { Button } from "@/components/ui/button"
 
 /**
  * A horizontal card row that works everywhere: glides slowly on its own,
@@ -56,11 +65,17 @@ export function Carousel({
   // auto-glide
   useEffect(() => {
     const el = row.current
-    if (!el || speed <= 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    if (
+      !el ||
+      speed <= 0 ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return
     let raf = 0
     let last = performance.now()
     let carry = 0
-    const hold = (ms: number) => () => (pausedUntil.current = performance.now() + ms)
+    const hold = (ms: number) => () =>
+      (pausedUntil.current = performance.now() + ms)
     const onEnter = hold(60_000)
     const onLeave = hold(1500)
     const onTouch = hold(5000)
@@ -79,7 +94,10 @@ export function Carousel({
         if (whole >= 1) {
           carry -= whole
           el.scrollLeft += whole // the scroll handler wraps it when looping
-          if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 2 && el.scrollWidth <= el.clientWidth * 2) {
+          if (
+            el.scrollLeft + el.clientWidth >= el.scrollWidth - 2 &&
+            el.scrollWidth <= el.clientWidth * 2
+          ) {
             // short, non-looping row: glide back to the start
             el.scrollTo({ left: 0, behavior: "smooth" })
             pausedUntil.current = now + 2500
@@ -153,20 +171,33 @@ export function Carousel({
     const el = row.current
     if (!el) return
     pausedUntil.current = performance.now() + 6000
-    el.scrollBy({ left: dir * Math.max(240, el.clientWidth * 0.8), behavior: "smooth" })
+    el.scrollBy({
+      left: dir * Math.max(240, el.clientWidth * 0.8),
+      behavior: "smooth",
+    })
   }
 
   return (
     <div className="group/car relative" role="region" aria-label={label}>
-      <div ref={row} className="scrollbar-hidden -mx-4 flex gap-3 overflow-x-auto px-4 pb-1" onDragStart={(e) => e.preventDefault()}>
+      <div
+        ref={row}
+        className="scrollbar-hidden -mx-4 flex gap-3 overflow-x-auto px-4 pb-1"
+        onDragStart={(e) => e.preventDefault()}
+      >
         {items}
         {loop &&
           items.map((c, i) => (
-            <Fragment key={`loop-${isValidElement(c) && c.key != null ? c.key : i}`}>{c}</Fragment>
+            <Fragment
+              key={`loop-${isValidElement(c) && c.key != null ? c.key : i}`}
+            >
+              {c}
+            </Fragment>
           ))}
       </div>
       {(["left", "right"] as const).map((side) => (
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           key={side}
           type="button"
           onClick={() => nudge(side === "left" ? -1 : 1)}
@@ -175,10 +206,18 @@ export function Carousel({
             side === "left" ? "-left-2" : "-right-2"
           }`}
         >
-          <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2.4} aria-hidden>
+          <svg
+            viewBox="0 0 24 24"
+            width={16}
+            height={16}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.4}
+            aria-hidden
+          >
             <path d={side === "left" ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6"} />
           </svg>
-        </button>
+        </Button>
       ))}
     </div>
   )

@@ -8,7 +8,13 @@ import { priceUsd, ago } from "@/lib/format"
 import { MiniBar } from "@/components/perps/mini-bar"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 
@@ -130,7 +136,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
             <DialogTitle className="font-sans text-lg font-black tracking-normal text-white normal-case">
               {signal.symbol}
             </DialogTitle>
-            <DialogDescription className="sr-only">Review the scanner setup and place a paper order.</DialogDescription>
+            <DialogDescription className="sr-only">
+              Review the scanner setup and place a paper order.
+            </DialogDescription>
             <span className="border border-[#1d3834] bg-[#091514] px-2 py-0.5 text-[11px] font-bold text-[#7d9b96] uppercase">
               {signal.exchange}
             </span>
@@ -266,7 +274,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
             {/* Order Type Tabs: LIMIT | MARKET | BUY SPOT */}
             <div className="flex border border-[#162a27] bg-[#06100f]">
               {(["LIMIT", "MARKET", "SPOT"] as const).map((type) => (
-                <button
+                <Button
+                  variant="plain"
+                  size="bare"
                   key={type}
                   type="button"
                   onClick={() => {
@@ -288,14 +298,16 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     : type === "LIMIT"
                       ? "Limit Order"
                       : "Market Order"}
-                </button>
+                </Button>
               ))}
             </div>
 
             {/* Side Selector (Perp only: Long vs Short) */}
             {orderType !== "SPOT" && (
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <button
+                <Button
+                  variant="plain"
+                  size="bare"
                   type="button"
                   onClick={() => setSide("LONG")}
                   className={`py-1.5 text-xs font-black transition-colors ${
@@ -305,8 +317,10 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   }`}
                 >
                   LONG (Buy)
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="plain"
+                  size="bare"
                   type="button"
                   onClick={() => setSide("SHORT")}
                   className={`py-1.5 text-xs font-black transition-colors ${
@@ -316,7 +330,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   }`}
                 >
                   SHORT (Sell)
-                </button>
+                </Button>
               </div>
             )}
 
@@ -329,13 +343,15 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                       ? "Market Execution Price"
                       : "Limit Price (USD)"}
                   </span>
-                  <button
+                  <Button
+                    variant="plain"
+                    size="bare"
                     type="button"
                     onClick={() => setPrice(String(signal.entryPrice))}
                     className="text-[10px] text-[#2ee6a8] hover:underline"
                   >
                     Signal Entry ({priceUsd(signal.entryPrice)})
-                  </button>
+                  </Button>
                 </div>
                 <Input
                   type="number"
@@ -366,14 +382,16 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                 {/* Percentage Quick Selectors */}
                 <div className="mt-1.5 grid grid-cols-4 gap-1.5">
                   {[0.25, 0.5, 0.75, 1.0].map((pct) => (
-                    <button
+                    <Button
+                      variant="plain"
+                      size="bare"
                       key={pct}
                       type="button"
                       onClick={() => handlePercentageSelect(pct)}
                       className="border border-[#162a27] bg-[#0c1a18] py-1 text-[11px] font-bold text-[#7d9b96] transition-colors hover:border-[#2ee6a8] hover:text-white"
                     >
                       {pct * 100}%
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -393,7 +411,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     max={50}
                     step={1}
                     value={leverage}
-                    onValueChange={(v) => setLeverage(Array.isArray(v) ? (v[0] ?? 1) : v)}
+                    onValueChange={(v) =>
+                      setLeverage(Array.isArray(v) ? (v[0] ?? 1) : v)
+                    }
                     className="py-2 [&_[data-slot=slider-range]]:bg-[#2ee6a8] [&_[data-slot=slider-thumb]]:bg-[#2ee6a8] [&_[data-slot=slider-track]]:bg-[#162a27]"
                   />
                   <div className="flex justify-between text-[10px] text-[#7d9b96]">
@@ -411,7 +431,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   Signal Target Presets
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <button
+                  <Button
+                    variant="plain"
+                    size="bare"
                     type="button"
                     onClick={() => setSelectedTp(signal.t1)}
                     className={`border p-1.5 text-center transition-colors ${
@@ -424,8 +446,10 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     <div className="font-mono text-[11px]">
                       {priceUsd(signal.t1)}
                     </div>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="plain"
+                    size="bare"
                     type="button"
                     onClick={() => setSelectedTp(signal.t2)}
                     className={`border p-1.5 text-center transition-colors ${
@@ -438,8 +462,10 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     <div className="font-mono text-[11px]">
                       {priceUsd(signal.t2)}
                     </div>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="plain"
+                    size="bare"
                     type="button"
                     onClick={() => setSelectedTp(signal.t3)}
                     className={`border p-1.5 text-center transition-colors ${
@@ -452,14 +478,16 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     <div className="font-mono text-[11px]">
                       {priceUsd(signal.t3)}
                     </div>
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="mt-2.5 flex items-center justify-between border-t border-[#162a27] pt-2">
                   <span className="text-[11px] text-[#7d9b96]">
                     Stop Loss Preset:
                   </span>
-                  <button
+                  <Button
+                    variant="plain"
+                    size="bare"
                     type="button"
                     onClick={() => setSelectedSl(signal.stopLoss)}
                     className={`border px-2 py-0.5 text-center font-mono text-xs transition-colors ${
@@ -469,7 +497,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     }`}
                   >
                     SL ({priceUsd(signal.stopLoss)})
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -513,7 +541,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
               )}
 
               {/* Submit Button */}
-              <button
+              <Button
+                variant="plain"
+                size="bare"
                 type="submit"
                 className={`w-full py-2.5 text-sm font-black tracking-wide uppercase transition-colors ${
                   orderType === "SPOT"
@@ -526,7 +556,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                 {orderType === "SPOT"
                   ? `Buy Spot ${signal.symbol}`
                   : `Place ${orderType} ${side} (${leverage}x)`}
-              </button>
+              </Button>
             </form>
           </div>
         </div>

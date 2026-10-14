@@ -31,7 +31,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { PageNav } from "@/components/riven/page-nav"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -320,7 +327,9 @@ export function Screener({
               ],
             ] as Array<[HasFilter, string, string]>
           ).map(([id, label, hint]) => (
-            <button
+            <Button
+              variant="plain"
+              size="bare"
               key={id}
               type="button"
               title={hint}
@@ -329,7 +338,7 @@ export function Screener({
               className="rv-chip shrink-0"
             >
               {label}
-            </button>
+            </Button>
           ))}
         <div className="hidden items-center gap-1.5 md:flex">
           <RvSelect
@@ -670,14 +679,16 @@ function SortHead({
       title={title}
     >
       {s ? (
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={() => onSort(s, t)}
           className={`uppercase hover:text-[var(--rv-ink)] ${active ? "text-[var(--rv-blue)]" : ""}`}
         >
           {children}
           {active ? " ▾" : ""}
-        </button>
+        </Button>
       ) : (
         children
       )}
@@ -707,7 +718,9 @@ function DesktopTable({
       <Table className="min-w-[900px] text-[13px] xl:min-w-[1060px] 2xl:min-w-[1180px]">
         <TableHeader>
           <TableRow className="border-b border-[var(--rv-stroke)]">
-            <TableHead className="rv-label h-auto w-12 py-2.5 pr-0 pl-4 text-left text-[11px] tracking-normal">#</TableHead>
+            <TableHead className="rv-label h-auto w-12 py-2.5 pr-0 pl-4 text-left text-[11px] tracking-normal">
+              #
+            </TableHead>
             <SortHead left {...h}>
               Token
             </SortHead>
@@ -843,7 +856,9 @@ function DesktopTable({
                 >
                   <Pct v={t.change.h1} />
                 </TableCell>
-                <TableCell className={`px-2 py-2 text-right ${tfCell(filters, "6h")}`}>
+                <TableCell
+                  className={`px-2 py-2 text-right ${tfCell(filters, "6h")}`}
+                >
                   <Pct v={t.change.h6} />
                 </TableCell>
                 <TableCell
@@ -870,7 +885,10 @@ function DesktopTable({
                 <TableCell className="px-2 py-2 text-right">
                   <Score t={t} />
                 </TableCell>
-                <TableCell className="p-0 pr-2" onClick={(e) => e.stopPropagation()}>
+                <TableCell
+                  className="p-0 pr-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <WatchButton address={t.address} />
                 </TableCell>
               </TableRow>

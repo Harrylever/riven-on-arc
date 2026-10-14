@@ -20,6 +20,7 @@ import { RvSelect } from "./rv-select"
 import { visibleInterval } from "@/lib/visible-interval"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
+import { Button } from "@/components/ui/button"
 
 interface WalletData {
   address: string
@@ -75,7 +76,9 @@ export function WalletPanel() {
           tokens through Uniswap — with Riven&apos;s rug check before every buy.
           Your keys stay in your wallet; Riven never holds funds.
         </p>
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={() => void wallet.connect()}
           className="rounded-lg bg-[var(--rv-blue)] px-6 py-3 text-[15px] font-bold text-[var(--rv-on-blue)]"
@@ -83,11 +86,9 @@ export function WalletPanel() {
           {wallet.hasWallet
             ? "Connect wallet"
             : "Connect wallet (MetaMask / Rabby)"}
-        </button>
+        </Button>
         {wallet.error && (
-          <p className="text-[12px] text-[var(--rv-risk)]">
-            {wallet.error}
-          </p>
+          <p className="text-[12px] text-[var(--rv-risk)]">{wallet.error}</p>
         )}
       </section>
     )
@@ -120,21 +121,25 @@ export function WalletPanel() {
               {shortAddr(wallet.address)}
             </p>
             {!wallet.onArc && (
-              <button
+              <Button
+                variant="plain"
+                size="bare"
                 type="button"
                 onClick={() => void wallet.ensureArc()}
                 className="mt-1 text-[12px] font-semibold text-[var(--rv-caution)]"
               >
                 Switch to Arc
-              </button>
+              </Button>
             )}
-            <button
+            <Button
+              variant="plain"
+              size="bare"
               type="button"
               onClick={wallet.disconnect}
               className="mt-1 block text-[12px] text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
             >
               Disconnect
-            </button>
+            </Button>
           </div>
         </div>
         <p className="mt-2 text-[11px] text-[var(--rv-ink-3)]">
@@ -145,7 +150,9 @@ export function WalletPanel() {
             ? (["deposit", "withdraw", "convert"] as const)
             : (["deposit", "withdraw"] as const)
           ).map((p) => (
-            <button
+            <Button
+              variant="plain"
+              size="bare"
               key={p}
               type="button"
               onClick={() => setPanel(panel === p ? null : p)}
@@ -160,7 +167,7 @@ export function WalletPanel() {
               }}
             >
               {p}
-            </button>
+            </Button>
           ))}
         </div>
         {panel === "deposit" && <Deposit address={wallet.address} />}
@@ -229,20 +236,24 @@ export function WalletPanel() {
                 />
                 {TRADING_ENABLED && (
                   <>
-                    <button
+                    <Button
+                      variant="plain"
+                      size="bare"
                       type="button"
                       onClick={() => setTrade({ token: h.token, side: "buy" })}
                       className="rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-up)] ring-1 ring-[rgba(74,222,128,0.4)]"
                     >
                       Buy
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="plain"
+                      size="bare"
                       type="button"
                       onClick={() => setTrade({ token: h.token, side: "sell" })}
                       className="rounded-md px-2.5 py-1.5 text-[12px] font-bold text-[var(--rv-down)] ring-1 ring-[rgba(248,113,113,0.4)]"
                     >
                       Sell
-                    </button>
+                    </Button>
                   </>
                 )}
               </li>
@@ -277,7 +288,9 @@ function Deposit({ address }: { address: string }) {
         <code className="rv-num min-w-0 flex-1 truncate rounded bg-black px-2 py-2 text-[12px] text-[var(--rv-ink)]">
           {address}
         </code>
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={() =>
             navigator.clipboard?.writeText(address).then(() => {
@@ -288,7 +301,7 @@ function Deposit({ address }: { address: string }) {
           className="rounded-md bg-[var(--rv-blue)] px-3 py-2 text-[12px] font-semibold text-[var(--rv-on-blue)]"
         >
           {copied ? "Copied" : "Copy"}
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -356,7 +369,13 @@ function Withdraw({
         className="h-10 w-full justify-between rounded-lg border-[color:var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 text-[13px] font-medium text-[var(--rv-ink)]"
         options={[
           ["USDC", `USDC (${data.usdc.toFixed(2)})`],
-          ...data.holdings.map((h) => [h.token.address, `${h.token.symbol} (${compact(h.amount)})`] as [string, string]),
+          ...data.holdings.map(
+            (h) =>
+              [h.token.address, `${h.token.symbol} (${compact(h.amount)})`] as [
+                string,
+                string,
+              ],
+          ),
         ]}
       />
       <Input
@@ -375,27 +394,31 @@ function Withdraw({
           aria-label="Amount"
           className={`${RV_INPUT} h-10 min-w-0 flex-1 px-3 text-[13px]`}
         />
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={() => setAmount(String(Math.floor(max * 1e6) / 1e6))}
           className="rounded-md px-3 text-[12px] font-semibold text-[var(--rv-ice)] ring-1 ring-[var(--rv-stroke)]"
         >
           Max
-        </button>
+        </Button>
       </div>
       {to && !isAddress(to) && (
         <p className="text-[12px] text-[var(--rv-risk)]">
           That isn&apos;t a valid 0x address.
         </p>
       )}
-      <button
+      <Button
+        variant="plain"
+        size="bare"
         type="button"
         disabled={!valid}
         onClick={() => void submit()}
         className="h-10 rounded-lg bg-[var(--rv-blue)] font-semibold text-[var(--rv-on-blue)] disabled:opacity-40"
       >
         Withdraw
-      </button>
+      </Button>
       {status && <p className="text-[12px] text-[var(--rv-ink-2)]">{status}</p>}
       <p className="text-[11px] text-[var(--rv-ink-3)]">
         Double-check the address — transfers on a blockchain can&apos;t be
@@ -443,7 +466,9 @@ function Convert({ onPick }: { onPick: (t: TradeToken) => void }) {
         </p>
       )}
       {results?.map((t) => (
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           key={t.address}
           type="button"
           onClick={() => onPick(t)}
@@ -462,7 +487,7 @@ function Convert({ onPick }: { onPick: (t: TradeToken) => void }) {
             {shortAddr(t.address)}
           </span>
           <ScoreBadge score={t.score} band={t.band} size="sm" />
-        </button>
+        </Button>
       ))}
     </div>
   )

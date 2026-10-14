@@ -13,6 +13,7 @@ import { priceUsd } from "@/lib/format"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RV_CHECK } from "@/components/riven/card-style"
+import { Button } from "@/components/ui/button"
 
 const compact = (n: number) =>
   new Intl.NumberFormat("en", {
@@ -107,7 +108,9 @@ export function PerpMarketPicker({
                 ["signal", "Signal"],
               ] as const
             ).map(([id, label]) => (
-              <button
+              <Button
+                variant="plain"
+                size="bare"
                 key={id}
                 onClick={() => setSort(id)}
                 className={`border px-2 py-0.5 font-bold ${
@@ -117,10 +120,14 @@ export function PerpMarketPicker({
                 }`}
               >
                 {label}
-              </button>
+              </Button>
             ))}
             <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-[var(--rv-ink-3)]">
-              <Checkbox checked={signalsOnly} onCheckedChange={(v) => setSignalsOnly(v === true)} className={RV_CHECK} />
+              <Checkbox
+                checked={signalsOnly}
+                onCheckedChange={(v) => setSignalsOnly(v === true)}
+                className={RV_CHECK}
+              />
               With signals only
             </label>
           </div>
@@ -143,7 +150,9 @@ export function PerpMarketPicker({
               const sig = signalByCoin.get(m.symbol.toUpperCase())
               const active = m.symbol === market.symbol
               return (
-                <button
+                <Button
+                  variant="plain"
+                  size="bare"
                   key={m.symbol}
                   onClick={() => pick(m.symbol)}
                   className={`grid w-full grid-cols-[1fr_auto_auto_auto] items-center gap-x-4 border-t border-[var(--rv-stroke)] px-3 py-2 text-left text-xs hover:bg-[var(--rv-sunken)] ${
@@ -160,9 +169,13 @@ export function PerpMarketPicker({
                         className="border px-1 text-[9px] font-bold"
                         style={{
                           borderColor:
-                            sig.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)",
+                            sig.bias === "LONG"
+                              ? "var(--rv-up)"
+                              : "var(--rv-down)",
                           color:
-                            sig.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)",
+                            sig.bias === "LONG"
+                              ? "var(--rv-up)"
+                              : "var(--rv-down)",
                         }}
                       >
                         {sig.bias} {sig.confidence}/10
@@ -173,7 +186,8 @@ export function PerpMarketPicker({
                   <span
                     className="w-16 text-right font-mono font-bold"
                     style={{
-                      color: m.change24h >= 0 ? "var(--rv-up)" : "var(--rv-down)",
+                      color:
+                        m.change24h >= 0 ? "var(--rv-up)" : "var(--rv-down)",
                     }}
                   >
                     {m.change24h >= 0 ? "+" : ""}
@@ -182,7 +196,7 @@ export function PerpMarketPicker({
                   <span className="w-14 text-right font-mono text-[var(--rv-ink-3)]">
                     ${compact(m.volume24h)}
                   </span>
-                </button>
+                </Button>
               )
             })
           )}

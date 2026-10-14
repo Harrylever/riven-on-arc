@@ -10,6 +10,7 @@ import { RivenOrb } from "./orb-field"
 import { useAskSession } from "@/hooks/use-ask-session"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
+import { Button } from "@/components/ui/button"
 
 interface Msg {
   role: "user" | "riven"
@@ -40,7 +41,11 @@ export function AgentChat() {
   const riven = useRiven()
   const allowance = useAskSession()
   useRivenPage({
-    lines: ["Paste a 0x address or a $TICKER.", "I only answer from on-chain data.", "I'll never tell you to buy or sell — just what the chain says."],
+    lines: [
+      "Paste a 0x address or a $TICKER.",
+      "I only answer from on-chain data.",
+      "I'll never tell you to buy or sell — just what the chain says.",
+    ],
     greet: "Ask me anything about an Arc token.",
   })
 
@@ -61,8 +66,15 @@ export function AgentChat() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           question: text,
-          subject: msgs.findLast((m) => m.role === "riven" && m.tokens?.length === 1)?.tokens?.[0]?.address,
-          history: msgs.slice(-6).map((m) => ({ who: m.role === "user" ? "you" : "riven", text: m.text })),
+          subject: msgs.findLast(
+            (m) => m.role === "riven" && m.tokens?.length === 1,
+          )?.tokens?.[0]?.address,
+          history: msgs
+            .slice(-6)
+            .map((m) => ({
+              who: m.role === "user" ? "you" : "riven",
+              text: m.text,
+            })),
         }),
       })
       const d = await res.json()
@@ -93,12 +105,14 @@ export function AgentChat() {
   return (
     <div className="flex min-h-[70dvh] flex-col gap-3">
       <header className="flex items-center gap-4">
-
         <div>
-          <h1 className="text-[26px] font-bold tracking-tight text-[var(--rv-ink)]">Ask Riven</h1>
+          <h1 className="text-[26px] font-bold tracking-tight text-[var(--rv-ink)]">
+            Ask Riven
+          </h1>
           <p className="text-[13px] text-[var(--rv-ink-2)]">
-            Answers come only from Riven&apos;s on-chain data — each one says whether Riven&apos;s rule engine wrote it or Claude
-            rephrased those same facts. It explains; it never tells you to buy or sell.
+            Answers come only from Riven&apos;s on-chain data — each one says
+            whether Riven&apos;s rule engine wrote it or Claude rephrased those
+            same facts. It explains; it never tells you to buy or sell.
           </p>
         </div>
       </header>
@@ -160,7 +174,11 @@ export function AgentChat() {
         ))}
         {busy && (
           <p className="rv-num flex items-center gap-2 text-[12px] text-[var(--rv-ink-3)]">
-            <RivenOrb state="searching" size={20} label="Riven is reading Arc" />
+            <RivenOrb
+              state="searching"
+              size={20}
+              label="Riven is reading Arc"
+            />
             riven&gt; reading Arc…
           </p>
         )}
@@ -168,14 +186,16 @@ export function AgentChat() {
       </div>
       <div className="flex flex-wrap gap-2">
         {STARTERS.map((s) => (
-          <button
+          <Button
+            variant="plain"
+            size="bare"
             key={s}
             type="button"
             onClick={() => ask(s)}
             className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-[var(--rv-ice)] ring-1 ring-[var(--rv-stroke-strong)] hover:bg-white/5"
           >
             {s}
-          </button>
+          </Button>
         ))}
       </div>
       <AllowanceBar ask={allowance} />
@@ -193,13 +213,15 @@ export function AgentChat() {
           aria-label="Ask Riven"
           className={`${RV_INPUT} h-12 min-w-0 flex-1 px-4 text-[14px]`}
         />
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="submit"
           disabled={busy}
           className="rounded-lg bg-[var(--rv-blue)] px-5 text-[14px] font-semibold text-[var(--rv-on-blue)] disabled:opacity-50"
         >
           Ask
-        </button>
+        </Button>
       </form>
     </div>
   )
@@ -210,21 +232,40 @@ function AllowanceBar({ ask }: { ask: ReturnType<typeof useAskSession> }) {
   if (!usage) return null
   const left = Math.max(usage.limit - usage.used, 0)
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[var(--rv-ink-3)]" aria-live="polite">
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[var(--rv-ink-3)]"
+      aria-live="polite"
+    >
       <span>
-        {left} of {usage.limit} questions left today{isVerified ? " · wallet verified" : ""}
+        {left} of {usage.limit} questions left today
+        {isVerified ? " · wallet verified" : ""}
       </span>
       {!isVerified && enabled && (
         <>
           <span aria-hidden>·</span>
           {wallet.address ? (
-            <button type="button" onClick={() => void verify()} disabled={signing} className="font-semibold text-[var(--rv-ice)] hover:underline disabled:opacity-50">
-              {signing ? "Waiting for your wallet…" : "Verify wallet for 10 a day"}
-            </button>
+            <Button
+              variant="plain"
+              size="bare"
+              type="button"
+              onClick={() => void verify()}
+              disabled={signing}
+              className="font-semibold text-[var(--rv-ice)] hover:underline disabled:opacity-50"
+            >
+              {signing
+                ? "Waiting for your wallet…"
+                : "Verify wallet for 10 a day"}
+            </Button>
           ) : wallet.hasWallet ? (
-            <button type="button" onClick={() => void wallet.connect()} className="font-semibold text-[var(--rv-ice)] hover:underline">
+            <Button
+              variant="plain"
+              size="bare"
+              type="button"
+              onClick={() => void wallet.connect()}
+              className="font-semibold text-[var(--rv-ice)] hover:underline"
+            >
               Connect wallet for 10 a day
-            </button>
+            </Button>
           ) : (
             <span>Install a wallet for 10 a day</span>
           )}

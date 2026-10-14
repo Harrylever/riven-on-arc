@@ -10,6 +10,7 @@ import { TokenAvatar } from "./token-avatar"
 import { WalletPanel } from "./wallet-panel"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
+import { Button } from "@/components/ui/button"
 
 const KEY = "riven_portfolio_wallet"
 
@@ -39,26 +40,29 @@ export function PortfolioClient() {
         ]}
         greet="Show me your bags — I'll rug-check every one."
         actions={
-        <div className="rv-seg">
-          {(
-            [
-              ["mine", "My wallet"],
-              ["any", "Check any wallet"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              aria-pressed={tab === id}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+          <div className="rv-seg">
+            {(
+              [
+                ["mine", "My wallet"],
+                ["any", "Check any wallet"],
+              ] as const
+            ).map(([id, label]) => (
+              <Button
+                variant="plain"
+                size="bare"
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                aria-pressed={tab === id}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
         }
       >
-        Your balance, deposits, withdrawals, conversions and trades on Arc — every token scored for rug risk.
+        Your balance, deposits, withdrawals, conversions and trades on Arc —
+        every token scored for rug risk.
       </PageHero>
       {tab === "mine" ? <WalletPanel /> : <WalletLookup />}
     </div>
@@ -125,16 +129,16 @@ function WalletLookup() {
           spellCheck={false}
           className={`${RV_INPUT} h-12 min-w-0 flex-1 px-4 text-[14px]`}
         />
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="submit"
           className="rounded-lg bg-[var(--rv-blue)] px-5 text-[14px] font-semibold text-[var(--rv-on-blue)]"
         >
           {loading ? "Checking…" : "Check"}
-        </button>
+        </Button>
       </form>
-      {error && (
-        <p className="text-[13px] text-[var(--rv-risk)]">{error}</p>
-      )}
+      {error && <p className="text-[13px] text-[var(--rv-risk)]">{error}</p>}
       {data && (
         <>
           <section className="grid grid-cols-3 gap-2">

@@ -24,7 +24,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TAB_LIST, TAB_TRIGGER } from "./card-style"
 import { CalloutsRow } from "./home-sections"
@@ -45,6 +52,7 @@ import { visibleInterval } from "@/lib/visible-interval"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
+import { Button } from "@/components/ui/button"
 
 const EXPLORER = "https://explorer.arc.io"
 const ORDER: SubScoreKey[] = [
@@ -202,7 +210,9 @@ export function TokenView({
           </span>
         </div>
         <div className="col-start-4 row-start-1 flex items-center gap-1.5 md:col-start-5 md:row-span-2 md:gap-2">
-          <button
+          <Button
+            variant="riven"
+            size="rv"
             type="button"
             onClick={() => {
               riven.scan()
@@ -212,7 +222,7 @@ export function TokenView({
                   4500,
                 )
             }}
-            className="rv-btn size-9 gap-1.5 px-0 text-[13px] sm:w-auto sm:px-3"
+            className="size-9 gap-1.5 px-0 text-[13px] sm:w-auto sm:px-3"
             title="Riven scans this token and refreshes its score"
             aria-label="Scan this token"
           >
@@ -228,7 +238,7 @@ export function TokenView({
               <path d="m20 20-4.2-4.2" />
             </svg>
             <span className="hidden sm:inline">Scan</span>
-          </button>
+          </Button>
           <WatchButton address={t.address} size="lg" />
         </div>
         <div className="col-span-4 row-start-2 flex items-baseline justify-between gap-3 md:col-span-1 md:col-start-4 md:row-span-2 md:block md:text-right">
@@ -347,31 +357,42 @@ export function TokenView({
           ) : null}
 
           {/* Tabs */}
-          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="rv-card gap-0 overflow-hidden">
+          <Tabs
+            value={tab}
+            onValueChange={(v) => setTab(v as typeof tab)}
+            className="rv-card gap-0 overflow-hidden"
+          >
             <div className="border-b border-[var(--rv-stroke)] px-2">
-            <TabsList variant="line" className={TAB_LIST} aria-label="Token details">
-              {(
-                [
+              <TabsList
+                variant="line"
+                className={TAB_LIST}
+                aria-label="Token details"
+              >
+                {(
                   [
-                    "trades",
-                    `Trades${t.trades.length ? ` ${t.trades.length}` : ""}`,
-                  ],
-                  ["holders", "Holders"],
-                  ["bubblemaps", "Bubble maps"],
-                  ["creator", "Creator"],
-                  [
-                    "callouts",
-                    `Callouts${callouts.length ? ` ${callouts.length}` : ""}`,
-                  ],
-                ] as const
-              ).map(([id, label]) => (
-                <TabsTrigger key={id} value={id} className={TAB_TRIGGER}>
-                  {label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+                    [
+                      "trades",
+                      `Trades${t.trades.length ? ` ${t.trades.length}` : ""}`,
+                    ],
+                    ["holders", "Holders"],
+                    ["bubblemaps", "Bubble maps"],
+                    ["creator", "Creator"],
+                    [
+                      "callouts",
+                      `Callouts${callouts.length ? ` ${callouts.length}` : ""}`,
+                    ],
+                  ] as const
+                ).map(([id, label]) => (
+                  <TabsTrigger key={id} value={id} className={TAB_TRIGGER}>
+                    {label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
             </div>
-            <TabsContent value={tab} className="[&>section]:rounded-md [&>section]:border-0 [&>section]:bg-transparent [&>section>h2]:hidden">
+            <TabsContent
+              value={tab}
+              className="[&>section]:rounded-md [&>section]:border-0 [&>section]:bg-transparent [&>section>h2]:hidden"
+            >
               {tab === "trades" &&
                 (t.trades.length ? (
                   <Trades t={t} now={now} />
@@ -648,7 +669,9 @@ function ExitCheck({ poolUsdc }: { poolUsdc: number }) {
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {EXIT_SIZES.map((v) => (
-          <button
+          <Button
+            variant="plain"
+            size="bare"
             key={v}
             type="button"
             aria-pressed={size === v && custom === ""}
@@ -659,7 +682,7 @@ function ExitCheck({ poolUsdc }: { poolUsdc: number }) {
             className="rv-chip"
           >
             Sell {usd(v)}
-          </button>
+          </Button>
         ))}
         <label className="sr-only" htmlFor="exit-custom">
           Custom sale size in USD
@@ -730,7 +753,9 @@ function Stat({
 function CopyAddress({ address }: { address: string }) {
   const [copied, setCopied] = useState(false)
   return (
-    <button
+    <Button
+      variant="plain"
+      size="bare"
       type="button"
       onClick={() =>
         navigator.clipboard?.writeText(address).then(() => {
@@ -743,7 +768,7 @@ function CopyAddress({ address }: { address: string }) {
     >
       {shortAddr(address)}
       <span className="text-[var(--rv-ice)]">{copied ? "✓" : "⧉"}</span>
-    </button>
+    </Button>
   )
 }
 
@@ -758,7 +783,9 @@ function TradeBox({ t }: { t: TokenDetail }) {
     <section className="rv-card p-4">
       <div className="rv-seg w-full" role="radiogroup" aria-label="Side">
         {(["buy", "sell"] as const).map((s) => (
-          <button
+          <Button
+            variant="plain"
+            size="bare"
             key={s}
             type="button"
             role="radio"
@@ -778,7 +805,7 @@ function TradeBox({ t }: { t: TokenDetail }) {
             }
           >
             {s}
-          </button>
+          </Button>
         ))}
       </div>
       <label className="mt-3 block">
@@ -796,7 +823,9 @@ function TradeBox({ t }: { t: TokenDetail }) {
       {side === "buy" && (
         <div className="mt-2 grid grid-cols-4 gap-1.5">
           {["5", "10", "25", "100"].map((v) => (
-            <button
+            <Button
+              variant="plain"
+              size="bare"
               key={v}
               type="button"
               onClick={() => setAmount(v)}
@@ -804,7 +833,7 @@ function TradeBox({ t }: { t: TokenDetail }) {
               className="rv-chip justify-center"
             >
               {v}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -815,7 +844,9 @@ function TradeBox({ t }: { t: TokenDetail }) {
           signed.
         </p>
       )}
-      <button
+      <Button
+        variant="plain"
+        size="bare"
         type="button"
         onClick={() => setOpen(true)}
         disabled={!amount || Number(amount) <= 0}
@@ -826,7 +857,7 @@ function TradeBox({ t }: { t: TokenDetail }) {
         }}
       >
         {wallet.address ? `Review ${side}` : "Connect wallet to trade"}
-      </button>
+      </Button>
       <p className="mt-2 text-center text-[10.5px] text-[var(--rv-ink-3)]">
         Uniswap v4 on Arc · you sign every transaction · Riven never holds funds
       </p>
@@ -1019,15 +1050,26 @@ export function CreatorTrack({
         <Table className="mt-3 text-[12px]">
           <TableHeader>
             <TableRow className="border-0 text-left hover:bg-transparent">
-              <TableHead className="h-auto px-0 py-1.5 text-[11px] font-medium tracking-normal normal-case text-[var(--rv-ink-3)]">Token</TableHead>
-              <TableHead className="h-auto px-0 py-1.5 text-right text-[11px] font-medium tracking-normal normal-case text-[var(--rv-ink-3)]">ATH</TableHead>
-              <TableHead className="h-auto px-0 py-1.5 text-right text-[11px] font-medium tracking-normal normal-case text-[var(--rv-ink-3)]">Now</TableHead>
-              <TableHead className="h-auto px-0 py-1.5 text-right text-[11px] font-medium tracking-normal normal-case text-[var(--rv-ink-3)]">Status</TableHead>
+              <TableHead className="h-auto px-0 py-1.5 text-[11px] font-medium tracking-normal text-[var(--rv-ink-3)] normal-case">
+                Token
+              </TableHead>
+              <TableHead className="h-auto px-0 py-1.5 text-right text-[11px] font-medium tracking-normal text-[var(--rv-ink-3)] normal-case">
+                ATH
+              </TableHead>
+              <TableHead className="h-auto px-0 py-1.5 text-right text-[11px] font-medium tracking-normal text-[var(--rv-ink-3)] normal-case">
+                Now
+              </TableHead>
+              <TableHead className="h-auto px-0 py-1.5 text-right text-[11px] font-medium tracking-normal text-[var(--rv-ink-3)] normal-case">
+                Status
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {record.tokens.slice(0, 12).map((x) => (
-              <TableRow key={x.address} className="border-0 border-t border-[var(--rv-stroke)]">
+              <TableRow
+                key={x.address}
+                className="border-0 border-t border-[var(--rv-stroke)]"
+              >
                 <TableCell className="px-0 py-1.5">
                   <Link
                     href={`/token/${x.address}`}
@@ -1227,14 +1269,16 @@ function Holders({
 
       <DevWallet creator={t.creator} launchpad={t.launchpad} />
 
-      <button
+      <Button
+        variant="riven"
+        size="rv"
         type="button"
         onClick={onBubbleMaps}
-        className="rv-btn mt-4 h-11 w-full gap-2 px-4 text-[13px] sm:h-10 sm:w-auto"
+        className="mt-4 h-11 w-full gap-2 px-4 text-[13px] sm:h-10 sm:w-auto"
       >
         View bubble map
         <ArrowIcon />
-      </button>
+      </Button>
     </section>
   )
 }
@@ -1271,13 +1315,15 @@ function DevWallet({
             {creator.slice(21)}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button
+            <Button
+              variant="rivenGhost"
+              size="rv"
               type="button"
               onClick={() => void copy()}
-              className="rv-btn-ghost h-9 px-3 text-[12px]"
+              className="h-9 px-3 text-[12px]"
             >
               {copied ? "Copied" : "Copy address"}
-            </button>
+            </Button>
             <a
               href={`${EXPLORER}/address/${creator}`}
               target="_blank"
@@ -1445,7 +1491,9 @@ function Row({
         )}
       </a>
       {value.startsWith("0x") && (
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={() =>
             navigator.clipboard?.writeText(value).then(() => {
@@ -1456,7 +1504,7 @@ function Row({
           className="rounded-md px-2 py-0.5 text-[11px] font-semibold text-[var(--rv-ice)] ring-1 ring-[var(--rv-stroke-strong)] hover:bg-white/5"
         >
           {copied ? "Copied" : "Copy"}
-        </button>
+        </Button>
       )}
     </div>
   )

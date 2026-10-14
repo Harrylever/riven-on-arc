@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { flushSync } from "react-dom"
 import type { PerpInsight } from "@/lib/perp-insight"
 import { DISCLAIMER } from "@/lib/site"
+import { Button } from "@/components/ui/button"
 
 /**
  * Riven's read as a drop-down. Closed, it keeps the takeaway visible (the activity score and the
@@ -33,7 +34,12 @@ export function RivenRead({
     if (!el || !open) return
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (!entry || entry.isIntersecting || entry.boundingClientRect.bottom > 0) return
+        if (
+          !entry ||
+          entry.isIntersecting ||
+          entry.boundingClientRect.bottom > 0
+        )
+          return
         // The card is above the viewport, so shrinking it would shove everything below it up
         // the screen. Collapse instantly, then scroll by however far the next block moved so
         // what the reader is looking at stays put (Safari has no scroll anchoring to do it).
@@ -62,7 +68,9 @@ export function RivenRead({
       className="rv-card scroll-mt-28 overflow-hidden"
       style={flash ? { animation: "rv-flash 1.6s ease-out" } : undefined}
     >
-      <button
+      <Button
+        variant="plain"
+        size="bare"
         type="button"
         aria-expanded={open}
         aria-controls="read-body"
@@ -74,12 +82,15 @@ export function RivenRead({
             <span className="rv-label">Riven&apos;s read</span>
             {insight && (
               <span className="rv-num ml-auto text-[11.5px] text-[var(--rv-ink-3)]">
-                Activity {insight.activity}/10<span className="hidden sm:inline"> · not a buy score</span>
+                Activity {insight.activity}/10
+                <span className="hidden sm:inline"> · not a buy score</span>
               </span>
             )}
           </span>
           {insight ? (
-            <span className="mt-1.5 block text-[15px] leading-snug font-semibold text-[var(--rv-ink)]">{insight.why}</span>
+            <span className="mt-1.5 block text-[15px] leading-snug font-semibold text-[var(--rv-ink)]">
+              {insight.why}
+            </span>
           ) : (
             <span className="mt-2 block h-10 animate-pulse rounded-md bg-white/[0.04]" />
           )}
@@ -101,7 +112,7 @@ export function RivenRead({
             <path d="m4 6 4 4 4-4" />
           </svg>
         </span>
-      </button>
+      </Button>
 
       {/* grid-rows 0fr -> 1fr animates the height without measuring it */}
       <div
@@ -121,8 +132,10 @@ export function RivenRead({
                 ))}
               </ul>
               <p className="mt-2 text-[11.5px] text-[var(--rv-ink-3)]">
-                Activity is how much is going on (move size, volume, news, funding), not a buy score. Live market prices, calls
-                from Riven Scanner, plus crypto news. Riven explains; you decide. {DISCLAIMER}
+                Activity is how much is going on (move size, volume, news,
+                funding), not a buy score. Live market prices, calls from Riven
+                Scanner, plus crypto news. Riven explains; you decide.{" "}
+                {DISCLAIMER}
               </p>
             </div>
           )}

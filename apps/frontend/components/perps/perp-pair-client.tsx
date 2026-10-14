@@ -20,6 +20,7 @@ import { venueName } from "@/lib/perp-symbols"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { RivenRead } from "@/components/perps/riven-read"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
 
 const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 
@@ -184,10 +185,12 @@ export function PerpPairClient({ coin }: { coin: string }) {
             </p>
           </div>
         )}
-        <button
+        <Button
+          variant="riven"
+          size="rv"
           type="button"
           onClick={() => riven.scan()}
-          className="rv-btn ml-auto h-9 gap-1.5 px-3 text-[13px]"
+          className="ml-auto h-9 gap-1.5 px-3 text-[13px]"
           title="Riven reads the market, funding, news and the scanner for this pair"
         >
           <svg
@@ -203,7 +206,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
             <path d="m20 20-4.2-4.2" />
           </svg>
           Why is it moving?
-        </button>
+        </Button>
       </header>
 
       {/* Riven's read: the analysis engine's plain-English take (a drop-down; it closes once scrolled past) */}
@@ -255,13 +258,15 @@ export function PerpPairClient({ coin }: { coin: string }) {
             ago. Levels are {venueName(open.exchange)} prices; the chart and
             paper orders use live market prices.
           </div>
-          <button
+          <Button
+            variant="riven"
+            size="rv"
             type="button"
             onClick={() => setOrder(open)}
-            className="rv-btn h-11 w-full px-4 text-[13px] sm:h-9 sm:w-auto"
+            className="h-11 w-full px-4 text-[13px] sm:h-9 sm:w-auto"
           >
             Paper trade this call
-          </button>
+          </Button>
         </section>
       )}
 

@@ -10,6 +10,7 @@ import { priceUsd } from "@/lib/format"
 import { signalCoinKey } from "@/lib/perp-symbols"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
+import { Button } from "@/components/ui/button"
 
 function notify(title: string, body: string, tag: string) {
   toast.add({ title, description: body, type: "info" })
@@ -115,7 +116,9 @@ export function PerpWatch({
           const m = byCoin.get(coin)
           const up = (m?.change24h ?? 0) >= 0
           return (
-            <button
+            <Button
+              variant="plain"
+              size="bare"
               key={coin}
               type="button"
               onClick={() => onSelect(coin)}
@@ -139,10 +142,12 @@ export function PerpWatch({
                   {m.change24h.toFixed(2)}%
                 </span>
               )}
-            </button>
+            </Button>
           )
         })}
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={() => toggleTrack(market.symbol)}
           className="ml-auto rounded-md px-3 py-1 text-[12px] font-semibold"
@@ -155,7 +160,7 @@ export function PerpWatch({
           }}
         >
           {tracked ? `Tracking ${market.symbol}` : `Track ${market.symbol}`}
-        </button>
+        </Button>
       </div>
 
       <form
@@ -193,12 +198,14 @@ export function PerpWatch({
           aria-label="Alert price"
           className={`${RV_INPUT} h-11 w-full px-2 text-[13px] sm:h-8 sm:w-28 sm:text-[12px]`}
         />
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="submit"
           className="col-span-2 h-11 rounded-md bg-[var(--rv-blue)] px-3 text-[13px] font-semibold text-[var(--rv-on-blue)] sm:h-8 sm:text-[12px]"
         >
           Set alert
-        </button>
+        </Button>
         {alerts.length > 0 && (
           <ul className="flex w-full flex-wrap gap-1.5 pt-1">
             {alerts.map((a) => (
@@ -208,14 +215,16 @@ export function PerpWatch({
               >
                 {a.coin} {a.direction === "above" ? "≥" : "≤"}{" "}
                 {priceUsd(a.price)}
-                <button
+                <Button
+                  variant="plain"
+                  size="bare"
                   type="button"
                   onClick={() => removeAlert(a.id)}
                   aria-label={`Remove ${a.coin} alert`}
                   className="text-[var(--rv-ink-3)] hover:text-[var(--rv-risk)]"
                 >
                   ✕
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

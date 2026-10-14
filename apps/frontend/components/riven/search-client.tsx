@@ -6,6 +6,7 @@ import { motion } from "motion/react"
 import type { TokenSummary } from "@/lib/arc-data"
 import { TokenCard } from "./token-card"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/
 
@@ -87,19 +88,19 @@ export function SearchClient() {
           className="h-14 min-w-0 flex-1 bg-transparent text-[16px] text-[var(--rv-ink)] outline-none placeholder:text-[var(--rv-ink-3)]"
         />
         {q && (
-          <button
+          <Button
+            variant="plain"
+            size="bare"
             type="button"
             onClick={() => setQ("")}
             className="text-[13px] font-semibold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
           >
             Clear
-          </button>
+          </Button>
         )}
       </motion.label>
 
-      {loading && (
-        <p className="text-sm text-[var(--rv-ink-3)]">Searching…</p>
-      )}
+      {loading && <p className="text-sm text-[var(--rv-ink-3)]">Searching…</p>}
       {failed && !loading && (
         <div className="rv-card px-5 py-6 text-center" role="alert">
           <p className="text-lg font-bold text-[var(--rv-caution)]">
@@ -112,9 +113,7 @@ export function SearchClient() {
       )}
       {!failed && results !== null && !loading && results.length === 0 && (
         <div className="rv-card px-5 py-8 text-center">
-          <p className="text-lg font-bold text-[var(--rv-ink)]">
-            No match
-          </p>
+          <p className="text-lg font-bold text-[var(--rv-ink)]">No match</p>
           <p className="mt-1 text-sm text-[var(--rv-ink-2)]">
             {ADDRESS.test(q.trim())
               ? "Riven scores every Arc token with a USDC pool on Uniswap v4. This address doesn't have one yet."

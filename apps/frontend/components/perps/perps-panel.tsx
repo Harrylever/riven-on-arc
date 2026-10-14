@@ -28,6 +28,7 @@ import { isMajorPerp, isMemePerp, signalCoinKey } from "@/lib/perp-symbols"
 import type { PerpMarket } from "@/lib/hyperliquid"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 export interface PerpSignal {
   id: string
@@ -220,7 +221,13 @@ export function PerpsPanel() {
     const go = () => {
       if (window.location.hash !== "#perp-signals") return
       setTab("scanner")
-      setTimeout(() => document.getElementById("perp-signals")?.scrollIntoView({ behavior: "smooth" }), 0)
+      setTimeout(
+        () =>
+          document
+            .getElementById("perp-signals")
+            ?.scrollIntoView({ behavior: "smooth" }),
+        0,
+      )
     }
     go()
     window.addEventListener("hashchange", go)
@@ -232,10 +239,13 @@ export function PerpsPanel() {
     let cancelled = false
     const load = async () => {
       try {
-        const res = await fetch("/api/perp-signals?status=open&take=200&stats=0", {
-          cache: "no-store",
-          signal: AbortSignal.timeout(15_000),
-        })
+        const res = await fetch(
+          "/api/perp-signals?status=open&take=200&stats=0",
+          {
+            cache: "no-store",
+            signal: AbortSignal.timeout(15_000),
+          },
+        )
         if (!res.ok) throw new Error(`open calls ${res.status}`)
         const json = await res.json()
         if (!cancelled) {
@@ -408,7 +418,8 @@ export function PerpsPanel() {
 
   const scannerCount = openCalls?.length ?? null
   const active: SourceTab =
-    tab ?? (openCalls !== null && openCalls.length === 0 ? "markets" : "scanner")
+    tab ??
+    (openCalls !== null && openCalls.length === 0 ? "markets" : "scanner")
   const lastScanAt =
     openCalls && openCalls.length > 0
       ? Math.max(...openCalls.map((c) => Date.parse(c.scanTime)))
@@ -431,20 +442,24 @@ export function PerpsPanel() {
           className="space-y-4"
         >
           <SourceStrip kind="scanner">
-            <AgeLabel at={lastScanAt} prefix="last scan" /> · scans about every 10 min
+            <AgeLabel at={lastScanAt} prefix="last scan" /> · scans about every
+            10 min
           </SourceStrip>
           <section>
             <div className="mb-3 flex items-center gap-2">
               <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
                 Live scanner calls
               </h2>
-              <a
-                href="#perp-signals"
-                className="rv-btn-ghost ml-auto h-8 gap-1 px-3 text-[12px]"
+              <Button
+                nativeButton={false}
+                variant="rivenGhost"
+                size="rv"
+                render={<a href="#perp-signals" />}
+                className="ml-auto h-8 gap-1 px-3 text-[12px]"
               >
                 All calls
                 <ArrowIcon />
-              </a>
+              </Button>
             </div>
             {loading && signals === null ? (
               <div className="flex gap-3 overflow-hidden">
@@ -456,7 +471,11 @@ export function PerpsPanel() {
                 ))}
               </div>
             ) : (
-              <SignalCarousel signals={liveCalls} marks={marks} marksReady={markets !== null} />
+              <SignalCarousel
+                signals={liveCalls}
+                marks={marks}
+                marksReady={markets !== null}
+              />
             )}
           </section>
 
@@ -501,7 +520,10 @@ export function PerpsPanel() {
                         const val = Number(v)
                         setRefreshIntervalMs(val)
                         if (typeof window !== "undefined") {
-                          localStorage.setItem("riven_perps_refresh_interval", String(val))
+                          localStorage.setItem(
+                            "riven_perps_refresh_interval",
+                            String(val),
+                          )
                         }
                       }}
                     />
@@ -516,123 +538,136 @@ export function PerpsPanel() {
 
               {stats.totalResolved === 0 ? (
                 <p className="mt-3 text-[12px] text-[var(--rv-ink-2)]">
-                  No resolved calls yet. A call counts once price reaches a target or the stop, which can take up to 48 hours;
-                  until then there is no win rate to show.
+                  No resolved calls yet. A call counts once price reaches a
+                  target or the stop, which can take up to 48 hours; until then
+                  there is no win rate to show.
                 </p>
               ) : (
                 <>
-              {stats.confirmedTrades < MIN_SAMPLE && (
-                <p className="mt-3 rounded-md border border-[var(--rv-caution)]/30 bg-[var(--rv-caution)]/10 px-3 py-2 text-[12px] text-[var(--rv-ink-2)]">
-                  Small sample: only {stats.confirmedTrades} confirmed call{stats.confirmedTrades === 1 ? "" : "s"} so far (fewer than {MIN_SAMPLE}).
-                  Read these rates as early anecdotes, not a settled record.
-                </p>
-              )}
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-                <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                    Win Rate
-                  </div>
-                  <div
-                    className="mt-1 text-lg font-extrabold"
-                    style={{
-                      color:
-                        stats.confirmedTrades >= MIN_SAMPLE && stats.winRate >= 60
-                          ? "var(--rv-up)"
-                          : "var(--rv-ink)",
-                    }}
-                  >
-                    {stats.confirmedTrades > 0 ? `${stats.winRate}%` : "—"}
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
-                    {stats.wins} wins / {stats.confirmedTrades} confirmed
-                  </div>
-                </div>
-
-                <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                    Stop-Loss Rate
-                  </div>
-                  <div
-                    className="mt-1 text-lg font-extrabold"
-                    style={{
-                      color:
-                        stats.confirmedTrades >= MIN_SAMPLE && stats.stopLossRate > 35
-                          ? "var(--rv-risk)"
-                          : "var(--rv-ink)",
-                    }}
-                  >
-                    {stats.confirmedTrades > 0 ? `${stats.stopLossRate}%` : "—"}
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
-                    {stats.slHits} stops hit
-                  </div>
-                </div>
-
-                <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                    Missed Entries
-                  </div>
-                  <div className="mt-1 text-lg font-extrabold text-[var(--rv-caution)]">
-                    {stats.missedEntries}
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
-                    Unfilled (Excluded)
-                  </div>
-                </div>
-
-                <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                    Target Hits
-                  </div>
-                  <div className="mt-1 font-mono text-xs font-bold text-[var(--rv-ink)]">
-                    T1: {stats.perTargetHit.t1} · T2: {stats.perTargetHit.t2} · T3:{" "}
-                    {stats.perTargetHit.t3}
-                  </div>
-                  <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
-                    T1: {stats.perTargetHit.t1Rate}% hit rate
-                  </div>
-                </div>
-
-                <div className="col-span-2 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
-                  <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                    Conviction Bands
-                  </div>
-                  <div className="mt-1 flex items-center justify-between font-mono text-[11px]">
-                    <div>
-                      <span className="text-[var(--rv-ink-3)]">High (8-10): </span>
-                      <span className="font-bold text-[var(--rv-up)]">
-                        {stats.confidenceBands.high.total > 0
-                          ? `${stats.confidenceBands.high.winRate}%`
-                          : "—"}
-                      </span>
-                      <span className="text-[10px] text-[var(--rv-ink-3)]">
-                        {" "}
-                        ({stats.confidenceBands.high.wins}/
-                        {stats.confidenceBands.high.total})
-                      </span>
+                  {stats.confirmedTrades < MIN_SAMPLE && (
+                    <p className="mt-3 rounded-md border border-[var(--rv-caution)]/30 bg-[var(--rv-caution)]/10 px-3 py-2 text-[12px] text-[var(--rv-ink-2)]">
+                      Small sample: only {stats.confirmedTrades} confirmed call
+                      {stats.confirmedTrades === 1 ? "" : "s"} so far (fewer
+                      than {MIN_SAMPLE}). Read these rates as early anecdotes,
+                      not a settled record.
+                    </p>
+                  )}
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                    <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                      <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                        Win Rate
+                      </div>
+                      <div
+                        className="mt-1 text-lg font-extrabold"
+                        style={{
+                          color:
+                            stats.confirmedTrades >= MIN_SAMPLE &&
+                            stats.winRate >= 60
+                              ? "var(--rv-up)"
+                              : "var(--rv-ink)",
+                        }}
+                      >
+                        {stats.confirmedTrades > 0 ? `${stats.winRate}%` : "—"}
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
+                        {stats.wins} wins / {stats.confirmedTrades} confirmed
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[var(--rv-ink-3)]">Med (5-7): </span>
-                      <span className="font-bold text-[var(--rv-ink)]">
-                        {stats.confidenceBands.medium.total > 0
-                          ? `${stats.confidenceBands.medium.winRate}%`
+
+                    <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                      <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                        Stop-Loss Rate
+                      </div>
+                      <div
+                        className="mt-1 text-lg font-extrabold"
+                        style={{
+                          color:
+                            stats.confirmedTrades >= MIN_SAMPLE &&
+                            stats.stopLossRate > 35
+                              ? "var(--rv-risk)"
+                              : "var(--rv-ink)",
+                        }}
+                      >
+                        {stats.confirmedTrades > 0
+                          ? `${stats.stopLossRate}%`
                           : "—"}
-                      </span>
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
+                        {stats.slHits} stops hit
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-[var(--rv-ink-3)]">Low (1-4): </span>
-                      <span className="font-bold text-[var(--rv-ink-3)]">
-                        {stats.confidenceBands.low.total > 0
-                          ? `${stats.confidenceBands.low.winRate}%`
-                          : "—"}
-                      </span>
+
+                    <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                      <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                        Missed Entries
+                      </div>
+                      <div className="mt-1 text-lg font-extrabold text-[var(--rv-caution)]">
+                        {stats.missedEntries}
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
+                        Unfilled (Excluded)
+                      </div>
+                    </div>
+
+                    <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                      <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                        Target Hits
+                      </div>
+                      <div className="mt-1 font-mono text-xs font-bold text-[var(--rv-ink)]">
+                        T1: {stats.perTargetHit.t1} · T2:{" "}
+                        {stats.perTargetHit.t2} · T3: {stats.perTargetHit.t3}
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-[var(--rv-ink-3)]">
+                        T1: {stats.perTargetHit.t1Rate}% hit rate
+                      </div>
+                    </div>
+
+                    <div className="col-span-2 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                      <div className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                        Conviction Bands
+                      </div>
+                      <div className="mt-1 flex items-center justify-between font-mono text-[11px]">
+                        <div>
+                          <span className="text-[var(--rv-ink-3)]">
+                            High (8-10):{" "}
+                          </span>
+                          <span className="font-bold text-[var(--rv-up)]">
+                            {stats.confidenceBands.high.total > 0
+                              ? `${stats.confidenceBands.high.winRate}%`
+                              : "—"}
+                          </span>
+                          <span className="text-[10px] text-[var(--rv-ink-3)]">
+                            {" "}
+                            ({stats.confidenceBands.high.wins}/
+                            {stats.confidenceBands.high.total})
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[var(--rv-ink-3)]">
+                            Med (5-7):{" "}
+                          </span>
+                          <span className="font-bold text-[var(--rv-ink)]">
+                            {stats.confidenceBands.medium.total > 0
+                              ? `${stats.confidenceBands.medium.winRate}%`
+                              : "—"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[var(--rv-ink-3)]">
+                            Low (1-4):{" "}
+                          </span>
+                          <span className="font-bold text-[var(--rv-ink-3)]">
+                            {stats.confidenceBands.low.total > 0
+                              ? `${stats.confidenceBands.low.winRate}%`
+                              : "—"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-1 text-[10px] text-[var(--rv-ink-3)]">
+                        Total resolved: {stats.totalResolved} calls
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-1 text-[10px] text-[var(--rv-ink-3)]">
-                    Total resolved: {stats.totalResolved} calls
-                  </div>
-                </div>
-              </div>
                 </>
               )}
             </div>
@@ -644,7 +679,9 @@ export function PerpsPanel() {
             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
               {/* Status Switcher */}
               <div className="flex w-full border border-[var(--rv-stroke)] sm:w-auto">
-                <button
+                <Button
+                  variant="plain"
+                  size="bare"
                   type="button"
                   onClick={() => setStatusFilter("all")}
                   className={`flex-1 px-3 py-2.5 text-xs font-bold transition-colors sm:flex-none sm:py-1.5 ${
@@ -654,29 +691,33 @@ export function PerpsPanel() {
                   }`}
                 >
                   All Signals
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="plain"
+                  size="bare"
                   type="button"
                   onClick={() => setStatusFilter("open")}
-                  className={`border-l border-[var(--rv-stroke)] flex-1 px-3 py-2.5 text-xs font-bold transition-colors sm:flex-none sm:py-1.5 ${
+                  className={`flex-1 border-l border-[var(--rv-stroke)] px-3 py-2.5 text-xs font-bold transition-colors sm:flex-none sm:py-1.5 ${
                     statusFilter === "open"
                       ? "bg-[var(--rv-blue)] text-black"
                       : "text-[var(--rv-ink-2)] hover:text-white"
                   }`}
                 >
                   Open Calls
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="plain"
+                  size="bare"
                   type="button"
                   onClick={() => setStatusFilter("resolved")}
-                  className={`border-l border-[var(--rv-stroke)] flex-1 px-3 py-2.5 text-xs font-bold transition-colors sm:flex-none sm:py-1.5 ${
+                  className={`flex-1 border-l border-[var(--rv-stroke)] px-3 py-2.5 text-xs font-bold transition-colors sm:flex-none sm:py-1.5 ${
                     statusFilter === "resolved"
                       ? "bg-[var(--rv-blue)] text-black"
                       : "text-[var(--rv-ink-2)] hover:text-white"
                   }`}
                 >
                   Resolved
-                </button>
+                </Button>
               </div>
 
               {/* Direction Filter */}
@@ -685,7 +726,9 @@ export function PerpsPanel() {
                   Bias:
                 </span>
                 {(["ALL", "LONG", "SHORT"] as const).map((b) => (
-                  <button
+                  <Button
+                    variant="plain"
+                    size="bare"
                     key={b}
                     type="button"
                     onClick={() => setBiasFilter(b)}
@@ -700,7 +743,7 @@ export function PerpsPanel() {
                     }`}
                   >
                     {b}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -712,7 +755,7 @@ export function PerpsPanel() {
                 placeholder="Filter ticker (e.g. $SOL, BTC, ETH)…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-2.5 text-xs sm:w-52 sm:py-1 text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
+                className="w-full rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-2.5 text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)] sm:w-52 sm:py-1"
               />
             </div>
           </div>
@@ -738,25 +781,33 @@ export function PerpsPanel() {
             <PerpsSignalsSkeleton />
           ) : displayedSignals && displayedSignals.length > 0 ? (
             <>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
-              {displayedSignals.slice(0, callsShown).map((signal) => (
-                <CallCard
-                  key={signal.id}
-                  signal={signal}
-                  mark={markets === null ? undefined : (marks.get(signalCoinKey(signal.symbol)) ?? null)}
-                  onTrade={setSelectedSignal}
-                />
-              ))}
-            </div>
-            {displayedSignals.length > callsShown && (
-              <button
-                type="button"
-                onClick={() => setCallsShown((n) => n + CALLS_PAGE)}
-                className="rv-btn-ghost h-11 w-full text-[13px]"
-              >
-                Show {Math.min(CALLS_PAGE, displayedSignals.length - callsShown)} more ({displayedSignals.length - callsShown} not shown)
-              </button>
-            )}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
+                {displayedSignals.slice(0, callsShown).map((signal) => (
+                  <CallCard
+                    key={signal.id}
+                    signal={signal}
+                    mark={
+                      markets === null
+                        ? undefined
+                        : (marks.get(signalCoinKey(signal.symbol)) ?? null)
+                    }
+                    onTrade={setSelectedSignal}
+                  />
+                ))}
+              </div>
+              {displayedSignals.length > callsShown && (
+                <Button
+                  variant="rivenGhost"
+                  size="rv"
+                  type="button"
+                  onClick={() => setCallsShown((n) => n + CALLS_PAGE)}
+                  className="h-11 w-full text-[13px]"
+                >
+                  Show{" "}
+                  {Math.min(CALLS_PAGE, displayedSignals.length - callsShown)}{" "}
+                  more ({displayedSignals.length - callsShown} not shown)
+                </Button>
+              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-12 text-center">
@@ -770,7 +821,6 @@ export function PerpsPanel() {
               </p>
             </div>
           )}
-
         </div>
       )}
 
@@ -786,7 +836,8 @@ export function PerpsPanel() {
           </SourceStrip>
           {openCallsFailed && (
             <p className="rounded-md border border-[var(--rv-caution)]/30 bg-[var(--rv-caution)]/10 px-3 py-2 text-[12px] text-[var(--rv-ink-2)]">
-              Riven Scanner calls couldn&apos;t be loaded just now, so scanner pills may be missing. Retrying automatically.
+              Riven Scanner calls couldn&apos;t be loaded just now, so scanner
+              pills may be missing. Retrying automatically.
             </p>
           )}
           {/* All perp markets */}
@@ -814,16 +865,21 @@ export function PerpsPanel() {
                           ["major", "Majors"],
                         ] as const
                       ).map(([id, label]) => (
-                        <button
+                        <Button
+                          variant="plain"
+                          size="bare"
                           key={id}
                           type="button"
                           onClick={() => setMarketGroup(id)}
                           aria-pressed={marketGroup === id}
                           className="px-3 py-2 text-[12px] font-bold sm:px-2.5 sm:py-1 sm:text-[11px]"
                           style={{
-                            color: marketGroup === id ? "#fff" : "var(--rv-ink-3)",
+                            color:
+                              marketGroup === id ? "#fff" : "var(--rv-ink-3)",
                             background:
-                              marketGroup === id ? "var(--rv-blue)" : "transparent",
+                              marketGroup === id
+                                ? "var(--rv-blue)"
+                                : "transparent",
                             boxShadow:
                               marketGroup === id
                                 ? "none"
@@ -831,7 +887,7 @@ export function PerpsPanel() {
                           }}
                         >
                           {label} ({groups[id].length})
-                        </button>
+                        </Button>
                       ))}
                     </div>
                     <div className="flex w-full items-center gap-3 sm:w-auto">
@@ -844,7 +900,7 @@ export function PerpsPanel() {
                         aria-label="Filter live markets"
                         value={marketSearch}
                         onChange={(e) => setMarketSearch(e.target.value)}
-                        className="w-full rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-2.5 text-xs sm:py-1 text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)] sm:w-52"
+                        className="w-full rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2.5 py-2.5 text-xs text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)] sm:w-52 sm:py-1"
                       />
                     </div>
                   </div>
@@ -897,12 +953,14 @@ export function PerpsPanel() {
                     !marketSearch &&
                     marketGroup === "all" &&
                     list.length > 24 && (
-                      <button
+                      <Button
+                        variant="plain"
+                        size="bare"
                         onClick={() => setShowAllMarkets(true)}
                         className="w-full border-t border-[var(--rv-stroke)] py-3 text-[12px] font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
                       >
                         Show all {list.length} markets
-                      </button>
+                      </Button>
                     )}
                   {list.length === 0 && (
                     <div className="px-3 py-6 text-center text-[11px] text-[var(--rv-ink-3)]">
@@ -936,8 +994,8 @@ export function PerpsPanel() {
         <span className="font-bold text-[var(--rv-ink-2)]">
           Paper trading only:
         </span>{" "}
-        {DISCLAIMER} Riven Scanner (powered by sakz-bot) is mirrored read-only. It
-        never holds funds or places orders for you.
+        {DISCLAIMER} Riven Scanner (powered by sakz-bot) is mirrored read-only.
+        It never holds funds or places orders for you.
       </div>
 
       {/* Signal Detail & Order Modal */}

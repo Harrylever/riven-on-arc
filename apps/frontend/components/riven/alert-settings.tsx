@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useWatchlist } from "@/hooks/use-watchlist"
+import { Button } from "@/components/ui/button"
 
 /** Turns on browser notifications for anti-rug alerts on watchlisted tokens. */
 export function AlertSettings() {
@@ -37,13 +38,15 @@ export function AlertSettings() {
           Notifications on
         </span>
       ) : (
-        <button
+        <Button
+          variant="plain"
+          size="bare"
           type="button"
           onClick={() => Notification.requestPermission().then(setPerm)}
           className="rounded-lg bg-[var(--rv-blue)] px-4 py-2 text-[13px] font-semibold text-[var(--rv-on-blue)]"
         >
           Turn on notifications
-        </button>
+        </Button>
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 /** How often the perps data refreshes while the tab is visible. */
 export const REFRESH_MS = 6_000
 
@@ -37,14 +38,16 @@ export function Freshness({
       >
         {label}
       </span>
-      <button
+      <Button
+        variant="plain"
+        size="bare"
         onClick={onRefresh}
         disabled={refreshing}
         className="rounded-md border border-[var(--rv-stroke)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--rv-ink-3)] transition-colors hover:text-[var(--rv-ink)] disabled:opacity-50"
         title={`Auto-refreshes every ${REFRESH_MS / 1000}s while this tab is open`}
       >
         Refresh
-      </button>
+      </Button>
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { TickerStrip } from "./ticker-strip"
 import { Companion } from "@/components/mascot/companion"
 import { RivenProvider } from "@/components/mascot/riven-context"
 import { visibleInterval } from "@/lib/visible-interval"
+import { Button } from "@/components/ui/button"
 
 interface Status {
   lastBlock: string | null
@@ -102,147 +103,157 @@ export function RivenShell({ children }: { children: ReactNode }) {
 
   return (
     <RivenProvider>
-    <div className="flex min-h-dvh flex-col">
-      <RugWatcher />
-      <Companion />
-      <header className="sticky top-0 z-30 border-b border-[var(--rv-stroke)] bg-[rgba(15,15,18,0.92)] backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-2 px-4">
-          <Logo />
-          <nav
-            className="ml-5 hidden items-center gap-0.5 lg:flex"
-            aria-label="Main"
+      <div className="flex min-h-dvh flex-col">
+        <RugWatcher />
+        <Companion />
+        <header className="sticky top-0 z-30 border-b border-[var(--rv-stroke)] bg-[rgba(15,15,18,0.92)] backdrop-blur">
+          <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-2 px-4">
+            <Logo />
+            <nav
+              className="ml-5 hidden items-center gap-0.5 lg:flex"
+              aria-label="Main"
+            >
+              {NAV.map((n) => {
+                const on = active(n.href)
+                return (
+                  <Link
+                    key={n.href}
+                    href={n.href}
+                    aria-current={on ? "page" : undefined}
+                    className="rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors hover:text-[var(--rv-ink)]"
+                    style={{
+                      color: on ? "var(--rv-blue)" : "var(--rv-ink-2)",
+                      background: on ? "rgba(124,196,232,0.10)" : "transparent",
+                    }}
+                  >
+                    {n.label}
+                  </Link>
+                )
+              })}
+            </nav>
+            <Link
+              href="/search"
+              className="ml-auto hidden h-9 w-64 items-center gap-2 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 text-[13px] text-[var(--rv-ink-3)] hover:border-[var(--rv-stroke-strong)] md:flex"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width={15}
+                height={15}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden
+              >
+                <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4.3-4.3" />
+              </svg>
+              Search token or 0x…
+            </Link>
+            <Link
+              href="/search"
+              className="ml-auto rounded-md p-2 text-[var(--rv-ink-2)] md:hidden"
+              aria-label="Search"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width={19}
+                height={19}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden
+              >
+                <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4.3-4.3" />
+              </svg>
+            </Link>
+            <Button
+              nativeButton={false}
+              variant="riven"
+              size="rv"
+              render={<Link href="/portfolio" />}
+              className="h-9 px-3.5"
+            >
+              Portfolio
+            </Button>
+          </div>
+          <TickerStrip />
+        </header>
+
+        <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 pt-5 pb-28 lg:pb-16">
+          {children}
+        </main>
+
+        {/* Desktop status bar */}
+        <footer className="fixed inset-x-0 bottom-0 z-30 hidden h-8 items-center gap-4 border-t border-[var(--rv-stroke)] bg-[rgba(10,10,12,0.95)] px-4 text-[11.5px] text-[var(--rv-ink-3)] lg:flex">
+          <span className="flex items-center gap-2 font-semibold text-[var(--rv-ink-2)]">
+            {stale && (
+              <span className="size-1.5 rounded-full bg-[var(--rv-caution)]" />
+            )}
+            {stale
+              ? `Catching up · ${lagMin} min behind`
+              : "Arc mainnet · live"}
+          </span>
+          {status?.lastBlock && (
+            <span className="rv-num">
+              Block #{Number(status.lastBlock).toLocaleString()}
+            </span>
+          )}
+          <span className="ml-auto flex items-center gap-4">
+            <Link href="/methodology" className="hover:text-[var(--rv-ink)]">
+              How scoring works
+            </Link>
+            <Link href="/watchlist" className="hover:text-[var(--rv-ink)]">
+              Watchlist
+            </Link>
+            <Link href="/ecosystem" className="hover:text-[var(--rv-ink)]">
+              Ecosystem
+            </Link>
+            <span>Not financial advice · DYOR</span>
+          </span>
+        </footer>
+
+        {/* Mobile tab bar */}
+        <nav
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--rv-stroke)] bg-[rgba(10,10,12,0.96)] lg:hidden"
+          aria-label="Main"
+        >
+          <div
+            className="flex items-stretch justify-around px-1 pt-1"
+            style={{ paddingBottom: "max(6px, env(safe-area-inset-bottom))" }}
           >
-            {NAV.map((n) => {
+            {MOBILE.map((n) => {
               const on = active(n.href)
               return (
                 <Link
                   key={n.href}
                   href={n.href}
                   aria-current={on ? "page" : undefined}
-                  className="rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors hover:text-[var(--rv-ink)]"
-                  style={{
-                    color: on ? "var(--rv-blue)" : "var(--rv-ink-2)",
-                    background: on ? "rgba(124,196,232,0.10)" : "transparent",
-                  }}
+                  className="flex min-h-[50px] flex-1 flex-col items-center justify-center gap-1"
                 >
-                  {n.label}
+                  <svg
+                    viewBox="0 0 24 24"
+                    width={20}
+                    height={20}
+                    fill="none"
+                    stroke={on ? "var(--rv-blue)" : "var(--rv-ink-3)"}
+                    strokeWidth={1.9}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d={n.icon} />
+                  </svg>
+                  <span
+                    className="text-[10.5px] font-semibold"
+                    style={{ color: on ? "var(--rv-ink)" : "var(--rv-ink-3)" }}
+                  >
+                    {n.label}
+                  </span>
                 </Link>
               )
             })}
-          </nav>
-          <Link
-            href="/search"
-            className="ml-auto hidden h-9 w-64 items-center gap-2 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 text-[13px] text-[var(--rv-ink-3)] hover:border-[var(--rv-stroke-strong)] md:flex"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width={15}
-              height={15}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden
-            >
-              <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4.3-4.3" />
-            </svg>
-            Search token or 0x…
-          </Link>
-          <Link
-            href="/search"
-            className="ml-auto rounded-md p-2 text-[var(--rv-ink-2)] md:hidden"
-            aria-label="Search"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width={19}
-              height={19}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden
-            >
-              <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4.3-4.3" />
-            </svg>
-          </Link>
-          <Link href="/portfolio" className="rv-btn h-9 px-3.5">
-            Portfolio
-          </Link>
-        </div>
-        <TickerStrip />
-      </header>
-
-      <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 pt-5 pb-28 lg:pb-16">
-        {children}
-      </main>
-
-      {/* Desktop status bar */}
-      <footer className="fixed inset-x-0 bottom-0 z-30 hidden h-8 items-center gap-4 border-t border-[var(--rv-stroke)] bg-[rgba(10,10,12,0.95)] px-4 text-[11.5px] text-[var(--rv-ink-3)] lg:flex">
-        <span className="flex items-center gap-2 font-semibold text-[var(--rv-ink-2)]">
-          {stale && <span className="size-1.5 rounded-full bg-[var(--rv-caution)]" />}
-          {stale ? `Catching up · ${lagMin} min behind` : "Arc mainnet · live"}
-        </span>
-        {status?.lastBlock && (
-          <span className="rv-num">
-            Block #{Number(status.lastBlock).toLocaleString()}
-          </span>
-        )}
-        <span className="ml-auto flex items-center gap-4">
-          <Link href="/methodology" className="hover:text-[var(--rv-ink)]">
-            How scoring works
-          </Link>
-          <Link href="/watchlist" className="hover:text-[var(--rv-ink)]">
-            Watchlist
-          </Link>
-          <Link href="/ecosystem" className="hover:text-[var(--rv-ink)]">
-            Ecosystem
-          </Link>
-          <span>Not financial advice · DYOR</span>
-        </span>
-      </footer>
-
-      {/* Mobile tab bar */}
-      <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--rv-stroke)] bg-[rgba(10,10,12,0.96)] lg:hidden"
-        aria-label="Main"
-      >
-        <div
-          className="flex items-stretch justify-around px-1 pt-1"
-          style={{ paddingBottom: "max(6px, env(safe-area-inset-bottom))" }}
-        >
-          {MOBILE.map((n) => {
-            const on = active(n.href)
-            return (
-              <Link
-                key={n.href}
-                href={n.href}
-                aria-current={on ? "page" : undefined}
-                className="flex min-h-[50px] flex-1 flex-col items-center justify-center gap-1"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width={20}
-                  height={20}
-                  fill="none"
-                  stroke={on ? "var(--rv-blue)" : "var(--rv-ink-3)"}
-                  strokeWidth={1.9}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden
-                >
-                  <path d={n.icon} />
-                </svg>
-                <span
-                  className="text-[10.5px] font-semibold"
-                  style={{ color: on ? "var(--rv-ink)" : "var(--rv-ink-3)" }}
-                >
-                  {n.label}
-                </span>
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
-    </div>
+          </div>
+        </nav>
+      </div>
     </RivenProvider>
   )
 }

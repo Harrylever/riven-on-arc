@@ -1,4 +1,5 @@
 "use client"
+import { Button } from "@/components/ui/button"
 
 export default function PageError({
   error,
@@ -21,13 +22,15 @@ export default function PageError({
           Ref {error.digest}
         </p>
       )}
-      <button
+      <Button
+        variant="plain"
+        size="bare"
         type="button"
         onClick={() => reset()}
         className="mt-5 rounded-lg bg-[var(--rv-blue)] px-4 py-2 text-sm font-semibold text-[var(--rv-on-blue)]"
       >
         Try again
-      </button>
+      </Button>
     </div>
   )
 }

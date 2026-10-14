@@ -17,6 +17,14 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline underline-offset-4 hover:underline",
+        // Riven's own looks (the old `.rv-btn` and `.rv-btn-ghost`)
+        riven:
+          "rounded-md border-0 bg-[var(--rv-blue)] font-bold tracking-normal text-[var(--rv-on-blue)] normal-case hover:brightness-110",
+        rivenGhost:
+          "rounded-md border-[color:var(--rv-stroke-strong)] bg-transparent font-semibold tracking-normal text-[var(--rv-ink)] normal-case hover:bg-white/[0.04]",
+        // No look of its own: a button whose styling comes entirely from its className.
+        plain:
+          "shrink rounded-none border-0 bg-transparent font-[inherit] tracking-normal whitespace-normal text-inherit normal-case",
       },
       size: {
         default:
@@ -24,6 +32,8 @@ const buttonVariants = cva(
         xs: "h-7 gap-1 px-3 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-9 gap-1 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
         lg: "h-11 gap-1.5 px-8 has-data-[icon=inline-end]:pr-5 has-data-[icon=inline-start]:pl-5",
+        rv: "h-9 gap-1.5 px-3.5 text-[13px]",
+        bare: "h-auto gap-0 p-0 text-[length:inherit]",
         icon: "size-10",
         "icon-xs": "size-7 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-9",

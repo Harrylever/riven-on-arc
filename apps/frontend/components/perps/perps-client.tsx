@@ -1,11 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { PerpsPanel, type PerpSignal, type PerpStats } from "@/components/perps/perps-panel"
+import {
+  PerpsPanel,
+  type PerpSignal,
+  type PerpStats,
+} from "@/components/perps/perps-panel"
 import { useRivenPage } from "@/components/mascot/riven-context"
 import type { Holo } from "@/components/mascot/mascot"
 import { PERPS_ENABLED } from "@/lib/flags"
 import { ArcUsdcMargin } from "@/components/perps/arc-usdc-margin"
+import { Button } from "@/components/ui/button"
 
 const LINES = [
   "Paper trading only — practise before risking real money.",
@@ -30,11 +35,17 @@ function useSignalHolos() {
             title: "Scanner win rate",
             value: `${s.winRate}%`,
             note: `${s.wins} wins of ${s.confirmedTrades} confirmed calls`,
-            bars: [s.perTargetHit.t1Rate / 100, s.perTargetHit.t2Rate / 100, s.perTargetHit.t3Rate / 100],
+            bars: [
+              s.perTargetHit.t1Rate / 100,
+              s.perTargetHit.t2Rate / 100,
+              s.perTargetHit.t3Rate / 100,
+            ],
             tone: s.winRate >= 55 ? "green" : "amber",
           })
         }
-        const top = [...(json.signals ?? [])].sort((a, b) => b.confidence - a.confidence)[0]
+        const top = [...(json.signals ?? [])].sort(
+          (a, b) => b.confidence - a.confidence,
+        )[0]
         if (top) {
           out.push({
             title: `Top call · ${top.symbol.replace(/USDT?$/, "")}`,
@@ -63,7 +74,11 @@ function useSignalHolos() {
 
 export function PerpsClient() {
   const holos = useSignalHolos()
-  useRivenPage({ holos, lines: LINES, greet: "Riven here — I read the scanner so you don't trade blind." })
+  useRivenPage({
+    holos,
+    lines: LINES,
+    greet: "Riven here — I read the scanner so you don't trade blind.",
+  })
   if (!PERPS_ENABLED) return null
   return (
     <div className="flex flex-col gap-4">
@@ -80,16 +95,22 @@ export function PerpsClient() {
             Practise perps with Arc USDC
           </h1>
           <p className="mt-1.5 max-w-xl text-[13.5px] leading-relaxed text-[var(--rv-ink-2)]">
-            Practise on 100+ live perp markets with a free practice balance. Riven Scanner also flags setups it finds on
-            Bybit, MEXC and Binance. Orders are paper only (0.045% taker fee), and no wallet is needed.
+            Practise on 100+ live perp markets with a free practice balance.
+            Riven Scanner also flags setups it finds on Bybit, MEXC and Binance.
+            Orders are paper only (0.045% taker fee), and no wallet is needed.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href="#perp-signals" className="rv-btn h-11 px-5 sm:h-10">
+            <Button
+              nativeButton={false}
+              variant="riven"
+              size="rv"
+              render={<a href="#perp-signals" />}
+              className="h-11 px-5 sm:h-10"
+            >
               See open calls
-            </a>
+            </Button>
           </div>
         </div>
-
       </header>
       <ArcUsdcMargin />
       <PerpsPanel />
