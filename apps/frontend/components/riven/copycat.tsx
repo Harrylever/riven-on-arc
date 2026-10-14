@@ -1,9 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import type { TokenSummary } from "@/lib/arc-data"
 import { age, shortAddr, usd } from "@/lib/riven-format"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { DIALOG, DIALOG_TITLE } from "./card-style"
 import { ScoreBadge } from "./score-badge"
 
 /** Small inline marker: this ticker is used by other tokens too. */
@@ -35,7 +38,6 @@ export function CopycatWarning({
 }) {
   const key = `riven_copy_ack_${token.address}`
   const [open, setOpen] = useState(false)
-  const dialog = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
     if (copies.length === 0) return
@@ -45,13 +47,6 @@ export function CopycatWarning({
     } catch {}
     if (!acked) setOpen(true)
   }, [copies.length, key])
-
-  useEffect(() => {
-    const d = dialog.current
-    if (!d) return
-    if (open && !d.open) d.showModal()
-    if (!open && d.open) d.close()
-  }, [open])
 
   if (copies.length === 0) return null
   const all = [
@@ -88,31 +83,21 @@ export function CopycatWarning({
         </span>
       </button>
 
-      <dialog
-        ref={dialog}
-        onCancel={(e) => {
-          e.preventDefault()
-          ack()
-        }}
-        aria-labelledby="copycat-title"
-        className="m-auto w-[min(560px,calc(100vw-24px))] rounded-[var(--rv-radius)] border border-[rgba(251,191,36,0.45)] bg-[var(--rv-card)] p-0 text-[var(--rv-ink)] backdrop:bg-black/75"
-      >
+      <Dialog open={open} onOpenChange={(o) => !o && ack()}>
+        <DialogContent showCloseButton={false} className={`${DIALOG} w-[min(560px,calc(100vw-24px))] ring-[rgba(251,191,36,0.45)]`}>
         <div className="p-5">
           <p className="text-[11px] font-bold tracking-[0.14em] text-[var(--rv-caution)] uppercase">
             Copycat warning
           </p>
-          <h2
-            id="copycat-title"
-            className="mt-1 text-[22px] leading-tight font-extrabold"
-          >
+          <DialogTitle className={`${DIALOG_TITLE} mt-1 text-[22px]`}>
             There are {copies.length + 1} tokens called ${token.symbol}
-          </h2>
-          <p className="mt-2 text-[14px] leading-relaxed text-[var(--rv-ink-2)]">
+          </DialogTitle>
+          <DialogDescription className="mt-2 text-[14px] leading-relaxed text-[var(--rv-ink-2)]">
             When a token gets attention, scammers launch copies with the same
             ticker to catch people buying the wrong one. Most copies are
             worthless or rugs. Avoid copies, check the contract address against
             the project&apos;s official links, and trade with caution.
-          </p>
+          </DialogDescription>
           <ul className="mt-4 max-h-[42vh] divide-y divide-[var(--rv-stroke)] overflow-y-auto rounded-lg border border-[var(--rv-stroke)]">
             {all.map((c) => (
               <li
@@ -162,22 +147,24 @@ export function CopycatWarning({
             ))}
           </ul>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <Link
-              href="/"
-              className="rounded-lg px-4 py-2 text-[14px] font-semibold text-[var(--rv-ink-2)] ring-1 ring-[var(--rv-stroke)]"
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/" />}
+              className="h-10 rounded-lg border-[color:var(--rv-stroke)] px-4 text-[14px] font-semibold tracking-normal normal-case text-[var(--rv-ink-2)]"
             >
               Take me back
-            </Link>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={ack}
-              className="rounded-lg bg-[var(--rv-caution)] px-4 py-2 text-[14px] font-bold text-black"
+              className="h-10 rounded-lg bg-[var(--rv-caution)] px-4 text-[14px] font-bold tracking-normal normal-case text-black hover:bg-[var(--rv-caution)]/90"
             >
               I understand, continue
-            </button>
+            </Button>
           </div>
         </div>
-      </dialog>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

@@ -1,11 +1,15 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import type { PerpSignal } from "@/components/perps/perps-panel"
 import { usePortfolio, type Collateral } from "@/hooks/use-portfolio"
 import type { PerpMarket } from "@/lib/hyperliquid"
 import { priceUsd } from "@/lib/format"
 import { venueName } from "@/lib/perp-symbols"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { DIALOG, DIALOG_TITLE } from "@/components/riven/card-style"
 import {
   buildTradeSetup,
   validateSetup,
@@ -343,10 +347,6 @@ function ConfirmSetup({
   onCancel: () => void
   onConfirm: () => void
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
-  useEffect(() => {
-    ref.current?.showModal()
-  }, [])
   const dir = side === "LONG" ? 1 : -1
   const pnlAt = (price: number) =>
     notional * dir * ((price - setup.entry) / setup.entry)
@@ -369,56 +369,49 @@ function ConfirmSetup({
   const stopBeyondLiq =
     side === "LONG" ? setup.stopLoss <= liq : setup.stopLoss >= liq
   return (
-    <dialog
-      ref={ref}
-      onCancel={(e) => {
-        e.preventDefault()
-        onCancel()
-      }}
-      aria-labelledby="confirm-setup-title"
-      className="m-auto w-[min(440px,calc(100vw-24px))] border border-[var(--rv-blue)] bg-[var(--rv-card)] p-0 text-[var(--rv-ink)] backdrop:bg-black/75"
-    >
+    <Dialog open onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent showCloseButton={false} className={`${DIALOG} w-[min(440px,calc(100vw-24px))] ring-[var(--rv-blue)]`}>
       <div className="space-y-3 p-4 text-xs">
         <div>
           <div className="text-[10px] font-bold tracking-[0.14em] text-[var(--rv-ice)] uppercase">
             Confirm trade setup
           </div>
-          <h2 id="confirm-setup-title" className="mt-1 text-lg font-extrabold">
+          <DialogTitle className={`${DIALOG_TITLE} mt-1 text-lg`}>
             Are you sure you want to set up this trade?
-          </h2>
-          <p className="mt-1 text-[var(--rv-ink-3)]">
+          </DialogTitle>
+          <DialogDescription className="mt-1 text-xs text-[var(--rv-ink-3)]">
             <b style={{ color: sideColor(side) }}>
               {orderType} {side} {symbol}
             </b>{" "}
             · ${notional.toFixed(2)} at {leverage}x · margin $
             {margin.toFixed(2)} {collateral} · fee ${fee.toFixed(2)}
-          </p>
+          </DialogDescription>
         </div>
-        <table className="w-full font-mono">
-          <thead>
-            <tr className="text-left text-[10px] text-[var(--rv-ink-3)] uppercase">
-              <th className="py-1 font-normal">Level</th>
-              <th className="py-1 text-right font-normal">Price</th>
-              <th className="py-1 text-right font-normal">Move</th>
-              <th className="py-1 text-right font-normal">If hit</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="font-mono text-xs">
+          <TableHeader>
+            <TableRow className="border-0 text-left text-[10px] text-[var(--rv-ink-3)] uppercase hover:bg-transparent">
+              <TableHead className="h-auto px-0 py-1 text-[10px] font-normal tracking-normal">Level</TableHead>
+              <TableHead className="h-auto px-0 py-1 text-right text-[10px] font-normal tracking-normal">Price</TableHead>
+              <TableHead className="h-auto px-0 py-1 text-right text-[10px] font-normal tracking-normal">Move</TableHead>
+              <TableHead className="h-auto px-0 py-1 text-right text-[10px] font-normal tracking-normal">If hit</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map(([label, price, color]) => {
               const pnl = label === "Entry" ? 0 : pnlAt(price)
               return (
-                <tr key={label} className="border-t border-[var(--rv-stroke)]">
-                  <td className="py-1.5 font-sans font-bold" style={{ color }}>
+                <TableRow key={label} className="border-0 border-t border-[var(--rv-stroke)]">
+                  <TableCell className="px-0 py-1.5 font-sans text-xs font-bold" style={{ color }}>
                     {label}
-                  </td>
-                  <td className="py-1.5 text-right">{priceUsd(price)}</td>
-                  <td className="py-1.5 text-right text-[var(--rv-ink-3)]">
+                  </TableCell>
+                  <TableCell className="px-0 py-1.5 text-right text-xs">{priceUsd(price)}</TableCell>
+                  <TableCell className="px-0 py-1.5 text-right text-xs text-[var(--rv-ink-3)]">
                     {label === "Entry"
                       ? "—"
                       : `${move(price) >= 0 ? "+" : ""}${move(price).toFixed(2)}%`}
-                  </td>
-                  <td
-                    className="py-1.5 text-right"
+                  </TableCell>
+                  <TableCell
+                    className="px-0 py-1.5 text-right text-xs"
                     style={{
                       color:
                         pnl > 0
@@ -431,12 +424,12 @@ function ConfirmSetup({
                     {label === "Entry"
                       ? "—"
                       : `${pnl >= 0 ? "+" : "−"}$${Math.abs(pnl).toFixed(2)}`}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         <div className="grid grid-cols-2 gap-2 border-t border-[var(--rv-stroke)] pt-2 font-mono">
           <div>
             <div className="font-sans text-[10px] text-[var(--rv-ink-3)] uppercase">
@@ -462,24 +455,24 @@ function ConfirmSetup({
           exchange. Not financial advice.
         </p>
         <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={onCancel}
-            className="border border-[var(--rv-stroke)] py-2.5 font-bold text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+            className="h-10 rounded-none border-[var(--rv-stroke)] text-xs font-bold tracking-normal normal-case text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
           >
             No, go back
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={onConfirm}
-            className="py-2.5 font-extrabold text-black"
+            className="h-10 rounded-none text-xs font-extrabold tracking-normal normal-case text-black hover:opacity-90"
             style={{ background: sideColor(side) }}
           >
             Yes, set it up
-          </button>
+          </Button>
         </div>
       </div>
-    </dialog>
+      </DialogContent>
+    </Dialog>
   )
 }
 

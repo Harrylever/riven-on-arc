@@ -7,6 +7,8 @@ import { usePortfolio } from "@/hooks/use-portfolio"
 import { priceUsd, ago } from "@/lib/format"
 import { MiniBar } from "@/components/perps/mini-bar"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 
 interface SignalOrderModalProps {
   signal: PerpSignal | null
@@ -115,14 +117,18 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-5">
-      <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden border border-[#162a27] bg-[#091312] text-[#d6e3e0] shadow-2xl">
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[92vh] w-[min(56rem,calc(100vw-24px))] max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-[#091312] p-0 text-[#d6e3e0] shadow-2xl ring-1 ring-[#162a27] sm:max-w-none"
+      >
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[#162a27] bg-[#0c1a18] px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className=" text-lg font-black text-white">
+            <DialogTitle className="font-sans text-lg font-black tracking-normal text-white normal-case">
               {signal.symbol}
-            </span>
+            </DialogTitle>
+            <DialogDescription className="sr-only">Review the scanner setup and place a paper order.</DialogDescription>
             <span className="border border-[#1d3834] bg-[#091514] px-2 py-0.5 text-[11px] font-bold text-[#7d9b96] uppercase">
               {signal.exchange}
             </span>
@@ -137,13 +143,13 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
             </span>
           </div>
 
-          <button
-            onClick={onClose}
-            className="flex size-7 items-center justify-center border border-[#1d3834] text-sm font-bold text-[#7d9b96] transition-colors hover:border-[#2ee6a8] hover:text-white"
+          <DialogClose
+            render={<Button variant="outline" size="icon-xs" />}
+            className="size-7 rounded-none border border-[#1d3834] bg-transparent text-sm font-bold text-[#7d9b96] transition-colors hover:border-[#2ee6a8] hover:text-white"
             aria-label="Close"
           >
             ✕
-          </button>
+          </DialogClose>
         </div>
 
         {/* Modal Body: Two columns on desktop */}
@@ -522,7 +528,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
             </form>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

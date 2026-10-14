@@ -1,9 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import type { ArcBand } from "@riven/shared"
 import type { TxRequest, useArcWallet } from "@/hooks/use-arc-wallet"
 import { BAND_META, compact } from "@/lib/riven-format"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { DIALOG, DIALOG_TITLE } from "./card-style"
 
 type Wallet = ReturnType<typeof useArcWallet>
 
@@ -66,13 +69,8 @@ export function TradeSheet({
   const [steps, setSteps] = useState<Step[] | null>(null)
   const [riskAck, setRiskAck] = useState(false)
   const [warnAck, setWarnAck] = useState(false)
-  const dialog = useRef<HTMLDialogElement>(null)
   const risky = token.fake || token.band === "risk" || token.copies > 0
   const running = steps?.some((s) => s.state === "signing") ?? false
-
-  useEffect(() => {
-    dialog.current?.showModal()
-  }, [])
 
   // Live quote, debounced, whenever the inputs change.
   useEffect(() => {
@@ -147,32 +145,18 @@ export function TradeSheet({
   const blocked = (side === "buy" && risky && !riskAck) || (needsWarnAck && !warnAck)
 
   return (
-    <dialog
-      ref={dialog}
-      onCancel={(e) => {
-        e.preventDefault()
-        if (!running) onClose()
-      }}
-      aria-labelledby="trade-title"
-      className="m-auto w-[min(440px,calc(100vw-24px))] rounded-[var(--rv-radius)] border border-[var(--rv-stroke-strong)] bg-[var(--rv-card)] p-0 text-[var(--rv-ink)] backdrop:bg-black/75"
-    >
+    <Dialog open onOpenChange={(open) => !open && !running && onClose()} disablePointerDismissal={running}>
+      <DialogContent showCloseButton={false} className={`${DIALOG} w-[min(440px,calc(100vw-24px))]`}>
       <div className="flex flex-col gap-3 p-5">
         <div className="flex items-center justify-between">
-          <h2
-            id="trade-title"
-            className="text-[20px] font-extrabold"
-          >
+          <DialogTitle className={DIALOG_TITLE}>
             {side === "buy" ? "Buy" : "Sell"} ${token.symbol}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={running}
-            className="text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
-            aria-label="Close"
+          </DialogTitle>
+          <DialogClose
+            render={<Button variant="ghost" size="icon-xs" disabled={running} aria-label="Close" className="text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]" />}
           >
             ✕
-          </button>
+          </DialogClose>
         </div>
 
         <div className="grid grid-cols-2 gap-1 rounded-lg bg-white/[0.04] p-1">
@@ -406,6 +390,7 @@ export function TradeSheet({
           own wallet — Riven never holds your funds.
         </p>
       </div>
-    </dialog>
+      </DialogContent>
+    </Dialog>
   )
 }
