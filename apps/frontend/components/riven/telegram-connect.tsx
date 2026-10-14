@@ -6,6 +6,7 @@ import { usePerpWatch } from "@/hooks/use-perp-watch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RV_CHECK } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 const DEVICE_KEY = "riven_device_v1"
 const ALL_CALLS_KEY = "riven_tg_all_calls_v1"
@@ -136,8 +137,9 @@ export function TelegramConnect({ compact = false }: { compact?: boolean }) {
 
   if (status.linked) {
     return (
-      <div
-        className={`flex flex-wrap items-center gap-2 ${compact ? "" : "rv-card px-4 py-3"}`}
+      <Card
+        variant="riven"
+        className={`flex flex-wrap items-center gap-2 ${compact ? "" : "px-4 py-3"}`}
       >
         <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--rv-healthy)]">
           <TelegramIcon /> Telegram on
@@ -172,13 +174,14 @@ export function TelegramConnect({ compact = false }: { compact?: boolean }) {
         >
           Disconnect
         </Button>
-      </div>
+      </Card>
     )
   }
 
   return (
-    <div
-      className={`flex flex-wrap items-center gap-3 ${compact ? "" : "rv-card px-4 py-3"}`}
+    <Card
+      variant="riven"
+      className={`flex flex-wrap items-center gap-3 ${compact ? "" : "px-4 py-3"}`}
     >
       {!compact && (
         <div className="min-w-0 flex-1">
@@ -202,6 +205,6 @@ export function TelegramConnect({ compact = false }: { compact?: boolean }) {
         <TelegramIcon />
         {waiting ? "Waiting for Start in Telegram…" : "Connect Telegram"}
       </Button>
-    </div>
+    </Card>
   )
 }

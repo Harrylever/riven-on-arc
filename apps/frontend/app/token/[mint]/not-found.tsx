@@ -1,8 +1,12 @@
 import Link from "next/link"
+import { Card } from "@/components/ui/card"
 
 export default function TokenNotFound() {
   return (
-    <div className="rv-card mx-auto mt-6 flex max-w-md flex-col items-center gap-3 px-6 py-12 text-center">
+    <Card
+      variant="riven"
+      className="mx-auto mt-6 flex max-w-md flex-col items-center gap-3 px-6 py-12 text-center"
+    >
       <span className="text-4xl" aria-hidden>
         🔭
       </span>
@@ -28,6 +32,6 @@ export default function TokenNotFound() {
           All launches
         </Link>
       </div>
-    </div>
+    </Card>
   )
 }

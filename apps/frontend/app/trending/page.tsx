@@ -2,35 +2,56 @@ import { getMarketTotals, getScreener } from "@/lib/arc-data"
 import { parseFilters } from "@/lib/screener-params"
 import { Screener } from "@/components/riven/screener"
 import { buildPageMetadata } from "@/lib/site"
+import { Card } from "@/components/ui/card"
 
 export const dynamic = "force-dynamic"
 
 export const metadata = buildPageMetadata({
   title: "Trending on Arc",
-  description: "Every token on Arc, ranked live like DexScreener, each with a 1–10 Riven safety score.",
+  description:
+    "Every token on Arc, ranked live like DexScreener, each with a 1–10 Riven safety score.",
   path: "/trending",
 })
 
-export default async function TrendingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+export default async function TrendingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>
+}) {
   const filters = parseFilters(await searchParams)
   let result: Awaited<ReturnType<typeof getScreener>> | null = null
   let totals: Awaited<ReturnType<typeof getMarketTotals>> | null = null
   try {
-    ;[result, totals] = await Promise.all([getScreener(filters), getMarketTotals().catch(() => null)])
+    ;[result, totals] = await Promise.all([
+      getScreener(filters),
+      getMarketTotals().catch(() => null),
+    ])
   } catch (err) {
     console.error(`[trending] ${(err as Error).message}`)
   }
   if (!result) {
     return (
-      <div className="rv-card px-6 py-12 text-center" role="alert">
-        <p className="text-[16px] font-semibold text-[var(--rv-ink)]">Can&apos;t reach the Riven database</p>
-        <p className="mt-1 text-[13px] text-[var(--rv-ink-2)]">The token list can&apos;t load right now. Try again in a moment.</p>
-      </div>
+      <Card variant="riven" className="px-6 py-12 text-center" role="alert">
+        <p className="text-[16px] font-semibold text-[var(--rv-ink)]">
+          Can&apos;t reach the Riven database
+        </p>
+        <p className="mt-1 text-[13px] text-[var(--rv-ink-2)]">
+          The token list can&apos;t load right now. Try again in a moment.
+        </p>
+      </Card>
     )
   }
   // eslint-disable-next-line react-hooks/purity -- per-request server render
   const now = Date.now()
   return (
-    <Screener filters={filters} tokens={result.tokens} total={result.total} page={result.page} pages={result.pages} serverNow={now} totals={totals} />
+    <Screener
+      filters={filters}
+      tokens={result.tokens}
+      total={result.total}
+      page={result.page}
+      pages={result.pages}
+      serverNow={now}
+      totals={totals}
+    />
   )
 }

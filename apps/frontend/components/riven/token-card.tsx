@@ -4,6 +4,7 @@ import { age, change, changeColor, usd } from "@/lib/riven-format"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
+import { Card } from "@/components/ui/card"
 
 /** One token, one glance: who it is, what it's worth, and whether it's a setup. */
 export function TokenCard({ t, now }: { t: TokenSummary; now: number }) {
@@ -11,7 +12,10 @@ export function TokenCard({ t, now }: { t: TokenSummary; now: number }) {
     ? `Flagged: ${t.fakeReasons[0]}`
     : (t.dangers[0] ?? t.verdict.replace(/^[^:]+:\s*/, ""))
   return (
-    <div className="rv-card flex items-center pr-1 transition-colors hover:border-[var(--rv-stroke-strong)]">
+    <Card
+      variant="riven"
+      className="flex items-center pr-1 transition-colors hover:border-[var(--rv-stroke-strong)]"
+    >
       <Link
         href={`/token/${t.address}`}
         className="flex min-w-0 flex-1 items-center gap-3 p-3"
@@ -54,6 +58,6 @@ export function TokenCard({ t, now }: { t: TokenSummary; now: number }) {
         <ScoreBadge score={t.score} band={t.band} />
       </Link>
       <WatchButton address={t.address} />
-    </div>
+    </Card>
   )
 }

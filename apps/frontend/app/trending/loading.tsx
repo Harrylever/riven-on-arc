@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
+import { Card } from "@/components/ui/card"
 
 /** Shown while the token list loads, so opening Trending shows the page's shape straight away. */
 export default function Loading() {
@@ -26,7 +27,10 @@ export default function Loading() {
         <Skeleton className={`${bar} hidden h-9 w-24 sm:block`} />
         <Skeleton className={`${bar} hidden h-9 w-24 sm:block`} />
       </div>
-      <div className="rv-card divide-y divide-[var(--rv-stroke)] overflow-hidden">
+      <Card
+        variant="riven"
+        className="divide-y divide-[var(--rv-stroke)] overflow-hidden"
+      >
         {Array.from({ length: 10 }, (_, i) => (
           <div key={i} className="flex items-center gap-3 px-4 py-3">
             <Skeleton className={`${bar} size-9 rounded-full`} />
@@ -37,7 +41,7 @@ export default function Loading() {
             <Skeleton className={`${bar} h-3 w-16`} />
           </div>
         ))}
-      </div>
+      </Card>
     </div>
   )
 }

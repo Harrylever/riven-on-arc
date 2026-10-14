@@ -8,6 +8,7 @@ import type { TokenSummary } from "@/lib/arc-data"
 import { useWatchlist } from "@/hooks/use-watchlist"
 import { TokenCard } from "./token-card"
 import { visibleInterval } from "@/lib/visible-interval"
+import { Card } from "@/components/ui/card"
 
 export function WatchlistClient() {
   const { mints } = useWatchlist()
@@ -47,7 +48,10 @@ export function WatchlistClient() {
     <div className="flex flex-col gap-4">
       <PageHero
         title="Watchlist"
-        lines={["Your starred tokens, scored live.", "I'll warn you if one of these gets rugged."]}
+        lines={[
+          "Your starred tokens, scored live.",
+          "I'll warn you if one of these gets rugged.",
+        ]}
         greet="Star tokens anywhere and I'll keep an eye on them here."
       >
         Your starred tokens, rescored every 30 seconds. Saved on this device.
@@ -67,7 +71,10 @@ export function WatchlistClient() {
           {failed ? "" : "Loading…"}
         </p>
       ) : tokens.length === 0 && !failed ? (
-        <div className="rv-card flex flex-col items-center gap-3 px-6 py-12 text-center">
+        <Card
+          variant="riven"
+          className="flex flex-col items-center gap-3 px-6 py-12 text-center"
+        >
           <span className="text-4xl" aria-hidden>
             ⭐
           </span>
@@ -84,7 +91,7 @@ export function WatchlistClient() {
           >
             Browse launches
           </Link>
-        </div>
+        </Card>
       ) : (
         <ol className="flex flex-col gap-2.5">
           {tokens.map((t) => (

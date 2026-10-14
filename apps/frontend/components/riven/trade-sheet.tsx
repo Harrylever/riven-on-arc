@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RV_CHECK } from "@/components/riven/card-style"
 import { RV_INPUT } from "@/components/riven/card-style"
+import { Card } from "@/components/ui/card"
 
 type Wallet = ReturnType<typeof useArcWallet>
 
@@ -248,7 +249,7 @@ export function TradeSheet({
             ))}
           </div>
 
-          <div className="rv-card rv-num px-3 py-2.5 text-[13px]">
+          <Card variant="riven" className="rv-num px-3 py-2.5 text-[13px]">
             {!wallet.address ? (
               <span className="text-[var(--rv-ink-2)]">
                 Connect your wallet to get a quote.
@@ -303,7 +304,7 @@ export function TradeSheet({
             ) : (
               <span className="text-[var(--rv-ink-3)]">Enter an amount</span>
             )}
-          </div>
+          </Card>
 
           {needsWarnAck && (
             <label className="flex gap-2.5 rounded-lg border border-[rgba(251,191,36,0.4)] bg-[rgba(251,191,36,0.06)] p-3 text-[12px] leading-snug">

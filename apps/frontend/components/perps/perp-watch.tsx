@@ -11,6 +11,7 @@ import { signalCoinKey } from "@/lib/perp-symbols"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 function notify(title: string, body: string, tag: string) {
   toast.add({ title, description: body, type: "info" })
@@ -102,7 +103,7 @@ export function PerpWatch({
   }, [signals, pairs, seenSignals, markSignalsSeen])
 
   return (
-    <section className="rv-card p-3">
+    <Card variant="riven" as="section" className="p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[12px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
           Tracked pairs
@@ -230,6 +231,6 @@ export function PerpWatch({
           </ul>
         )}
       </form>
-    </section>
+    </Card>
   )
 }

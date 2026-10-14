@@ -23,6 +23,7 @@ import { BigOrb } from "@/components/riven/orb-field"
 import type { Holo } from "@/components/mascot/mascot"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 export const dynamic = "force-dynamic"
 
@@ -309,10 +310,10 @@ export default async function Home() {
                 "Your Arc USDC balance becomes your perps margin — practise on 100+ markets.",
               ],
             ].map(([t, d]) => (
-              <div key={t} className="rv-card px-3 py-2.5">
+              <Card variant="riven" key={t} className="px-3 py-2.5">
                 <p className="font-semibold text-[var(--rv-ink)]">{t}</p>
                 <p className="mt-0.5 leading-snug">{d}</p>
-              </div>
+              </Card>
             ))}
           </div>
         </section>
@@ -413,7 +414,9 @@ function PulseCard({
       {body}
     </Link>
   ) : (
-    <div className="rv-card p-4">{body}</div>
+    <Card variant="riven" className="p-4">
+      {body}
+    </Card>
   )
 }
 

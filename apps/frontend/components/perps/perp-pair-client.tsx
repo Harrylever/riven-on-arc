@@ -22,6 +22,7 @@ import { RivenRead } from "@/components/perps/riven-read"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Hint } from "@/components/riven/hint"
+import { Card } from "@/components/ui/card"
 
 const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 
@@ -240,7 +241,11 @@ export function PerpPairClient({ coin }: { coin: string }) {
 
       {/* Riven Scanner's call on this pair */}
       {open && (
-        <section className="rv-card flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+        <Card
+          variant="riven"
+          as="section"
+          className="flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center"
+        >
           <span
             className="self-start rounded px-2 py-0.5 text-[12px] font-extrabold sm:self-auto"
             style={{
@@ -269,7 +274,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
           >
             Paper trade this call
           </Button>
-        </section>
+        </Card>
       )}
 
       {market && markets && (

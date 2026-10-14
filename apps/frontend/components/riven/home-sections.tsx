@@ -17,6 +17,7 @@ import { TokenAvatar } from "./token-avatar"
 import { Why } from "./screener"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 export function SectionTitle({
   title,
@@ -131,14 +132,17 @@ export function CalloutsRow({
 }) {
   if (callouts.length === 0) {
     return (
-      <div className="rv-card flex flex-col items-start gap-1 p-4 text-[13px] text-[var(--rv-ink-2)] sm:flex-row sm:items-center sm:gap-3">
+      <Card
+        variant="riven"
+        className="flex flex-col items-start gap-1 p-4 text-[13px] text-[var(--rv-ink-2)] sm:flex-row sm:items-center sm:gap-3"
+      >
         <span className="text-[var(--rv-ink)]">No KOL callouts yet.</span>
         <span>
           Riven watches X for tracked KOLs posting Arc contract addresses — and
           shows each one next to the token&apos;s score, so a shill never comes
           without the facts.
         </span>
-      </div>
+      </Card>
     )
   }
   return (
@@ -232,7 +236,11 @@ export function CaughtList({
       </p>
     )
   return (
-    <ol className="rv-card divide-y divide-[var(--rv-stroke)] overflow-hidden">
+    <Card
+      variant="riven"
+      as="ol"
+      className="divide-y divide-[var(--rv-stroke)] overflow-hidden"
+    >
       {tokens.map((t) => (
         <li key={t.address}>
           <Link
@@ -260,7 +268,7 @@ export function CaughtList({
           </Link>
         </li>
       ))}
-    </ol>
+    </Card>
   )
 }
 
@@ -285,7 +293,11 @@ export function AlertList({
       </p>
     )
   return (
-    <ol className="rv-card divide-y divide-[var(--rv-stroke)] overflow-hidden">
+    <Card
+      variant="riven"
+      as="ol"
+      className="divide-y divide-[var(--rv-stroke)] overflow-hidden"
+    >
       {alerts.map((a) => {
         const m = ALERT_META[a.type] ?? {
           label: a.type,
@@ -329,6 +341,6 @@ export function AlertList({
           </li>
         )
       })}
-    </ol>
+    </Card>
   )
 }

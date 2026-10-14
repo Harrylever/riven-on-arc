@@ -55,6 +55,9 @@ import { RV_INPUT } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
 import { Hint } from "@/components/riven/hint"
 import { Progress } from "@/components/ui/progress"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { SEG, SEG_ITEM } from "@/components/riven/card-style"
+import { Card } from "@/components/ui/card"
 
 const EXPLORER = "https://explorer.arc.io"
 const ORDER: SubScoreKey[] = [
@@ -292,7 +295,11 @@ export function TokenView({
       </header>
 
       {/* Stat strip */}
-      <section className="rv-card scrollbar-hidden flex overflow-x-auto">
+      <Card
+        variant="riven"
+        as="section"
+        className="scrollbar-hidden flex overflow-x-auto"
+      >
         <Stat label="Market cap" value={usd(t.marketCap)} />
         <Stat
           label="Change 1h"
@@ -325,7 +332,7 @@ export function TokenView({
           }
         />
         <Stat label="Fee" value={t.feePct === null ? "—" : pct(t.feePct)} />
-      </section>
+      </Card>
       {t.liquidityUsd !== null &&
         t.usdcInPool !== null &&
         t.usdcInPool < t.liquidityUsd * 0.1 && (
@@ -347,14 +354,14 @@ export function TokenView({
         <div className="flex min-w-0 flex-col gap-4">
           {/* Chart */}
           {t.pairAddress ? (
-            <section className="rv-card overflow-hidden">
+            <Card variant="riven" as="section" className="overflow-hidden">
               <iframe
                 title={`${t.symbol} chart`}
                 src={`https://dexscreener.com/arc/${t.pairAddress}?embed=1&loadChartSettings=0&trades=0&info=0&chartTheme=dark&theme=dark&chartStyle=1&chartType=usd&interval=5`}
                 className="h-[460px] w-full border-0 bg-[var(--rv-sunken)]"
                 loading="lazy"
               />
-            </section>
+            </Card>
           ) : t.priceSeries.length > 2 ? (
             <PriceChart series={t.priceSeries} />
           ) : null}
@@ -426,7 +433,11 @@ export function TokenView({
             </TabsContent>
           </Tabs>
 
-          <section className="rv-card flex flex-col gap-2 p-4 text-[12px]">
+          <Card
+            variant="riven"
+            as="section"
+            className="flex flex-col gap-2 p-4 text-[12px]"
+          >
             <h2 className="text-[15px] font-bold text-[var(--rv-ink)]">
               Check it yourself
             </h2>
@@ -477,15 +488,17 @@ export function TokenView({
               Scores come from Arc mainnet. Market numbers come from
               DexScreener. Not financial advice. DYOR.
             </p>
-          </section>
+          </Card>
         </div>
 
         {/* Sidebar: shown first on phones (order-first): the score is the point of Riven. */}
         <aside className="order-first flex flex-col gap-3 lg:sticky lg:top-28 lg:order-none">
-          <section
+          <Card
+            variant="riven"
+            as="section"
             id="score"
             key={`score-${flash}`}
-            className="rv-card relative scroll-mt-28 overflow-hidden"
+            className="relative scroll-mt-28 overflow-hidden"
             style={flash ? { animation: "rv-flash 1.6s ease-out" } : undefined}
           >
             <div className="relative p-4">
@@ -548,7 +561,7 @@ export function TokenView({
                 <ArrowIcon />
               </Link>
             </div>
-          </section>
+          </Card>
 
           {tradable && <TradeBox t={t} />}
 
@@ -661,7 +674,7 @@ function ExitCheck({ poolUsdc }: { poolUsdc: number }) {
         ? "var(--rv-caution)"
         : "var(--rv-healthy)"
   return (
-    <section className="rv-card p-4" aria-label="Exit check">
+    <Card variant="riven" as="section" className="p-4" aria-label="Exit check">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[13px] font-bold text-[var(--rv-ink)]">
           Can you get out?
@@ -722,7 +735,7 @@ function ExitCheck({ poolUsdc }: { poolUsdc: number }) {
         Estimate for a constant-product pool; concentrated liquidity moves price
         more, so real exits can be worse. Not financial advice.
       </p>
-    </section>
+    </Card>
   )
 }
 
@@ -783,34 +796,33 @@ function TradeBox({ t }: { t: TokenDetail }) {
   const [open, setOpen] = useState(false)
   const risky = t.fake || t.band === "risk"
   return (
-    <section className="rv-card p-4">
-      <div className="rv-seg w-full" role="radiogroup" aria-label="Side">
+    <Card variant="riven" as="section" className="p-4">
+      <ToggleGroup
+        value={[side]}
+        onValueChange={(v) => {
+          const s = v[0] as "buy" | "sell" | undefined
+          if (!s) return
+          setSide(s)
+          setAmount(s === "buy" ? "10" : "")
+        }}
+        spacing={1}
+        aria-label="Side"
+        className={`${SEG} w-full gap-0.5`}
+      >
         {(["buy", "sell"] as const).map((s) => (
-          <Button
-            variant="plain"
-            size="bare"
+          <ToggleGroupItem
             key={s}
-            type="button"
-            role="radio"
-            aria-checked={side === s}
-            onClick={() => {
-              setSide(s)
-              setAmount(s === "buy" ? "10" : "")
-            }}
-            className="flex-1 capitalize"
-            style={
-              side === s
-                ? {
-                    background: s === "buy" ? "var(--rv-up)" : "var(--rv-down)",
-                    color: "#0a0a0c",
-                  }
-                : undefined
-            }
+            value={s}
+            className={`${SEG_ITEM} flex-1 justify-center capitalize ${
+              s === "buy"
+                ? "data-[pressed]:bg-[var(--rv-up)] data-[pressed]:hover:bg-[var(--rv-up)]"
+                : "data-[pressed]:bg-[var(--rv-down)] data-[pressed]:hover:bg-[var(--rv-down)]"
+            } data-[pressed]:text-[#0a0a0c] data-[pressed]:hover:text-[#0a0a0c]`}
           >
             {s}
-          </Button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
       <label className="mt-3 block">
         <span className="rv-label">
           {side === "buy" ? "You pay (USDC)" : `You sell (${t.symbol})`}
@@ -873,7 +885,7 @@ function TradeBox({ t }: { t: TokenDetail }) {
           onClose={() => setOpen(false)}
         />
       )}
-    </section>
+    </Card>
   )
 }
 
@@ -946,7 +958,7 @@ function Shield({ t }: { t: TokenDetail }) {
     unknown: "var(--rv-unscored)",
   }
   return (
-    <section className="rv-card p-4">
+    <Card variant="riven" as="section" className="p-4">
       <div className="flex items-baseline justify-between">
         <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
           Anti-rug shield
@@ -985,7 +997,7 @@ function Shield({ t }: { t: TokenDetail }) {
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   )
 }
 
@@ -1006,7 +1018,7 @@ export function CreatorTrack({
     rugged: "var(--rv-risk)",
   }
   return (
-    <section className="rv-card p-4">
+    <Card variant="riven" as="section" className="p-4">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">{title}</h2>
         {link && (
@@ -1119,7 +1131,7 @@ export function CreatorTrack({
         ATH and Now are multiples of the first trade price, from swaps Riven
         indexed.
       </p>
-    </section>
+    </Card>
   )
 }
 
@@ -1201,7 +1213,7 @@ function PriceChart({ series }: { series: Array<{ t: number; p: number }> }) {
   const up = series[series.length - 1]!.p >= series[0]!.p
   const color = up ? "var(--rv-up)" : "var(--rv-down)"
   return (
-    <section className="rv-card p-4">
+    <Card variant="riven" as="section" className="p-4">
       <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
         Price (indexed swaps)
       </h2>
@@ -1220,7 +1232,7 @@ function PriceChart({ series }: { series: Array<{ t: number; p: number }> }) {
           vectorEffect="non-scaling-stroke"
         />
       </svg>
-    </section>
+    </Card>
   )
 }
 
@@ -1242,7 +1254,7 @@ function Holders({
         )
       : null
   return (
-    <section className="rv-card p-4">
+    <Card variant="riven" as="section" className="p-4">
       <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">Holders</h2>
       {top10 === null ? (
         <p className="text-[13px] text-[var(--rv-ink-2)]">
@@ -1284,7 +1296,7 @@ function Holders({
         View bubble map
         <ArrowIcon />
       </Button>
-    </section>
+    </Card>
   )
 }
 
@@ -1372,7 +1384,7 @@ function BubbleMap({ address, symbol }: { address: string; symbol: string }) {
   const partner = process.env.NEXT_PUBLIC_BUBBLEMAPS_PARTNER_ID || "demo"
   const src = `https://iframe.bubblemaps.io/map?address=${address}&chain=arc&partnerId=${encodeURIComponent(partner)}`
   return (
-    <section className="rv-card p-4">
+    <Card variant="riven" as="section" className="p-4">
       <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">Bubble map</h2>
       <p className="text-[12px] text-[var(--rv-ink-3)]">
         Each bubble is a wallet; links show wallets that moved tokens between
@@ -1406,14 +1418,14 @@ function BubbleMap({ address, symbol }: { address: string; symbol: string }) {
         </a>
         .
       </p>
-    </section>
+    </Card>
   )
 }
 
 function Trades({ t, now }: { t: TokenDetail; now: number }) {
   if (t.trades.length === 0) return null
   return (
-    <section className="rv-card p-4">
+    <Card variant="riven" as="section" className="p-4">
       <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
         Latest trades
       </h2>
@@ -1441,7 +1453,7 @@ function Trades({ t, now }: { t: TokenDetail; now: number }) {
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   )
 }
 

@@ -11,6 +11,9 @@ import { WalletPanel } from "./wallet-panel"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { SEG, SEG_ITEM } from "@/components/riven/card-style"
+import { Card } from "@/components/ui/card"
 
 const KEY = "riven_portfolio_wallet"
 
@@ -40,25 +43,28 @@ export function PortfolioClient() {
         ]}
         greet="Show me your bags — I'll rug-check every one."
         actions={
-          <div className="rv-seg">
+          <ToggleGroup
+            value={[tab]}
+            onValueChange={(v) => v[0] && setTab(v[0] as typeof tab)}
+            spacing={1}
+            aria-label="Portfolio view"
+            className={`${SEG} gap-0.5`}
+          >
             {(
               [
                 ["mine", "My wallet"],
                 ["any", "Check any wallet"],
               ] as const
             ).map(([id, label]) => (
-              <Button
-                variant="plain"
-                size="bare"
+              <ToggleGroupItem
                 key={id}
-                type="button"
-                onClick={() => setTab(id)}
-                aria-pressed={tab === id}
+                value={id}
+                className={`${SEG_ITEM} px-3.5 text-[13px]`}
               >
                 {label}
-              </Button>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         }
       >
         Your balance, deposits, withdrawals, conversions and trades on Arc —
@@ -151,20 +157,30 @@ function WalletLookup() {
             />
           </section>
           {data.atRisk > 0 && (
-            <div className="rv-card px-4 py-3 text-[13px] text-[var(--rv-ink)]">
+            <Card
+              variant="riven"
+              className="px-4 py-3 text-[13px] text-[var(--rv-ink)]"
+            >
               <span className="font-semibold text-[var(--rv-risk)]">
                 Warning:
               </span>{" "}
               {data.atRisk} of these tokens are risky or caught faking. Check
               them before buying more.
-            </div>
+            </Card>
           )}
           {data.holdings.length === 0 ? (
-            <div className="rv-card px-6 py-10 text-center text-[14px] text-[var(--rv-ink-2)]">
+            <Card
+              variant="riven"
+              className="px-6 py-10 text-center text-[14px] text-[var(--rv-ink-2)]"
+            >
               This wallet holds none of the tokens Riven currently tracks.
-            </div>
+            </Card>
           ) : (
-            <ol className="rv-card divide-y divide-[var(--rv-stroke)]">
+            <Card
+              variant="riven"
+              as="ol"
+              className="divide-y divide-[var(--rv-stroke)]"
+            >
               {data.holdings.map((h) => (
                 <li key={h.token.address}>
                   <Link
@@ -203,7 +219,7 @@ function WalletLookup() {
                   </Link>
                 </li>
               ))}
-            </ol>
+            </Card>
           )}
         </>
       )}
@@ -221,7 +237,7 @@ function Stat({
   color?: string
 }) {
   return (
-    <div className="rv-card px-3 py-2.5">
+    <Card variant="riven" className="px-3 py-2.5">
       <div className="text-[10px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
         {label}
       </div>
@@ -231,6 +247,6 @@ function Stat({
       >
         {value}
       </div>
-    </div>
+    </Card>
   )
 }

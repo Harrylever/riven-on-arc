@@ -6,6 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Card } from "@/components/ui/card"
 
 const COLOR = {
   danger: "var(--rv-risk)",
@@ -32,7 +33,7 @@ function summary(flags: ArcFlag[]): string {
  */
 export function Findings({ flags }: { flags: ArcFlag[] }) {
   return (
-    <section className="rv-card overflow-hidden">
+    <Card variant="riven" as="section" className="overflow-hidden">
       <Collapsible>
         {/* the trigger sits inside the heading, so the section keeps its heading for screen readers */}
         <h2>
@@ -91,6 +92,6 @@ export function Findings({ flags }: { flags: ArcFlag[] }) {
           </div>
         </CollapsibleContent>
       </Collapsible>
-    </section>
+    </Card>
   )
 }

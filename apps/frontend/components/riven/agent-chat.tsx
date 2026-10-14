@@ -11,6 +11,7 @@ import { useAskSession } from "@/hooks/use-ask-session"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 interface Msg {
   role: "user" | "riven"
@@ -69,12 +70,10 @@ export function AgentChat() {
           subject: msgs.findLast(
             (m) => m.role === "riven" && m.tokens?.length === 1,
           )?.tokens?.[0]?.address,
-          history: msgs
-            .slice(-6)
-            .map((m) => ({
-              who: m.role === "user" ? "you" : "riven",
-              text: m.text,
-            })),
+          history: msgs.slice(-6).map((m) => ({
+            who: m.role === "user" ? "you" : "riven",
+            text: m.text,
+          })),
         }),
       })
       const d = await res.json()
@@ -116,8 +115,9 @@ export function AgentChat() {
           </p>
         </div>
       </header>
-      <div
-        className="rv-card flex flex-1 flex-col gap-3 p-4"
+      <Card
+        variant="riven"
+        className="flex flex-1 flex-col gap-3 p-4"
         aria-live="polite"
       >
         {msgs.map((m, i) => (
@@ -183,7 +183,7 @@ export function AgentChat() {
           </p>
         )}
         <div ref={end} />
-      </div>
+      </Card>
       <div className="flex flex-wrap gap-2">
         {STARTERS.map((s) => (
           <Button

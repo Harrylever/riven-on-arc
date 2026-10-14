@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 export default function TokenError({
   error,
@@ -11,7 +12,10 @@ export default function TokenError({
   reset: () => void
 }) {
   return (
-    <div className="rv-card mx-auto my-10 w-full max-w-lg px-6 py-10 text-center">
+    <Card
+      variant="riven"
+      className="mx-auto my-10 w-full max-w-lg px-6 py-10 text-center"
+    >
       <p className="text-lg font-bold text-[var(--rv-ink)]">
         Couldn&apos;t load this token
       </p>
@@ -41,6 +45,6 @@ export default function TokenError({
           Back to tokens
         </Link>
       </div>
-    </div>
+    </Card>
   )
 }

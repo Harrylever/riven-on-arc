@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useArcWallet } from "@/hooks/use-arc-wallet"
 import { usePortfolio } from "@/hooks/use-portfolio"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 const ARC_RPC = "https://rpc.mainnet.arc.io"
 const usd = (n: number) =>
@@ -105,8 +106,10 @@ export function ArcUsdcMargin() {
         : "Your wallet holds no USDC on Arc, so you keep your practice balance."
 
   return (
-    <section
-      className="rv-card p-4 sm:p-5"
+    <Card
+      variant="riven"
+      as="section"
+      className="p-4 sm:p-5"
       aria-labelledby="practice-margin-title"
     >
       <div className="flex items-start gap-3">
@@ -234,6 +237,6 @@ export function ArcUsdcMargin() {
       >
         {notice}
       </p>
-    </section>
+    </Card>
   )
 }

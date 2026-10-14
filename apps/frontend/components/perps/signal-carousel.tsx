@@ -8,6 +8,7 @@ import { ago, priceUsd } from "@/lib/format"
 import { signalCoinKey, venueName } from "@/lib/perp-symbols"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { Progress } from "@/components/ui/progress"
+import { Card } from "@/components/ui/card"
 
 const OUTCOME: Record<string, { label: string; color: string }> = {
   pending: { label: "Live", color: "var(--rv-blue)" },
@@ -66,10 +67,13 @@ export function SignalCarousel({
 }) {
   if (signals.length === 0) {
     return (
-      <div className="rv-card px-4 py-6 text-center text-[13px] text-[var(--rv-ink-2)]">
+      <Card
+        variant="riven"
+        className="px-4 py-6 text-center text-[13px] text-[var(--rv-ink-2)]"
+      >
         No open Riven Scanner calls right now. It scans every ~10 minutes;
         connect Telegram below to get the next one.
-      </div>
+      </Card>
     )
   }
   return (

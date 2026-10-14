@@ -10,6 +10,7 @@ import { PriceGap } from "@/components/perps/source-ui"
 import { Button } from "@/components/ui/button"
 import { Hint } from "@/components/riven/hint"
 import { Progress } from "@/components/ui/progress"
+import { Card } from "@/components/ui/card"
 
 const OUTCOME: Record<string, { label: string; color: string }> = {
   pending: { label: "Live", color: "var(--rv-blue)" },
@@ -92,7 +93,11 @@ export function CallCard({
     s.rawConfidence !== s.confidence
   const risk = Math.abs(s.entryPrice - s.stopLoss)
   return (
-    <article className="rv-card flex flex-col gap-3 p-4 transition-colors hover:border-[var(--rv-stroke-strong)]">
+    <Card
+      variant="riven"
+      as="article"
+      className="flex flex-col gap-3 p-4 transition-colors hover:border-[var(--rv-stroke-strong)]"
+    >
       {/* header */}
       <div className="flex items-center gap-3">
         <Link
@@ -251,6 +256,6 @@ export function CallCard({
           <ArrowIcon />
         </Link>
       </div>
-    </article>
+    </Card>
   )
 }

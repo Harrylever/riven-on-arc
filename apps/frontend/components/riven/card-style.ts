@@ -14,7 +14,8 @@ export const TAB_BLOCK =
 export const DIALOG =
   "block max-w-none gap-0 rounded-[var(--rv-radius)] border-0 bg-[var(--rv-card)] p-0 text-[var(--rv-ink)] shadow-none ring-1 ring-[var(--rv-stroke-strong)] sm:max-w-none"
 /** A dialog title that is just a heading (the shadcn one is small caps). */
-export const DIALOG_TITLE = "font-sans text-[20px] leading-tight font-extrabold tracking-normal normal-case"
+export const DIALOG_TITLE =
+  "font-sans text-[20px] leading-tight font-extrabold tracking-normal normal-case"
 
 /** The shadcn Input in Riven's field look (sunken, stroked, mono). Add sizes after it: `${RV_INPUT} h-11 px-3`. */
 export const RV_INPUT =
@@ -27,3 +28,9 @@ export const RV_SLIDER =
 /** The shadcn Checkbox in Riven's look; `rv-blue` when checked. */
 export const RV_CHECK =
   "size-4 rounded-[4px] border-[color:var(--rv-stroke-strong)] data-checked:border-[color:var(--rv-blue)] data-checked:bg-[var(--rv-blue)] data-checked:text-[var(--rv-on-blue)]"
+
+/** A segmented control on the shadcn ToggleGroup: a sunken tray with one filled choice. Use `SEG` on the group, `SEG_ITEM` on items. */
+export const SEG =
+  "inline-flex w-fit shrink-0 items-center gap-0.5 rounded-lg border border-[color:var(--rv-stroke)] bg-[var(--rv-sunken)] p-0.5"
+export const SEG_ITEM =
+  "h-auto min-w-0 gap-1 rounded-md px-2.5 py-[5px] text-[12px] font-semibold tracking-normal normal-case text-[var(--rv-ink-2)] hover:bg-transparent hover:text-[var(--rv-ink)] data-[pressed]:bg-[var(--rv-blue)] data-[pressed]:text-[var(--rv-on-blue)] data-[pressed]:hover:bg-[var(--rv-blue)] data-[pressed]:hover:text-[var(--rv-on-blue)]"

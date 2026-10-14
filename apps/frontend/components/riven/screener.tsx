@@ -39,11 +39,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { SEG, SEG_ITEM } from "@/components/riven/card-style"
 import { PageNav } from "@/components/riven/page-nav"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { RvSelect } from "@/components/riven/rv-select"
 import { Hint } from "@/components/riven/hint"
+import { Card } from "@/components/ui/card"
 
 const REFRESH_MS = 60_000
 /** Where "Dispute a score" goes: NEXT_PUBLIC_DISPUTE_URL, else the methodology page. */
@@ -99,10 +101,6 @@ const TF_SORTS: SortKey[] = ["trending", "gainers", "losers"]
 // The page's controls are shadcn components (Toggle, ToggleGroup, Button, Input, Pagination) restyled to Riven's look.
 // Their base styles are large, squared and uppercase, so each override resets what it needs to.
 /** The segmented pill around Trending and the timeframes. */
-const SEG =
-  "inline-flex w-fit shrink-0 items-center gap-0.5 rounded-lg border border-[color:var(--rv-stroke)] bg-[var(--rv-sunken)] p-0.5"
-const SEG_ITEM =
-  "h-auto min-w-0 gap-1 rounded-md px-2.5 py-[5px] text-[12px] font-semibold tracking-normal normal-case text-[var(--rv-ink-2)] hover:bg-transparent hover:text-[var(--rv-ink)] data-[pressed]:bg-[var(--rv-blue)] data-[pressed]:text-[var(--rv-on-blue)] data-[pressed]:hover:bg-[var(--rv-blue)] data-[pressed]:hover:text-[var(--rv-on-blue)]"
 /** A quiet chip that is "pressed" when it is the active choice. */
 const CHIP_ITEM =
   "h-[30px] min-w-0 shrink-0 rounded-md border border-[color:var(--rv-stroke)] bg-[var(--rv-card)] px-2.5 text-[12px] font-semibold tracking-normal normal-case text-[var(--rv-ink-2)] hover:bg-[var(--rv-card)] hover:text-[var(--rv-ink)] data-[pressed]:border-[color:var(--rv-stroke-strong)] data-[pressed]:bg-[var(--rv-card-hover)] data-[pressed]:text-[var(--rv-ink)]"
@@ -419,7 +417,7 @@ export function Screener({
       )}
 
       {tokens.length === 0 ? (
-        <div className="rv-card px-6 py-14 text-center">
+        <Card variant="riven" className="px-6 py-14 text-center">
           <p className="text-[16px] font-semibold text-[var(--rv-ink)]">
             No tokens match
           </p>
@@ -433,7 +431,7 @@ export function Screener({
           >
             Reset filters
           </Button>
-        </div>
+        </Card>
       ) : (
         <>
           <DesktopTable
@@ -714,7 +712,7 @@ function DesktopTable({
   const router = useRouter()
   const h = { filters, onSort }
   return (
-    <div className="rv-card hidden overflow-x-auto lg:block">
+    <Card variant="riven" className="hidden overflow-x-auto lg:block">
       <Table className="min-w-[900px] text-[13px] xl:min-w-[1060px] 2xl:min-w-[1180px]">
         <TableHeader>
           <TableRow className="border-b border-[var(--rv-stroke)]">
@@ -896,7 +894,7 @@ function DesktopTable({
           })}
         </TableBody>
       </Table>
-    </div>
+    </Card>
   )
 }
 
@@ -912,7 +910,11 @@ function MobileList({
   showWhy: boolean
 }) {
   return (
-    <ol className="rv-card divide-y divide-[var(--rv-stroke)] overflow-hidden lg:hidden">
+    <Card
+      variant="riven"
+      as="ol"
+      className="divide-y divide-[var(--rv-stroke)] overflow-hidden lg:hidden"
+    >
       {tokens.map((t) => {
         const { chg } = pick(t, tf)
         return (
@@ -971,7 +973,7 @@ function MobileList({
           </li>
         )
       })}
-    </ol>
+    </Card>
   )
 }
 

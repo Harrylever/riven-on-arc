@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useWatchlist } from "@/hooks/use-watchlist"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 /** Turns on browser notifications for anti-rug alerts on watchlisted tokens. */
 export function AlertSettings() {
@@ -18,7 +19,10 @@ export function AlertSettings() {
     )
   }, [])
   return (
-    <div className="rv-card flex flex-wrap items-center gap-3 px-4 py-3">
+    <Card
+      variant="riven"
+      className="flex flex-wrap items-center gap-3 px-4 py-3"
+    >
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-semibold text-[var(--rv-ink)]">
           Watchlist alerts
@@ -48,6 +52,6 @@ export function AlertSettings() {
           Turn on notifications
         </Button>
       )}
-    </div>
+    </Card>
   )
 }

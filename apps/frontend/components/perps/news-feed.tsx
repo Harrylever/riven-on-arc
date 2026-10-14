@@ -6,6 +6,7 @@ import type { NewsItem } from "@/lib/news"
 import { ago } from "@/lib/format"
 import { CoinIcon } from "@/components/perps/coin-icon"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Card } from "@/components/ui/card"
 
 const MOOD: Record<NewsItem["sentiment"], { label: string; color: string }> = {
   bullish: { label: "Positive", color: "var(--rv-up)" },
@@ -74,7 +75,12 @@ export function NewsFeed({
           {news.map((n) => {
             const mood = MOOD[n.sentiment]
             return (
-              <article key={n.id} className="rv-card flex gap-3 p-3">
+              <Card
+                variant="riven"
+                as="article"
+                key={n.id}
+                className="flex gap-3 p-3"
+              >
                 {n.image && (
                   // eslint-disable-next-line @next/next/no-img-element -- remote news art
                   <img
@@ -113,7 +119,7 @@ export function NewsFeed({
                     </div>
                   )}
                 </div>
-              </article>
+              </Card>
             )
           })}
         </div>

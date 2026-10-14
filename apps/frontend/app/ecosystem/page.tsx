@@ -4,6 +4,7 @@ import { shortAddr, usd } from "@/lib/riven-format"
 import { ScoreBadge } from "@/components/riven/score-badge"
 import { TokenAvatar } from "@/components/riven/token-avatar"
 import { buildPageMetadata } from "@/lib/site"
+import { Card } from "@/components/ui/card"
 
 export const dynamic = "force-dynamic"
 export const metadata = buildPageMetadata({
@@ -26,14 +27,17 @@ export default async function EcosystemPage() {
         </p>
       </header>
       {!eco ? (
-        <div className="rv-card px-6 py-10 text-center text-[var(--rv-ink-2)]">
+        <Card
+          variant="riven"
+          className="px-6 py-10 text-center text-[var(--rv-ink-2)]"
+        >
           Ecosystem data is unavailable right now.
-        </div>
+        </Card>
       ) : (
         <>
           <div className="grid gap-3 md:grid-cols-3">
             {eco.pads.map((p) => (
-              <section key={p.name} className="rv-card p-4">
+              <Card variant="riven" as="section" key={p.name} className="p-4">
                 <h2 className="text-[18px] font-bold text-[var(--rv-ink)]">
                   {p.name}
                 </h2>
@@ -72,10 +76,10 @@ export default async function EcosystemPage() {
                     />
                   </Link>
                 )}
-              </section>
+              </Card>
             ))}
           </div>
-          <section className="rv-card p-4">
+          <Card variant="riven" as="section" className="p-4">
             <h2 className="text-[18px] font-bold text-[var(--rv-ink)]">
               Most active creators · 24h
             </h2>
@@ -114,7 +118,7 @@ export default async function EcosystemPage() {
                 </li>
               ))}
             </ol>
-          </section>
+          </Card>
         </>
       )}
     </div>

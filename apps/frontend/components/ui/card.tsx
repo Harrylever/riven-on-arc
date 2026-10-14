@@ -1,20 +1,34 @@
 import * as React from "react"
 import { cn } from "cn"
 
+type CardTag = "div" | "section" | "article" | "aside" | "ol" | "ul" | "li"
+
 function Card({
   className,
   size = "default",
+  variant = "default",
+  as: Tag = "div",
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: Omit<React.ComponentProps<"div">, "ref"> & {
+  ref?: React.Ref<HTMLElement>
+  size?: "default" | "sm"
+  /** `riven` is the app's flat bordered panel (the old `.rv-card`): block layout, no padding, inherits text. */
+  variant?: "default" | "riven"
+  /** Render as another element, so a list or section keeps its meaning. */
+  as?: CardTag
+}) {
+  const Component = Tag as "div"
   return (
-    <div
+    <Component
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card bg-card text-card-foreground ring-foreground/5 flex flex-col gap-(--card-spacing) overflow-hidden py-(--card-spacing) text-sm shadow-sm ring-1 [--card-spacing:--spacing(8)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(5)] *:[img:first-child]:rounded-none *:[img:last-child]:rounded-none",
+        variant === "riven"
+          ? "group/card rounded-[var(--rv-radius)] border border-[color:var(--rv-stroke)] bg-[var(--rv-card)]"
+          : "group/card bg-card text-card-foreground ring-foreground/5 flex flex-col gap-(--card-spacing) overflow-hidden py-(--card-spacing) text-sm shadow-sm ring-1 [--card-spacing:--spacing(8)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(5)] *:[img:first-child]:rounded-none *:[img:last-child]:rounded-none",
         className,
       )}
-      {...props}
+      {...(props as React.ComponentProps<"div">)}
     />
   )
 }

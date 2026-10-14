@@ -21,6 +21,7 @@ import { visibleInterval } from "@/lib/visible-interval"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 interface WalletData {
   address: string
@@ -67,7 +68,11 @@ export function WalletPanel() {
 
   if (!wallet.address) {
     return (
-      <section className="rv-card flex flex-col items-center gap-3 px-6 py-10 text-center">
+      <Card
+        variant="riven"
+        as="section"
+        className="flex flex-col items-center gap-3 px-6 py-10 text-center"
+      >
         <p className="text-[20px] font-bold text-[var(--rv-ink)]">
           Connect your wallet
         </p>
@@ -90,7 +95,7 @@ export function WalletPanel() {
         {wallet.error && (
           <p className="text-[12px] text-[var(--rv-risk)]">{wallet.error}</p>
         )}
-      </section>
+      </Card>
     )
   }
 
@@ -98,7 +103,7 @@ export function WalletPanel() {
     data?.holdings.reduce((s, h) => s + (h.valueUsd ?? 0), 0) ?? 0
   return (
     <div className="flex flex-col gap-3">
-      <section className="rv-card p-4 sm:p-5">
+      <Card variant="riven" as="section" className="p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--rv-ink-3)] uppercase">
@@ -177,17 +182,20 @@ export function WalletPanel() {
         {panel === "convert" && (
           <Convert onPick={(token) => setTrade({ token, side: "buy" })} />
         )}
-      </section>
+      </Card>
 
       {data && data.atRisk > 0 && (
-        <div className="rv-card px-4 py-3 text-[13px] text-[var(--rv-ink)]">
+        <Card
+          variant="riven"
+          className="px-4 py-3 text-[13px] text-[var(--rv-ink)]"
+        >
           <span className="font-semibold text-[var(--rv-risk)]">Anti-rug:</span>{" "}
           {data.atRisk} of your tokens are risky or caught faking. Consider
           selling before liquidity disappears.
-        </div>
+        </Card>
       )}
 
-      <section className="rv-card">
+      <Card variant="riven" as="section">
         <h2 className="px-4 pt-4 text-[16px] font-bold text-[var(--rv-ink)]">
           Your tokens
         </h2>
@@ -260,7 +268,7 @@ export function WalletPanel() {
             ))}
           </ol>
         )}
-      </section>
+      </Card>
 
       {trade && (
         <TradeSheet

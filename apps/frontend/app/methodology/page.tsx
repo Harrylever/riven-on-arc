@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { buildPageMetadata } from "@/lib/site"
+import { Card } from "@/components/ui/card"
 
 export const metadata = buildPageMetadata({
   title: "How the score works",
@@ -131,7 +132,7 @@ export default function MethodologyPage() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {PARTS.map((p) => (
-          <section key={p.name} className="rv-card p-5">
+          <Card variant="riven" as="section" key={p.name} className="p-5">
             <div className="flex items-baseline justify-between">
               <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
                 {p.name}
@@ -157,9 +158,9 @@ export default function MethodologyPage() {
             <p className="mt-3 text-[12px] text-[var(--rv-ink-3)]">
               Source: {p.from}
             </p>
-          </section>
+          </Card>
         ))}
-        <section className="rv-card p-5 sm:col-span-2">
+        <Card variant="riven" as="section" className="p-5 sm:col-span-2">
           <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
             Automatic red flags
           </h2>
@@ -183,10 +184,10 @@ export default function MethodologyPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </Card>
       </div>
 
-      <section className="rv-card p-5 sm:p-6">
+      <Card variant="riven" as="section" className="p-5 sm:p-6">
         <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
           Why a token isn&apos;t called safe early
         </h2>
@@ -200,9 +201,9 @@ export default function MethodologyPage() {
           dumped is marked risky the moment they launch again, before this token
           has a chance to dump.
         </p>
-      </section>
+      </Card>
 
-      <section className="rv-card p-5 sm:p-6">
+      <Card variant="riven" as="section" className="p-5 sm:p-6">
         <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
           What changed in arc-v5
         </h2>
@@ -237,9 +238,14 @@ export default function MethodologyPage() {
             its own pool.
           </li>
         </ul>
-      </section>
+      </Card>
 
-      <section id="disputes" className="rv-card scroll-mt-20 p-5 sm:p-6">
+      <Card
+        variant="riven"
+        as="section"
+        id="disputes"
+        className="scroll-mt-20 p-5 sm:p-6"
+      >
         <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
           Think a flag is wrong?
         </h2>
@@ -252,9 +258,9 @@ export default function MethodologyPage() {
           looks wrong — rules get fixed for everyone, never overridden for one
           token.
         </p>
-      </section>
+      </Card>
 
-      <section className="rv-card p-5 sm:p-6">
+      <Card variant="riven" as="section" className="p-5 sm:p-6">
         <h2 className="text-[20px] font-bold text-[var(--rv-ink)]">
           What Riven can&apos;t see
         </h2>
@@ -302,7 +308,7 @@ export default function MethodologyPage() {
           <ArrowIcon dir="left" className="size-4" />
           Back to launches
         </Link>
-      </section>
+      </Card>
     </article>
   )
 }

@@ -2,10 +2,12 @@ import Link from "next/link"
 import { PERPS_ENABLED } from "@/lib/flags"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { buildPageMetadata } from "@/lib/site"
+import { Card } from "@/components/ui/card"
 
 export const metadata = buildPageMetadata({
   title: "More",
-  description: "Explore Riven's Arc ecosystem, methodology, accuracy, portfolio tools and paper-trading terminal.",
+  description:
+    "Explore Riven's Arc ecosystem, methodology, accuracy, portfolio tools and paper-trading terminal.",
   path: "/more",
 })
 
@@ -45,10 +47,12 @@ const LINKS = [
 export default function MorePage() {
   return (
     <div className="flex flex-col gap-3">
-      <h1 className="text-[28px] font-extrabold text-[var(--rv-ink)]">
-        More
-      </h1>
-      <ul className="rv-card divide-y divide-[var(--rv-stroke)]">
+      <h1 className="text-[28px] font-extrabold text-[var(--rv-ink)]">More</h1>
+      <Card
+        variant="riven"
+        as="ul"
+        className="divide-y divide-[var(--rv-stroke)]"
+      >
         {LINKS.map((l) => (
           <li key={l.href}>
             <Link
@@ -59,15 +63,13 @@ export default function MorePage() {
                 <p className="text-[15px] font-semibold text-[var(--rv-ink)]">
                   {l.label}
                 </p>
-                <p className="text-[12px] text-[var(--rv-ink-3)]">
-                  {l.hint}
-                </p>
+                <p className="text-[12px] text-[var(--rv-ink-3)]">{l.hint}</p>
               </div>
               <ArrowIcon className="size-4 text-[var(--rv-ink-3)]" />
             </Link>
           </li>
         ))}
-      </ul>
+      </Card>
     </div>
   )
 }

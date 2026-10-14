@@ -5,6 +5,7 @@ import { flushSync } from "react-dom"
 import type { PerpInsight } from "@/lib/perp-insight"
 import { DISCLAIMER } from "@/lib/site"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 /**
  * Riven's read as a drop-down. Closed, it keeps the takeaway visible (the activity score and the
@@ -61,11 +62,13 @@ export function RivenRead({
   }, [open, flash, onOpenChange])
 
   return (
-    <section
+    <Card
+      variant="riven"
+      as="section"
       ref={sectionRef}
       id="read"
       key={`read-${flash}`}
-      className="rv-card scroll-mt-28 overflow-hidden"
+      className="scroll-mt-28 overflow-hidden"
       style={flash ? { animation: "rv-flash 1.6s ease-out" } : undefined}
     >
       <Button
@@ -141,6 +144,6 @@ export function RivenRead({
           )}
         </div>
       </div>
-    </section>
+    </Card>
   )
 }

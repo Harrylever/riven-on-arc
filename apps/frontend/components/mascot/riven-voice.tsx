@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
 import { Hint } from "@/components/riven/hint"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { SEG, SEG_ITEM } from "@/components/riven/card-style"
 
 /**
  * Talk to Riven. Double-tap him to open (and double-tap again to close) a
@@ -349,49 +351,36 @@ export function VoicePanel({
         <span className="text-[10px] font-bold tracking-[0.12em] text-[var(--rv-blue)] uppercase">
           Talk to Riven
         </span>
-        <div
-          className="rv-seg ml-auto"
-          role="radiogroup"
+        <ToggleGroup
+          value={[chat.reply]}
+          onValueChange={(v) => v[0] && onReply(v[0] as ReplyMode)}
+          spacing={1}
           aria-label="How Riven replies"
+          className={`${SEG} ml-auto gap-0.5`}
         >
           <Hint text="Riven's own robot voice">
-            <Button
-              variant="plain"
-              size="bare"
-              type="button"
-              role="radio"
-              aria-checked={chat.reply === "robot"}
-              onClick={() => onReply("robot")}
-              className="!px-2 !py-1 !text-[11px]"
+            <ToggleGroupItem
+              value="robot"
+              className={`${SEG_ITEM} px-2 py-1 text-[11px]`}
             >
               🤖 Riven
-            </Button>
+            </ToggleGroupItem>
           </Hint>
           <Hint text="Your browser's natural voice">
-            <Button
-              variant="plain"
-              size="bare"
-              type="button"
-              role="radio"
-              aria-checked={chat.reply === "natural"}
-              onClick={() => onReply("natural")}
-              className="!px-2 !py-1 !text-[11px]"
+            <ToggleGroupItem
+              value="natural"
+              className={`${SEG_ITEM} px-2 py-1 text-[11px]`}
             >
               🗣 Natural
-            </Button>
+            </ToggleGroupItem>
           </Hint>
-          <Button
-            variant="plain"
-            size="bare"
-            type="button"
-            role="radio"
-            aria-checked={chat.reply === "text"}
-            onClick={() => onReply("text")}
-            className="!px-2 !py-1 !text-[11px]"
+          <ToggleGroupItem
+            value="text"
+            className={`${SEG_ITEM} px-2 py-1 text-[11px]`}
           >
             Text
-          </Button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
         <Button
           variant="plain"
           size="bare"
