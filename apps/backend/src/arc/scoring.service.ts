@@ -10,6 +10,7 @@ import {
 import {
   createPublicClient,
   http,
+  isAddress,
   keccak256,
   parseAbi,
   parseAbiItem,
@@ -29,6 +30,7 @@ import {
   USDC, arcTransport, quoteDecimals, quoteIsCurrency0 } from "./config";
 import { scanBlockRange } from "./factory-log-indexer.service";
 import { SCORE_SCHEDULE, isDue } from "./score-schedule";
+import { findLaunchPosition, pairsWithUsdc, readV3, v3LpState, type V3LaunchInfo, type V3PositionReading, type V3Reading } from "./v3";
 
 const ACTIVITY_CURSOR = "arc:activity";
 // How often each token is scored, and how many per pass, lives in score-schedule.ts.
@@ -39,6 +41,17 @@ const ACTIVITY_CURSOR = "arc:activity";
  * unscored on every pass, take a scoring slot each time, and (having no score run) always look due.
  */
 const SCORABLE_POOL = { venue: { not: "OTHER" as const } };
+/** Uniswap v3 launch positions searched for per pass: each search is a few log queries, so this bounds the RPC cost. */
+const V3_SEARCHES_PER_PASS = 10;
+/** What the scorer knows about a pool's market, read once per pass for every token being scored. */
+type PoolMarket = {
+  priceUsd: number | null;
+  feePct: number | null;
+  lpOwner: string | null;
+  poolUsdc: number | null;
+  /** Uniswap v3 only: the pool and launch-position readings the LP state is derived from. */
+  v3?: V3Reading;
+};
 /** A token a visitor asked for is tried at most this often by the 20-second loop. */
 const REQUEST_RETRY_MS = 60_000;
 /** A launch receipt the RPC could not find is not asked for again for this long (it was retried for ~300 tokens every tick). */
@@ -446,10 +459,7 @@ export class ArcScoringService {
         }) as const),
       }),
     ]);
-    const market = new Map<
-      string,
-      { priceUsd: number | null; feePct: number | null; lpOwner: string | null; poolUsdc: number | null }
-    >();
+    const market = new Map<string, PoolMarket>();
     v4.forEach((t, i) => {
       const pool = t.pools[0]!;
       const s = slot0s[i];
@@ -468,6 +478,50 @@ export class ArcScoringService {
         lpOwner: pool.positionId && o?.status === "success" ? o.result.toLowerCase() : null,
       });
     });
+
+    // Uniswap v3: the pool's launch position (the first liquidity minted into it), found once from logs and stored.
+    let searched = 0;
+    for (const t of due) {
+      const pool = t.pools[0];
+      if (!pool || pool.venue !== "UNISWAP_V3" || t.launchBlock === null || !isAddress(pool.address, { strict: false })) continue;
+      const known = (pool.launchInfo ?? {}) as Partial<V3LaunchInfo>;
+      if (known.v3) continue; // already searched
+      if ((this.receiptRetryAt.get(pool.id) ?? 0) > now) continue;
+      if (searched++ >= V3_SEARCHES_PER_PASS) break;
+      try {
+        const found = await findLaunchPosition(this.client, pool.address as Address, t.launchBlock, head);
+        if (!found) {
+          this.receiptRetryAt.set(pool.id, now + RECEIPT_RETRY_MS); // no liquidity seen yet: look again later
+          continue;
+        }
+        const launchInfo = { ...known, ...found } as unknown as object;
+        await db.pool.update({ where: { id: pool.id }, data: { positionId: found.tokenId, launchInfo } });
+        Object.assign(pool, { positionId: found.tokenId, launchInfo });
+      } catch (err) {
+        this.receiptRetryAt.set(pool.id, now + RECEIPT_RETRY_MS);
+        console.warn(`[arc-score] v3 launch position for ${t.mint} failed (retry in 30 min): ${(err as Error).message.split("\n")[0]}`);
+      }
+    }
+    const v3Tokens = due.filter((t) => t.pools[0]?.venue === "UNISWAP_V3");
+    const v3Reads = await readV3(
+      this.client,
+      v3Tokens.map((t) => ({ pool: t.pools[0]!.address as Address, positionId: t.pools[0]!.positionId })),
+    ).catch((err) => {
+      console.warn(`[arc-score] v3 reads failed: ${(err as Error).message.split("\n")[0]}`);
+      return new Map<string, V3Reading>();
+    });
+    for (const t of v3Tokens) {
+      const read = v3Reads.get(t.pools[0]!.address.toLowerCase());
+      // Only a pool of this token against the ERC-20 USDC can be priced; anything else stays unmeasured.
+      const pool = read?.pool && pairsWithUsdc(read.pool, t.mint) ? read.pool : null;
+      market.set(t.id, {
+        poolUsdc: pool ? Number(pool.usdcRaw) / 10 ** quoteDecimals(null) : null,
+        priceUsd: pool ? priceFromSqrt(pool.sqrtPriceX96, t.mint, t.decimals ?? 18, null) : null,
+        feePct: pool ? pool.fee / 10_000 : null,
+        lpOwner: read?.position?.owner?.toLowerCase() ?? null,
+        v3: pool ? read : undefined,
+      });
+    }
 
     let scored = 0;
     let unscored = 0;
@@ -570,8 +624,11 @@ export class ArcScoringService {
       | { id: string; venue: string; positionId: string | null; lpRemovedAt: Date | null; excludedHolders: unknown }
       | undefined,
     receiptOwner: string | null,
+    v3Position: V3PositionReading | null = null,
   ): Promise<ArcLpState | null> {
     if (!pool) return null;
+    // Uniswap v3: the launch position NFT says who holds the liquidity and whether it was pulled.
+    if (pool.venue === "UNISWAP_V3") return v3LpState(v3Position, (owner) => this.classifyOwner(owner, pool));
     if (pool.venue === "BONDING_CURVE") return "launchpad_curve";
     const events = await getDb().arcLpEvent.findMany({ where: { poolId: pool.id } });
     if (launchLiquidityPulled(events, pool.positionId)) return "removed";
@@ -721,7 +778,7 @@ export class ArcScoringService {
     ctx: {
       activityBlock: bigint | null;
       head: bigint;
-      market: { priceUsd: number | null; feePct: number | null; lpOwner: string | null; poolUsdc: number | null };
+      market: PoolMarket;
     },
   ): Promise<boolean> {
     const db = getDb();
@@ -733,14 +790,14 @@ export class ArcScoringService {
 
     const [authority, lp] = await Promise.all([
       this.authorityFor(t.mint as Address),
-      this.lpState(pool, ctx.market.lpOwner),
+      this.lpState(pool, ctx.market.lpOwner, ctx.market.v3?.position ?? null),
     ]);
 
     const excluded = new Set<string>([
       POOL_MANAGER.toLowerCase(),
       ...BURN_ADDRESSES,
       ...(Array.isArray(pool?.excludedHolders) ? (pool!.excludedHolders as string[]) : []),
-      ...(pool?.venue === "BONDING_CURVE" ? [pool.address] : []),
+      ...(pool?.venue === "BONDING_CURVE" || pool?.venue === "UNISWAP_V3" ? [pool.address] : []),
     ]);
 
     // Holder signals need the activity indexer to have passed the launch block.
@@ -863,7 +920,7 @@ export class ArcScoringService {
       ageHours: (Date.now() - t.launchTime.getTime()) / 3_600_000,
       identity: { name: t.name, symbol: t.symbol },
       activity:
-        pool && pool.venue === "UNISWAP_V4"
+        pool && (pool.venue === "UNISWAP_V4" || pool.venue === "UNISWAP_V3")
           ? {
               buys24h,
               sells24h,

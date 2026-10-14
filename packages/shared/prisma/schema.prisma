@@ -111,6 +111,8 @@ enum PoolVenue {
   PUMPSWAP
   LAUNCHLAB
   UNISWAP_V4
+  /// Uniswap v3 pools (each pool its own contract, liquidity held as NFT positions). The scorer reads these.
+  UNISWAP_V3
   BONDING_CURVE
   OTHER
 

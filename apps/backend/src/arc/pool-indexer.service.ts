@@ -282,7 +282,9 @@ export class PoolIndexerService {
         create: {
           address: p.poolId,
           tokenId,
-          venue: p.dex ? "OTHER" : "UNISWAP_V4",
+          // Uniswap v3 pools can be read by the scorer; pools of any other DEX cannot (yet).
+          // (a "<pool>:<token>" id is a pool of two non-USDC tokens: not an address, and it has no USDC side to read)
+          venue: p.dex === "uniswap-v3" && !p.poolId.includes(":") ? "UNISWAP_V3" : p.dex ? "OTHER" : "UNISWAP_V4",
           quoteMint: p.quote ?? USDC.toLowerCase(),
           // v4 pools come from an Initialize event, so their currencies are known, not assumed.
           quoteChecked: !p.dex && p.quote !== undefined,

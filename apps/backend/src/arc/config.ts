@@ -76,6 +76,14 @@ export const DEX_FACTORIES: Array<{ dex: string; factory: Address }> = [
   { dex: "other", factory: "0xC481038C013FE96F38CE7A2dC417b2B1B78b16A4" },
 ];
 
+/** The `uniswap-v3` entry of DEX_FACTORIES: pools it created are venue UNISWAP_V3. */
+export const UNISWAP_V3_FACTORY: Address = "0xf0db7b58379503491d857dB50AC9ece64c653918";
+/**
+ * "Uniswap V3 Positions NFT-V1" on Arc. Verified on-chain 2026-10-14: name() says so and factory() is the factory
+ * above. Liquidity in a v3 pool is held as NFT positions minted here.
+ */
+export const UNISWAP_V3_POSITION_MANAGER: Address = "0x39654a85a4c05127f5fd6ed22caec077a0fb1377";
+
 // Uniswap v4 on Arc. Verified 2026-10-06 from a real Argus launch tx: PoolManager emits
 // Initialize/ModifyLiquidity/Swap, PositionManager is "Uniswap v4 Positions NFT", and
 // StateView was read from the Argus pool helper's stateView() and answers getSlot0.
