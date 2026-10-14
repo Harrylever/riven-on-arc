@@ -24,6 +24,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TAB_LIST, TAB_TRIGGER } from "./card-style"
 import { CalloutsRow } from "./home-sections"
 import {
   exitQuote,
@@ -342,11 +344,9 @@ export function TokenView({
           ) : null}
 
           {/* Tabs */}
-          <section className="rv-card overflow-hidden">
-            <div
-              className="flex items-center gap-1 overflow-x-auto border-b border-[var(--rv-stroke)] px-2 pt-2"
-              role="tablist"
-            >
+          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="rv-card gap-0 overflow-hidden">
+            <div className="border-b border-[var(--rv-stroke)] px-2">
+            <TabsList variant="line" className={TAB_LIST} aria-label="Token details">
               {(
                 [
                   [
@@ -362,25 +362,13 @@ export function TokenView({
                   ],
                 ] as const
               ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === id}
-                  onClick={() => setTab(id)}
-                  className="relative shrink-0 px-3 pt-1.5 pb-2.5 text-[13px] font-semibold whitespace-nowrap transition-colors"
-                  style={{
-                    color: tab === id ? "var(--rv-ink)" : "var(--rv-ink-3)",
-                  }}
-                >
+                <TabsTrigger key={id} value={id} className={TAB_TRIGGER}>
                   {label}
-                  {tab === id && (
-                    <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[var(--rv-blue)]" />
-                  )}
-                </button>
+                </TabsTrigger>
               ))}
+            </TabsList>
             </div>
-            <div className="[&>section]:rounded-md [&>section]:border-0 [&>section]:bg-transparent [&>section>h2]:hidden">
+            <TabsContent value={tab} className="[&>section]:rounded-md [&>section]:border-0 [&>section]:bg-transparent [&>section>h2]:hidden">
               {tab === "trades" &&
                 (t.trades.length ? (
                   <Trades t={t} now={now} />
@@ -408,8 +396,8 @@ export function TokenView({
                   <CalloutsRow callouts={callouts} now={now} />
                 </div>
               )}
-            </div>
-          </section>
+            </TabsContent>
+          </Tabs>
 
           <section className="rv-card flex flex-col gap-2 p-4 text-[12px]">
             <h2 className="text-[15px] font-bold text-[var(--rv-ink)]">

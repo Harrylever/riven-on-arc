@@ -6,7 +6,9 @@
 // Everything here exists to keep them visibly apart: one tab each, a strip that says where
 // the data comes from, an outlined pill for scanner opinions (never styled like a price),
 // and an explicit line wherever a scanner price meets a Hyperliquid price.
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TAB_BLOCK } from "@/components/riven/card-style"
 import { ago, priceUsd } from "@/lib/format"
 import { venueName } from "@/lib/perp-symbols"
 
@@ -65,55 +67,32 @@ export function SourceTabs({
     { id: "scanner", label: "Riven Scanner", sub: "setups from Bybit, MEXC, Binance", count: scannerCount },
     { id: "markets", label: "Markets", sub: "live perp prices", count: marketCount },
   ]
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return
-    e.preventDefault()
-    const next: SourceTab = value === "scanner" ? "markets" : "scanner"
-    onChange(next)
-    document.getElementById(`perps-tab-${next}`)?.focus()
-  }
   return (
-    <div
-      role="tablist"
-      aria-label="Perps data source"
-      className="flex overflow-hidden rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)]"
-      onKeyDown={onKey}
-    >
-      {tabs.map((t) => {
-        const on = value === t.id
-        return (
-          <button
+    <Tabs value={value} onValueChange={(v) => onChange(v as SourceTab)}>
+      <TabsList
+        variant="line"
+        aria-label="Perps data source"
+        className="h-auto w-full gap-0 overflow-hidden rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)] p-0"
+      >
+        {tabs.map((t) => (
+          <TabsTrigger
             key={t.id}
             id={`perps-tab-${t.id}`}
-            type="button"
-            role="tab"
-            aria-selected={on}
-            aria-controls={`perps-panel-${t.id}`}
-            tabIndex={on ? 0 : -1}
-            onClick={() => onChange(t.id)}
-            className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 px-3 py-3 text-center transition-colors sm:justify-start sm:gap-3 sm:px-4 sm:py-2.5 sm:text-left"
-            style={{
-              background: on ? "rgba(124, 196, 232, 0.14)" : "transparent",
-              boxShadow: on ? "inset 0 -2px 0 var(--rv-blue)" : "none",
-            }}
+            value={t.id}
+            className={`min-h-12 min-w-0 flex-1 gap-2 px-3 py-3 text-center sm:justify-start sm:gap-3 sm:px-4 sm:py-2.5 ${TAB_BLOCK}`}
           >
-            <span
-              className="inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-bold"
-              style={{ color: on ? "#fff" : "var(--rv-ink-2)" }}
-            >
+            <span className="inline-flex items-center gap-1.5 text-[14px] font-bold whitespace-nowrap">
               {t.id === "scanner" && <ScannerGlyph size={15} className="text-[var(--rv-blue)]" />}
               {t.label}
               {t.count !== null && (
-                <span className="rv-num rounded-full bg-white/[0.07] px-1.5 text-[11px] font-semibold text-[var(--rv-ink-2)]">
-                  {t.count}
-                </span>
+                <span className="rv-num rounded-full bg-white/[0.07] px-1.5 text-[11px] font-semibold text-[var(--rv-ink-2)]">{t.count}</span>
               )}
             </span>
-            <span className="hidden truncate text-[11px] text-[var(--rv-ink-3)] sm:inline">{t.sub}</span>
-          </button>
-        )
-      })}
-    </div>
+            <span className="hidden truncate text-[11px] font-normal text-[var(--rv-ink-3)] sm:inline">{t.sub}</span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
   )
 }
 

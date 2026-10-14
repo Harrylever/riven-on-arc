@@ -3,7 +3,7 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { Card } from "@/components/ui/card"
-import { CARD } from "./card-style"
+import { CARD, TAB_LIST, TAB_TRIGGER } from "./card-style"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export interface TabLink {
@@ -34,14 +34,14 @@ export function MarketsTabs({
     <Card className={CARD} aria-label={label}>
       <Tabs value={active} className="gap-0">
         <div className="border-b border-[var(--rv-stroke)] px-2 sm:px-3">
-          <TabsList variant="line" className="h-11 w-full justify-start gap-1 overflow-x-auto p-0" aria-label="Markets lists">
+          <TabsList variant="line" className={`h-11 ${TAB_LIST}`} aria-label="Markets lists">
             {tabs.map((t) => (
               <TabsTrigger
                 key={t.id}
                 value={t.id}
                 nativeButton={false}
                 render={<Link href={t.href} scroll={false} />}
-                className="h-11 flex-none px-3.5 text-[13.5px] font-semibold tracking-normal normal-case text-[var(--rv-ink-3)] after:bg-[var(--rv-blue)] data-active:text-[var(--rv-ink)] group-data-horizontal/tabs:after:bottom-0 group-data-horizontal/tabs:after:inset-x-2 hover:text-[var(--rv-ink)]"
+                className={TAB_TRIGGER}
               >
                 {t.label}
               </TabsTrigger>

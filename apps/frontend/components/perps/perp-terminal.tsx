@@ -9,6 +9,11 @@ import { usePortfolio, type OpenOrder, type PerpPosition, type TradeRecord } fro
 import type { PerpMarket, PerpOrderbook } from "@/lib/hyperliquid"
 import { priceUsd } from "@/lib/format"
 import { tradingViewSymbol } from "@/lib/perp-trade-setup"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { TAB_BLOCK } from "@/components/riven/card-style"
 
 type BottomTab = "positions" | "orders" | "history"
 
@@ -88,28 +93,15 @@ export function PerpTerminal({
       </div>
 
       {/* Two sections per market: Chart (TradingView, with drawing tools) and Trade */}
-      <div
-        className="flex border-b border-[var(--rv-stroke)]"
-        role="tablist"
-        aria-label={`${market.symbol} sections`}
-      >
-        {(["chart", "trade"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            role="tab"
-            aria-selected={view === v}
-            onClick={() => setView(v)}
-            className="flex-1 py-2.5 text-[13px] font-bold tracking-wide uppercase transition-colors sm:flex-none sm:px-8"
-            style={{
-              color: view === v ? "#fff" : "var(--rv-ink-3)",
-              background: view === v ? "rgba(124, 196, 232, 0.16)" : "transparent",
-              boxShadow: view === v ? "inset 0 -2px 0 var(--rv-blue)" : "none",
-            }}
-          >
-            {v === "chart" ? "Chart" : "Trade"}
-          </button>
-        ))}
+      <Tabs value={view} onValueChange={(v) => setView(v as typeof view)} className="gap-0">
+      <div className="flex border-b border-[var(--rv-stroke)]">
+        <TabsList variant="line" className="h-auto w-full gap-0 p-0 sm:w-auto" aria-label={`${market.symbol} sections`}>
+          {(["chart", "trade"] as const).map((v) => (
+            <TabsTrigger key={v} value={v} className={`h-10 flex-1 text-[13px] font-bold sm:flex-none sm:px-8 ${TAB_BLOCK}`}>
+              {v === "chart" ? "Chart" : "Trade"}
+            </TabsTrigger>
+          ))}
+        </TabsList>
         <span className="ml-auto hidden self-center px-3 text-[11px] text-[var(--rv-ink-3)] sm:block">
           {view === "chart"
             ? "Draw trendlines, fibs and more with the toolbar on the left"
@@ -141,6 +133,7 @@ export function PerpTerminal({
           </div>
         </div>
       )}
+      </Tabs>
 
       <BottomTabs coin={market.symbol} />
     </div>
@@ -262,38 +255,27 @@ function BottomTabs({ coin }: { coin: string }) {
     { id: "history", label: "Trade History", short: "History", count: hist.length },
   ]
 
-  const th = "px-3 py-1.5 text-left font-normal text-[var(--rv-ink-3)]"
-  const td = "px-3 py-1.5 font-mono"
+  const th = "h-auto px-3 py-1.5 text-left text-[11px] font-normal tracking-normal normal-case text-[var(--rv-ink-3)]"
+  const td = "px-3 py-1.5 font-mono text-[11px]"
   const sideCol = (s: string) => (s === "SHORT" ? "var(--rv-down)" : "var(--rv-up)")
 
   return (
-    <div className="border-t border-[var(--rv-stroke)]">
+    <Tabs value={tab} onValueChange={(v) => setTab(v as BottomTab)} className="gap-0 border-t border-[var(--rv-stroke)]">
       <div className="flex flex-col border-b border-[var(--rv-stroke)] sm:flex-row sm:items-center sm:justify-between sm:pr-3">
-        <div className="flex" role="tablist" aria-label="Your paper account">
+        <TabsList variant="line" className="h-auto w-full justify-start gap-0 p-0 sm:w-auto" aria-label="Your paper account">
           {tabs.map((t) => (
-            <button
+            <TabsTrigger
               key={t.id}
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 px-3 py-3 text-xs font-bold whitespace-nowrap sm:flex-none sm:px-4 sm:py-2 ${
-                tab === t.id
-                  ? "border-b-2 border-[var(--rv-blue)] text-[var(--rv-ink)]"
-                  : "text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
-              }`}
+              value={t.id}
+              className="h-10 flex-1 px-3 text-xs font-bold tracking-normal normal-case whitespace-nowrap text-[var(--rv-ink-3)] after:bg-[var(--rv-blue)] data-active:text-[var(--rv-ink)] group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-0 hover:text-[var(--rv-ink)] sm:h-9 sm:flex-none sm:px-4"
             >
               <span className="sm:hidden">{t.short}</span>
               <span className="hidden sm:inline">{t.label}</span> ({t.count})
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+        </TabsList>
         <label className="flex min-h-11 cursor-pointer items-center gap-2 border-t border-[var(--rv-stroke)] px-3 text-[12px] text-[var(--rv-ink-3)] sm:min-h-0 sm:gap-1.5 sm:border-t-0 sm:px-0 sm:text-[11px]">
-          <input
-            type="checkbox"
-            className="size-4 sm:size-auto"
-            checked={onlyThisPair}
-            onChange={(e) => setOnlyThisPair(e.target.checked)}
-          />
+          <Checkbox checked={onlyThisPair} onCheckedChange={(v) => setOnlyThisPair(v === true)} className="size-4 rounded-[3px]" />
           Only {coin}
         </label>
       </div>
@@ -309,9 +291,9 @@ function BottomTabs({ coin }: { coin: string }) {
                 <PositionCard key={p.id} p={p} onClose={() => closePosition(p.id)} />
               ))}
             </div>
-            <table className="hidden w-full min-w-[760px] sm:table">
-              <thead>
-                <tr>
+            <Table className="hidden min-w-[760px] text-[11px] sm:table">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
                   {[
                     "Market",
                     "Side",
@@ -324,25 +306,25 @@ function BottomTabs({ coin }: { coin: string }) {
                     "TP1 / TP2 / TP3",
                     "",
                   ].map((h) => (
-                    <th key={h} className={th}>
+                    <TableHead key={h} className={th}>
                       {h}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {pos.map((p) => {
                   const tps = p.tps ?? (p.tp ? [p.tp] : [])
                   return (
-                    <tr key={p.id} className="border-t border-[var(--rv-stroke)]">
-                      <td className={td}>{p.market}</td>
-                      <td className={td} style={{ color: sideCol(p.side) }}>
+                    <TableRow key={p.id} className="border-0 border-t border-[var(--rv-stroke)]">
+                      <TableCell className={td}>{p.market}</TableCell>
+                      <TableCell className={td} style={{ color: sideCol(p.side) }}>
                         {p.side} {p.leverage}x
-                      </td>
-                      <td className={td}>{p.size}</td>
-                      <td className={td}>{priceUsd(p.entryPrice)}</td>
-                      <td className={td}>{priceUsd(p.markPrice)}</td>
-                      <td
+                      </TableCell>
+                      <TableCell className={td}>{p.size}</TableCell>
+                      <TableCell className={td}>{priceUsd(p.entryPrice)}</TableCell>
+                      <TableCell className={td}>{priceUsd(p.markPrice)}</TableCell>
+                      <TableCell
                         className={td}
                         style={{
                           color: p.pnl >= 0 ? "var(--rv-up)" : "var(--rv-down)",
@@ -350,27 +332,29 @@ function BottomTabs({ coin }: { coin: string }) {
                       >
                         {p.pnl >= 0 ? "+" : ""}
                         {p.pnl.toFixed(2)} ({p.roe.toFixed(1)}%)
-                      </td>
-                      <td className={td}>{priceUsd(p.liqPrice)}</td>
-                      <td className={td}>{p.sl ? priceUsd(p.sl) : "—"}</td>
-                      <td className={td}>
+                      </TableCell>
+                      <TableCell className={td}>{priceUsd(p.liqPrice)}</TableCell>
+                      <TableCell className={td}>{p.sl ? priceUsd(p.sl) : "—"}</TableCell>
+                      <TableCell className={td}>
                         {tps.length
                           ? tps.map((t) => priceUsd(t)).join(" / ")
                           : "—"}
-                      </td>
-                      <td className={td}>
-                        <button
+                      </TableCell>
+                      <TableCell className={td}>
+                        <Button
+                          variant="outline"
+                          size="xs"
                           onClick={() => closePosition(p.id)}
-                          className="border border-[var(--rv-stroke)] px-2 py-0.5 font-sans font-bold hover:border-[var(--rv-down)] hover:text-[var(--rv-down)]"
+                          className="h-6 rounded-none border-[var(--rv-stroke)] px-2 font-sans text-[11px] font-bold tracking-normal normal-case hover:border-[var(--rv-down)] hover:text-[var(--rv-down)]"
                         >
                           Close
-                        </button>
-                      </td>
-                    </tr>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             </>
           ))}
 
@@ -384,9 +368,9 @@ function BottomTabs({ coin }: { coin: string }) {
                 <OrderCard key={o.id} o={o} onCancel={() => cancelOrder(o.id)} />
               ))}
             </div>
-            <table className="hidden w-full min-w-[640px] sm:table">
-              <thead>
-                <tr>
+            <Table className="hidden min-w-[640px] text-[11px] sm:table">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
                   {[
                     "Market",
                     "Type",
@@ -397,43 +381,45 @@ function BottomTabs({ coin }: { coin: string }) {
                     "TP1 / TP2 / TP3",
                     "",
                   ].map((h) => (
-                    <th key={h} className={th}>
+                    <TableHead key={h} className={th}>
                       {h}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {ord.map((o) => {
                   const tps = o.tps ?? (o.tp ? [o.tp] : [])
                   return (
-                    <tr key={o.id} className="border-t border-[var(--rv-stroke)]">
-                      <td className={td}>{o.market}</td>
-                      <td className={td}>{o.type}</td>
-                      <td className={td} style={{ color: sideCol(o.side) }}>
+                    <TableRow key={o.id} className="border-0 border-t border-[var(--rv-stroke)]">
+                      <TableCell className={td}>{o.market}</TableCell>
+                      <TableCell className={td}>{o.type}</TableCell>
+                      <TableCell className={td} style={{ color: sideCol(o.side) }}>
                         {o.side}
-                      </td>
-                      <td className={td}>{priceUsd(o.orderPrice)}</td>
-                      <td className={td}>{o.size}</td>
-                      <td className={td}>{o.sl ? priceUsd(o.sl) : "—"}</td>
-                      <td className={td}>
+                      </TableCell>
+                      <TableCell className={td}>{priceUsd(o.orderPrice)}</TableCell>
+                      <TableCell className={td}>{o.size}</TableCell>
+                      <TableCell className={td}>{o.sl ? priceUsd(o.sl) : "—"}</TableCell>
+                      <TableCell className={td}>
                         {tps.length
                           ? tps.map((t) => priceUsd(t)).join(" / ")
                           : "—"}
-                      </td>
-                      <td className={td}>
-                        <button
+                      </TableCell>
+                      <TableCell className={td}>
+                        <Button
+                          variant="outline"
+                          size="xs"
                           onClick={() => cancelOrder(o.id)}
-                          className="border border-[var(--rv-stroke)] px-2 py-0.5 font-sans font-bold hover:border-[var(--rv-down)] hover:text-[var(--rv-down)]"
+                          className="h-6 rounded-none border-[var(--rv-stroke)] px-2 font-sans text-[11px] font-bold tracking-normal normal-case hover:border-[var(--rv-down)] hover:text-[var(--rv-down)]"
                         >
                           Cancel
-                        </button>
-                      </td>
-                    </tr>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             </>
           ))}
 
@@ -447,9 +433,9 @@ function BottomTabs({ coin }: { coin: string }) {
                 <TradeRow key={t.id} t={t} />
               ))}
             </div>
-            <table className="hidden w-full min-w-[560px] sm:table">
-              <thead>
-                <tr>
+            <Table className="hidden min-w-[560px] text-[11px] sm:table">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
                   {[
                     "Time",
                     "Market",
@@ -459,41 +445,41 @@ function BottomTabs({ coin }: { coin: string }) {
                     "Fee",
                     "PnL",
                   ].map((h) => (
-                    <th key={h} className={th}>
+                    <TableHead key={h} className={th}>
                       {h}
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {hist.map((t) => (
-                  <tr key={t.id} className="border-t border-[var(--rv-stroke)]">
-                    <td className={td}>
+                  <TableRow key={t.id} className="border-0 border-t border-[var(--rv-stroke)]">
+                    <TableCell className={td}>
                       {new Date(t.timestamp).toLocaleString()}
-                    </td>
-                    <td className={td}>{t.market}</td>
-                    <td className={td} style={{ color: sideCol(t.side) }}>
+                    </TableCell>
+                    <TableCell className={td}>{t.market}</TableCell>
+                    <TableCell className={td} style={{ color: sideCol(t.side) }}>
                       {t.side}
-                    </td>
-                    <td className={td}>{priceUsd(t.price)}</td>
-                    <td className={td}>{t.size}</td>
-                    <td className={td}>{t.fee.toFixed(2)}</td>
-                    <td
+                    </TableCell>
+                    <TableCell className={td}>{priceUsd(t.price)}</TableCell>
+                    <TableCell className={td}>{t.size}</TableCell>
+                    <TableCell className={td}>{t.fee.toFixed(2)}</TableCell>
+                    <TableCell
                       className={td}
                       style={{
                         color: t.pnl >= 0 ? "var(--rv-up)" : "var(--rv-down)",
                       }}
                     >
                       {t.pnl.toFixed(2)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             </>
           ))}
       </div>
-    </div>
+    </Tabs>
   )
 }
 
