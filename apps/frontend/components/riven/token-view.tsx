@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { SUB_SCORE_LABEL, type SubScoreKey } from "@riven/shared/score"
 import type { Callout, CreatorRecord, TokenDetail } from "@/lib/arc-data"
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/lib/riven-format"
 import { ScoreMeter } from "./score-badge"
 import { ScoreNow } from "./score-now"
+import { Findings } from "./findings"
 import { CalloutsRow } from "./home-sections"
 import { exitQuote, maxSellForImpact, plausiblePoolUsdc } from "@/lib/exit-quote"
 import type { Holo, Mood } from "@/components/mascot/mascot"
@@ -493,42 +494,7 @@ export function TokenView({
 
           <Shield t={t} />
 
-          <section className="rv-card p-4">
-            <h2 className="text-[15px] font-bold text-[var(--rv-ink)]">
-              What Riven found
-            </h2>
-            {t.flags.length === 0 ? (
-              <p className="mt-2 text-sm text-[var(--rv-ink-2)]">
-                Still reading this token&apos;s on-chain data.
-              </p>
-            ) : (
-              <ul className="mt-2.5 flex flex-col gap-1.5">
-                {[...dangers, ...warnings, ...goods].map((f, i) => (
-                  <li
-                    key={`${f.text}-${i}`}
-                    className="flex items-start gap-2.5 text-[13px] leading-snug text-[var(--rv-ink)]"
-                  >
-                    <span
-                      aria-hidden
-                      className="mt-1 size-2 shrink-0 rounded-sm"
-                      style={{
-                        background:
-                          f.level === "danger"
-                            ? "var(--rv-risk)"
-                            : f.level === "warning"
-                              ? "var(--rv-caution)"
-                              : "var(--rv-healthy)",
-                      }}
-                    />
-                    <span className="flex-1">{f.text}</span>
-                    <span className="text-[10px] tracking-wide text-[var(--rv-ink-3)] uppercase">
-                      {SUB_SCORE_LABEL[f.category]}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <Findings flags={[...dangers, ...warnings, ...goods]} />
         </aside>
       </div>
     </div>
@@ -545,6 +511,9 @@ function UnscoredChecklist({
   holderHistory: string | null
   address: string
 }) {
+  const [open, setOpen] = useState(true)
+  const bodyId = useId()
+  const read = [measured.contract, measured.liquidity, measured.holders].filter(Boolean).length
   const holderNote =
     holderHistory === "too_long"
       ? "This token's history is longer than Riven replays on public RPCs, so it stays unscored rather than guessed."
@@ -557,11 +526,36 @@ function UnscoredChecklist({
     ["Who holds the supply", measured.holders, measured.holders ? null : holderNote],
   ]
   return (
-    <div className="mt-3 rounded-lg border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-3">
-      <p className="text-[12px] font-semibold text-[var(--rv-ink)]">
-        Riven publishes a number only after all three are read
-      </p>
-      <ul className="mt-2 grid gap-1.5">
+    <div className="mt-3 rounded-lg border border-[var(--rv-stroke)] bg-[var(--rv-sunken)]">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={bodyId}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 p-3 text-left"
+      >
+        <span className="min-w-0 flex-1 text-[12px] font-semibold text-[var(--rv-ink)]">
+          Riven publishes a number only after all three are read
+        </span>
+        <span className="rv-num shrink-0 text-[11px] text-[var(--rv-ink-3)]">{read} of 3 read</span>
+        <svg
+          viewBox="0 0 16 16"
+          width={14}
+          height={14}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          className={`shrink-0 text-[var(--rv-ink-3)] transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+        >
+          <path d="m4 6 4 4 4-4" />
+        </svg>
+      </button>
+      {/* hidden, not unmounted: the live scoring check inside keeps running while this is closed */}
+      <div id={bodyId} hidden={!open} className="px-3 pb-3">
+      <ul className="grid gap-1.5">
         {rows.map(([label, done, note]) => (
           <li key={label} className="text-[12px] leading-snug text-[var(--rv-ink-2)]">
             <span aria-hidden className="mr-1.5">{done ? "\u2713" : "\u2026"}</span>
@@ -572,6 +566,7 @@ function UnscoredChecklist({
         ))}
       </ul>
       <ScoreNow address={address} />
+      </div>
     </div>
   )
 }
