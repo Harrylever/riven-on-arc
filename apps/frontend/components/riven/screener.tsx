@@ -26,7 +26,21 @@ import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
 import { visibleInterval } from "@/lib/visible-interval"
-import { ArrowIcon } from "@/components/riven/arrow"
+import { cn } from "cn"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Toggle } from "@/components/ui/toggle"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Select as UiSelect,
   SelectContent,
@@ -85,6 +99,27 @@ const MORE_OPTIONS: Array<[string, string]> = [
 ]
 /** Only these rankings use the selected timeframe, so only then is a timeframe column highlighted. */
 const TF_SORTS: SortKey[] = ["trending", "gainers", "losers"]
+
+// The page's controls are shadcn components (Toggle, ToggleGroup, Button, Input, Pagination) restyled to Riven's look.
+// Their base styles are large, squared and uppercase, so each override resets what it needs to.
+/** The segmented pill around Trending and the timeframes. */
+const SEG =
+  "inline-flex w-fit shrink-0 items-center gap-0.5 rounded-lg border border-[color:var(--rv-stroke)] bg-[var(--rv-sunken)] p-0.5"
+const SEG_ITEM =
+  "h-auto min-w-0 gap-1 rounded-md px-2.5 py-[5px] text-[12px] font-semibold tracking-normal normal-case text-[var(--rv-ink-2)] hover:bg-transparent hover:text-[var(--rv-ink)] data-[pressed]:bg-[var(--rv-blue)] data-[pressed]:text-[var(--rv-on-blue)] data-[pressed]:hover:bg-[var(--rv-blue)] data-[pressed]:hover:text-[var(--rv-on-blue)]"
+/** A quiet chip that is "pressed" when it is the active choice. */
+const CHIP_ITEM =
+  "h-[30px] min-w-0 shrink-0 rounded-md border border-[color:var(--rv-stroke)] bg-[var(--rv-card)] px-2.5 text-[12px] font-semibold tracking-normal normal-case text-[var(--rv-ink-2)] hover:bg-[var(--rv-card)] hover:text-[var(--rv-ink)] data-[pressed]:border-[color:var(--rv-stroke-strong)] data-[pressed]:bg-[var(--rv-card-hover)] data-[pressed]:text-[var(--rv-ink)]"
+const CHIP_BTN =
+  "h-[30px] shrink-0 gap-1.5 rounded-md border border-[color:var(--rv-stroke)] bg-[var(--rv-card)] px-2.5 text-[12px] font-semibold tracking-normal normal-case text-[var(--rv-ink-2)] hover:bg-[var(--rv-card)] hover:text-[var(--rv-ink)] aria-pressed:border-[color:var(--rv-stroke-strong)] aria-pressed:bg-[var(--rv-card-hover)] aria-pressed:text-[var(--rv-ink)] aria-expanded:bg-[var(--rv-card-hover)]"
+const PRIMARY_BTN =
+  "h-9 rounded-md bg-[var(--rv-blue)] px-3.5 text-[13px] font-bold tracking-normal normal-case text-[var(--rv-on-blue)] hover:bg-[var(--rv-blue)] hover:brightness-110"
+const GHOST_BTN =
+  "h-9 rounded-md border border-[color:var(--rv-stroke-strong)] bg-transparent px-3.5 text-[13px] font-semibold tracking-normal normal-case text-[var(--rv-ink)] hover:bg-white/[0.04] hover:text-[var(--rv-ink)]"
+const PAGE_ITEM =
+  "rv-num h-[30px] min-w-8 rounded-md border border-[color:var(--rv-stroke)] bg-[var(--rv-card)] px-2 text-[12px] font-semibold tracking-normal normal-case text-[var(--rv-ink-2)] hover:bg-[var(--rv-card-hover)] hover:text-[var(--rv-ink)] aria-[current=page]:border-[color:var(--rv-blue)] aria-[current=page]:bg-[var(--rv-blue)] aria-[current=page]:text-[var(--rv-on-blue)] aria-disabled:pointer-events-none aria-disabled:opacity-30"
+const FIELD =
+  "h-9 rounded-[10px] border border-[color:var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 font-mono text-[13px] text-[var(--rv-ink)] focus-visible:border-[color:var(--rv-blue)] focus-visible:ring-0"
 
 const TF_KEY = { "5m": "m5", "1h": "h1", "6h": "h6", "24h": "h24" } as const
 const pick = (t: TokenSummary, tf: Timeframe) => ({
@@ -196,16 +231,11 @@ export function Screener({
 
       {/* Rank by: Trending with its timeframe, then the common rankings; the rest are under More */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center">
-        <div
-          className="rv-seg w-fit shrink-0"
-          role="group"
-          aria-label="Trending timeframe"
-        >
-          <button
-            type="button"
-            aria-pressed={filters.sort === "trending"}
+        <div className={SEG} role="group" aria-label="Trending timeframe">
+          <Toggle
+            pressed={filters.sort === "trending"}
             onClick={() => go({ sort: "trending" })}
-            className="flex items-center gap-1"
+            className={SEG_ITEM}
           >
             <svg
               viewBox="0 0 24 24"
@@ -217,25 +247,31 @@ export function Screener({
               <path d="M13.5 2s.9 3.2-1.6 6.1C9.6 10.8 8 12.4 8 15a4 4 0 0 0 8 0c0-1.3-.5-2.4-1.2-3.4 2.8 1 4.2 3.6 4.2 6.1A7 7 0 0 1 5 17.6c0-4.8 3.4-7.4 5.4-9.6C12.6 5.6 13.5 2 13.5 2z" />
             </svg>
             Trending
-          </button>
-          {TIMEFRAMES.map((tf) => (
-            <button
-              key={tf}
-              type="button"
-              aria-pressed={filters.tf === tf}
-              onClick={() =>
-                go({
-                  tf,
-                  ...(filters.sort === "gainers" || filters.sort === "losers"
-                    ? {}
-                    : { sort: "trending" as const }),
-                })
-              }
-              className="uppercase"
-            >
-              {tf}
-            </button>
-          ))}
+          </Toggle>
+          <ToggleGroup
+            value={[filters.tf]}
+            spacing={1}
+            className="gap-0.5"
+            aria-label="Timeframe"
+          >
+            {TIMEFRAMES.map((tf) => (
+              <ToggleGroupItem
+                key={tf}
+                value={tf}
+                onClick={() =>
+                  go({
+                    tf,
+                    ...(filters.sort === "gainers" || filters.sort === "losers"
+                      ? {}
+                      : { sort: "trending" as const }),
+                  })
+                }
+                className={cn(SEG_ITEM, "uppercase")}
+              >
+                {tf}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         </div>
         <span
           className="hidden h-5 w-px shrink-0 bg-[var(--rv-stroke)] md:block"
@@ -243,17 +279,23 @@ export function Screener({
         />
         {/* the right edge fades on a phone: this row scrolls sideways */}
         <div className="scrollbar-hidden -mx-4 flex min-w-0 items-center gap-1.5 overflow-x-auto px-4 max-md:[mask-image:linear-gradient(to_right,#000_90%,transparent)] md:mx-0 md:px-0">
-          {RANKS.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              aria-pressed={s.id === filters.sort}
-              onClick={() => go({ sort: s.id })}
-              className="rv-chip shrink-0"
-            >
-              {s.label}
-            </button>
-          ))}
+          <ToggleGroup
+            value={PRIMARY_RANKS.includes(filters.sort) ? [filters.sort] : []}
+            spacing={1}
+            className="shrink-0 gap-1.5"
+            aria-label="Rank by"
+          >
+            {RANKS.map((s) => (
+              <ToggleGroupItem
+                key={s.id}
+                value={s.id}
+                onClick={() => go({ sort: s.id })}
+                className={CHIP_ITEM}
+              >
+                {s.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
           <Select
             label="More rankings"
             hideFirst
@@ -329,12 +371,13 @@ export function Screener({
             options={AGES}
           />
         </div>
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => setPanel((p) => !p)}
           aria-expanded={panel}
           aria-pressed={activeCount + dropdownActive > 0}
-          className="rv-chip shrink-0"
+          className={CHIP_BTN}
         >
           <svg
             viewBox="0 0 24 24"
@@ -354,7 +397,7 @@ export function Screener({
           {activeCount + dropdownActive > 0 && (
             <span className="md:hidden"> · {activeCount + dropdownActive}</span>
           )}
-        </button>
+        </Button>
         <span
           className="ml-auto flex shrink-0 items-center gap-1.5 pl-2 text-[12px] text-[var(--rv-ink-2)]"
           aria-live="polite"
@@ -386,13 +429,13 @@ export function Screener({
           <p className="mt-1 text-[13px] text-[var(--rv-ink-2)]">
             Loosen a filter to see more.
           </p>
-          <button
+          <Button
             type="button"
             onClick={() => go({ ...DEFAULT_FILTERS })}
-            className="rv-btn mt-4"
+            className={cn(PRIMARY_BTN, "mt-4")}
           >
             Reset filters
-          </button>
+          </Button>
         </div>
       ) : (
         <>
@@ -410,7 +453,12 @@ export function Screener({
             tf={filters.tf}
             showWhy={showWhy}
           />
-          <Pagination page={page} pages={pages} onPage={goPage} />
+          <PageNav
+            page={page}
+            pages={pages}
+            hrefFor={(p) => `${path}${filtersToQuery({ ...filters, page: p })}`}
+            onPage={goPage}
+          />
         </>
       )}
 
@@ -418,13 +466,14 @@ export function Screener({
         Every Arc token with a pool is listed. A red edge means Riven flagged it
         from on-chain evidence — fake volume, serial launchers, creators who
         sold out, pulled liquidity, impersonation.{" "}
-        <button
+        <Button
           type="button"
+          variant="link"
           onClick={() => go({ view: "caught" })}
-          className="font-semibold text-[var(--rv-risk)] hover:underline"
+          className="inline h-auto p-0 text-left text-[12px] font-semibold tracking-normal whitespace-normal text-[var(--rv-risk)] normal-case hover:underline"
         >
           See only flagged, with the evidence
-        </button>
+        </Button>
         {" · "}
         <a
           href={DISPUTE_URL}
@@ -529,9 +578,9 @@ function FilterPanel({
     label: string,
     hint: string,
   ) => (
-    <label className="flex flex-col gap-1">
-      <span className="rv-label">{label}</span>
-      <input
+    <Label className="flex-col items-stretch gap-1 text-[10.5px] tracking-wide text-[var(--rv-ink-3)]">
+      {label}
+      <Input
         inputMode="decimal"
         value={draft[key] || ""}
         placeholder={hint}
@@ -541,9 +590,9 @@ function FilterPanel({
             [key]: Math.max(0, Number(e.target.value) || 0),
           })
         }
-        className="rv-input h-9 px-3 text-[13px]"
+        className={FIELD}
       />
-    </label>
+    </Label>
   )
   return (
     <form
@@ -586,8 +635,9 @@ function FilterPanel({
       {field("minVol", "Min 24h volume $", "0")}
       {field("minScore", "Min score /10", "0")}
       <div className="col-span-2 flex justify-end gap-2 sm:col-span-5">
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() =>
             onApply({
               minLiq: 0,
@@ -597,25 +647,28 @@ function FilterPanel({
               minScore: 0,
             })
           }
-          className="rv-btn-ghost"
+          className={GHOST_BTN}
         >
           Clear
-        </button>
-        <button type="submit" className="rv-btn">
+        </Button>
+        <Button type="submit" className={PRIMARY_BTN}>
           Apply
-        </button>
+        </Button>
       </div>
     </form>
   )
 }
 
-function Pagination({
+/** Page numbers as real links (so they can be opened in a new tab); a plain click changes page without a full reload. */
+function PageNav({
   page,
   pages,
+  hrefFor,
   onPage,
 }: {
   page: number
   pages: number
+  hrefFor: (p: number) => string
   onPage: (p: number) => void
 }) {
   if (pages <= 1) return null
@@ -624,47 +677,55 @@ function Pagination({
   ]
     .filter((n) => n >= 1 && n <= pages)
     .sort((a, b) => a - b)
+  const go = (n: number) => (e: React.MouseEvent) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return // let "open in a new tab" work
+    e.preventDefault()
+    onPage(n)
+  }
   return (
-    <nav
-      className="flex flex-wrap items-center justify-center gap-1.5 py-1"
-      aria-label="Pages"
-    >
-      <button
-        type="button"
-        disabled={page <= 1}
-        onClick={() => onPage(page - 1)}
-        className="rv-chip items-center gap-1 disabled:opacity-30"
-      >
-        <ArrowIcon dir="left" />
-        Prev
-      </button>
-      <div className="rv-seg">
+    <Pagination aria-label="Pages" className="py-1">
+      <PaginationContent className="flex-wrap justify-center gap-1.5">
+        <PaginationItem>
+          <PaginationPrevious
+            text="Prev"
+            href={hrefFor(Math.max(1, page - 1))}
+            role="link"
+            aria-disabled={page <= 1}
+            tabIndex={page <= 1 ? -1 : undefined}
+            onClick={page > 1 ? go(page - 1) : (e) => e.preventDefault()}
+            className={PAGE_ITEM}
+          />
+        </PaginationItem>
         {nums.map((n, i) => (
-          <span key={n} className="contents">
+          <PaginationItem key={n} className="contents">
             {i > 0 && n - nums[i - 1]! > 1 && (
-              <span className="px-1 text-[12px] text-[var(--rv-ink-3)]">…</span>
+              <PaginationEllipsis className="size-auto px-1 text-[12px] text-[var(--rv-ink-3)]" />
             )}
-            <button
-              type="button"
-              onClick={() => onPage(n)}
-              aria-current={n === page ? "page" : undefined}
-              className="rv-num min-w-8"
+            <PaginationLink
+              href={hrefFor(n)}
+              role="link"
+              isActive={n === page}
+              size="default"
+              onClick={go(n)}
+              className={PAGE_ITEM}
             >
               {n}
-            </button>
-          </span>
+            </PaginationLink>
+          </PaginationItem>
         ))}
-      </div>
-      <button
-        type="button"
-        disabled={page >= pages}
-        onClick={() => onPage(page + 1)}
-        className="rv-chip items-center gap-1 disabled:opacity-30"
-      >
-        Next
-        <ArrowIcon />
-      </button>
-    </nav>
+        <PaginationItem>
+          <PaginationNext
+            text="Next"
+            href={hrefFor(Math.min(pages, page + 1))}
+            role="link"
+            aria-disabled={page >= pages}
+            tabIndex={page >= pages ? -1 : undefined}
+            onClick={page < pages ? go(page + 1) : (e) => e.preventDefault()}
+            className={PAGE_ITEM}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
   )
 }
 
