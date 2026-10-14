@@ -7,7 +7,7 @@ import { visibleInterval } from "@/lib/visible-interval"
 
 /** Stop polling after this long. A very long history can take longer; the page says so and offers a re-check. */
 const GIVE_UP_MS = 4 * 60_000
-const POLL_MS = 3_000
+const POLL_MS = 5_000
 
 /**
  * "Score this token now." Opening an unscored token queues it (the backend scores asked-for tokens every 20 seconds),

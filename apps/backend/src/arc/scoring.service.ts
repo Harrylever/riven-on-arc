@@ -238,6 +238,22 @@ export class ArcScoringService {
       });
   }
 
+  /**
+   * Is any token waiting for a score a visitor asked for (asked recently, not scored since, on a pool we can read)?
+   * The 20-second loop checks this first: on nearly every tick the answer is no, and one indexed lookup is all that tick costs.
+   */
+  async hasPendingRequests(): Promise<boolean> {
+    const since = new Date(Date.now() - SCORE_SCHEDULE.requestWindowMs);
+    const rows = await getDb().$queryRaw<Array<{ one: number }>>`
+      SELECT 1 AS one FROM tokens t
+      LEFT JOIN token_score_latest l ON l.token_id = t.id
+      WHERE t.rescore_requested_at >= ${since}
+        AND (l.scored_at IS NULL OR l.scored_at < t.rescore_requested_at)
+        AND EXISTS (SELECT 1 FROM pools p WHERE p.token_id = t.id AND p.venue <> 'OTHER')
+      LIMIT 1`;
+    return rows.length > 0;
+  }
+
   /** One pass at a time: the 5-minute pass and the 20-second "requested tokens" pass must not score the same token twice. */
   private lock: Promise<unknown> = Promise.resolve();
 

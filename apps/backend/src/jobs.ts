@@ -35,12 +35,13 @@ export function startJobs(s: Services): Cron[] {
     // Scores on their own loop so they stay live while slower indexing catches up.
     ["arcScoring.scoreOnce", EVERY_5_MINUTES, () => s.arcScoring.scoreOnce()],
     // Tokens a visitor asked to have scored (opening an unscored token): read their holder history, then score them,
-    // every 20 seconds, so the page gets its score in seconds instead of at the next 5-minute pass. Does nothing
-    // (two cheap queries) when nobody has asked.
+    // every 20 seconds, so the page gets its score in seconds instead of at the next 5-minute pass. When nobody has
+    // asked (nearly every tick) it is a single indexed lookup.
     [
       "arcRequests.tick",
       EVERY_20_SECONDS,
       async () => {
+        if (!(await s.arcScoring.hasPendingRequests())) return;
         await s.arcBackfill.backfillOnce({ onlyRequested: true });
         await s.arcScoring.scoreOnce({ onlyRequested: true });
       },

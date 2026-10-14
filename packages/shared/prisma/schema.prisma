@@ -75,6 +75,8 @@ model Token {
   @@index([launchTime])
   @@index([deployerWallet])
   @@index([holderHistory])
+  /// The 20-second "tokens a visitor asked for" loop looks this column up on every tick.
+  @@index([rescoreRequestedAt])
   @@map("tokens")
 }
 
