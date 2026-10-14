@@ -23,8 +23,8 @@ const VALUE: Record<SortKey, (t: TokenSummary) => number | null> = {
 function ScoreCell({ t }: { t: TokenSummary }) {
   if (t.score === null)
     return (
-      <span className="text-[11.5px] text-[var(--rv-ink-3)]" title="Riven hasn't read this token's holders yet. It never guesses a score.">
-        Unscored
+      <span className="inline-block max-w-[64px] text-right text-[11px] leading-tight text-[var(--rv-ink-3)]" title="Not scored yet. Open the token and Riven scores it right there. It never guesses a score.">
+        Open to score
       </span>
     )
   return <ScoreBadge score={t.score} band={t.band} size="sm" />

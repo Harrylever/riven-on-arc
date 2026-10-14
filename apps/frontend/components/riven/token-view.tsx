@@ -17,6 +17,7 @@ import {
   usd,
 } from "@/lib/riven-format"
 import { ScoreMeter } from "./score-badge"
+import { ScoreNow } from "./score-now"
 import { CalloutsRow } from "./home-sections"
 import { exitQuote, maxSellForImpact, plausiblePoolUsdc } from "@/lib/exit-quote"
 import type { Holo, Mood } from "@/components/mascot/mascot"
@@ -134,12 +135,6 @@ export function TokenView({
   })
   // Keep the page live: numbers refresh about once a minute while it is visible, and once more after a scan settles.
   useEffect(() => visibleInterval(() => router.refresh(), 60_000), [router])
-  // Opening an unscored token asks Riven to score it (the server queues it for the next pass and for the holder
-  // backfill, and ignores repeats), so nothing waits for a background cap to reach it. Once per visit.
-  useEffect(() => {
-    if (t.score !== null) return
-    fetch(`/api/arc/tokens/${t.address}/rescore?auto=1`, { method: "POST" }).catch(() => {})
-  }, [t.address, t.score])
   useEffect(() => {
     if (!flash) return
     const id = window.setTimeout(() => router.refresh(), 45_000)
@@ -474,7 +469,7 @@ export function TokenView({
                 <UnscoredChecklist
                   measured={t.measured}
                   holderHistory={t.holderHistory}
-                  onScan={requestScan}
+                  address={t.address}
                 />
               )}
               {t.subScores && (
@@ -544,13 +539,12 @@ export function TokenView({
 function UnscoredChecklist({
   measured,
   holderHistory,
-  onScan,
+  address,
 }: {
   measured: { contract: boolean; liquidity: boolean; holders: boolean }
   holderHistory: string | null
-  onScan: () => Promise<unknown> | void
+  address: string
 }) {
-  const [busy, setBusy] = useState(false)
   const holderNote =
     holderHistory === "too_long"
       ? "This token's history is longer than Riven replays on public RPCs, so it stays unscored rather than guessed."
@@ -567,9 +561,6 @@ function UnscoredChecklist({
       <p className="text-[12px] font-semibold text-[var(--rv-ink)]">
         Riven publishes a number only after all three are read
       </p>
-      <p className="mt-1 text-[11.5px] text-[var(--rv-ink-3)]">
-        Opening this token asked Riven to read it. This page refreshes by itself when the score is ready.
-      </p>
       <ul className="mt-2 grid gap-1.5">
         {rows.map(([label, done, note]) => (
           <li key={label} className="text-[12px] leading-snug text-[var(--rv-ink-2)]">
@@ -580,21 +571,7 @@ function UnscoredChecklist({
           </li>
         ))}
       </ul>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true)
-          try {
-            await onScan()
-          } finally {
-            setBusy(false)
-          }
-        }}
-        className="rv-btn-ghost mt-3 h-8 px-3 text-[12px]"
-      >
-        {busy ? "Asking Riven\u2026" : "Check again now"}
-      </button>
+      <ScoreNow address={address} />
     </div>
   )
 }

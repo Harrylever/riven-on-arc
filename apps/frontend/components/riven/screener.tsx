@@ -434,8 +434,8 @@ function Boosts({ n }: { n: number }) {
 function Score({ t }: { t: TokenSummary }) {
   if (t.score === null)
     return (
-      <span className="text-[11.5px] whitespace-nowrap text-[var(--rv-ink-3)]" title="Not scored yet. Open the token and Riven will score it.">
-        Unscored
+      <span className="max-w-[58px] text-right text-[11px] leading-tight text-[var(--rv-ink-3)]" title="Not scored yet. Open the token and Riven scores it right there.">
+        Open to score
       </span>
     )
   return <ScoreBadge score={t.score} band={t.band} size="sm" />
