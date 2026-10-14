@@ -38,6 +38,7 @@ export function createServices() {
   const arcIndexer = new FactoryLogIndexerService();
   const arcActivity = new ArcActivityIndexerService();
   const arcScoring = new ArcScoringService();
+  const arcBackfill = new HolderBackfillService();
 
   const callouts = new CalloutsService();
   return {
@@ -59,12 +60,13 @@ export function createServices() {
     arcIndexer,
     arcActivity,
     arcScoring,
+    arcBackfill,
     arcPipeline: new ArcPipelineService(
       arcIndexer,
       new PoolIndexerService(),
       arcActivity,
       new MarketSyncService(),
-      new HolderBackfillService(),
+      arcBackfill,
       arcScoring,
       callouts,
     ),

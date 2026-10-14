@@ -32,6 +32,15 @@ import { SCORE_SCHEDULE, isDue } from "./score-schedule";
 
 const ACTIVITY_CURSOR = "arc:activity";
 // How often each token is scored, and how many per pass, lives in score-schedule.ts.
+
+/**
+ * A pool Riven can read liquidity state from (Uniswap v4 and launchpad curves). Tokens that trade only on other
+ * pool types ("OTHER") can never have their liquidity measured, so they can never be scored: they would come back
+ * unscored on every pass, take a scoring slot each time, and (having no score run) always look due.
+ */
+const SCORABLE_POOL = { venue: { not: "OTHER" as const } };
+/** A token a visitor asked for is tried at most this often by the 20-second loop. */
+const REQUEST_RETRY_MS = 60_000;
 /** A launch receipt the RPC could not find is not asked for again for this long (it was retried for ~300 tokens every tick). */
 const RECEIPT_RETRY_MS = 30 * 60 * 1000;
 /** Bought within ~5s of launch (10 blocks × ~510ms) = sniper. */
@@ -229,7 +238,26 @@ export class ArcScoringService {
       });
   }
 
-  async scoreOnce() {
+  /** One pass at a time: the 5-minute pass and the 20-second "requested tokens" pass must not score the same token twice. */
+  private lock: Promise<unknown> = Promise.resolve();
+
+  /**
+   * `onlyRequested` scores just the tokens a visitor asked for (opening an unscored token on the site), which is
+   * what the 20-second loop runs so a score appears in seconds, not at the next 5-minute pass.
+   */
+  scoreOnce(opts: { onlyRequested?: boolean } = {}) {
+    const run = this.lock.then(
+      () => this.scorePass(opts),
+      () => this.scorePass(opts),
+    );
+    this.lock = run.catch(() => undefined);
+    return run;
+  }
+
+  /** When the 20-second loop last tried each requested token, so one that fails is not retried every pass. */
+  private readonly requestTried = new Map<string, number>();
+
+  private async scorePass({ onlyRequested = false }: { onlyRequested?: boolean } = {}) {
     const db = getDb();
     const now = Date.now();
     const cfg = SCORE_SCHEDULE;
@@ -245,23 +273,27 @@ export class ArcScoringService {
     const [requestedRows, freshRows, liquidRows] = await Promise.all([
       // "Score this token" requests from the site come first (the token page asks when it opens an unscored token).
       db.token.findMany({
-        where: { pools: { some: {} }, rescoreRequestedAt: { gte: new Date(now - cfg.requestWindowMs) } },
+        where: { pools: { some: SCORABLE_POOL }, rescoreRequestedAt: { gte: new Date(now - cfg.requestWindowMs) } },
         orderBy: { rescoreRequestedAt: "desc" },
         take: 50,
         include,
       }),
-      db.token.findMany({
-        where: { pools: { some: {} } },
-        orderBy: { launchTime: "desc" },
-        take: 400,
-        include,
-      }),
-      db.token.findMany({
-        where: { pools: { some: {} }, arcMarket: { liquidityUsd: { gte: 500 } } },
-        orderBy: { arcMarket: { liquidityUsd: "desc" } },
-        take: 200,
-        include,
-      }),
+      onlyRequested
+        ? Promise.resolve([])
+        : db.token.findMany({
+            where: { pools: { some: SCORABLE_POOL } },
+            orderBy: { launchTime: "desc" },
+            take: 400,
+            include,
+          }),
+      onlyRequested
+        ? Promise.resolve([])
+        : db.token.findMany({
+            where: { pools: { some: SCORABLE_POOL }, arcMarket: { liquidityUsd: { gte: 500 } } },
+            orderBy: { arcMarket: { liquidityUsd: "desc" } },
+            take: 200,
+            include,
+          }),
     ]);
     // Only tokens whose holder history is complete up to the activity cursor
     // can get a score; the rest would come back "unscored" and burn the slots
@@ -269,10 +301,10 @@ export class ArcScoringService {
     // leaving out the ones the schedule would not score yet (recently scored, or old and dead),
     // or they would fill the 200 slots every pass and push out tokens that are due.
     const activityCursor = await db.arcIndexerCursor.findUnique({ where: { source: ACTIVITY_CURSOR } });
-    const readyRows = activityCursor
+    const readyRows = activityCursor && !onlyRequested
       ? await db.token.findMany({
           where: {
-            pools: { some: {} },
+            pools: { some: SCORABLE_POOL },
             launchBlock: { lte: activityCursor.lastBlock },
             AND: [
               { OR: [{ holderHistory: null }, { holderHistory: "complete" }] },
@@ -309,6 +341,7 @@ export class ArcScoringService {
       ...new Map([...requestedRows, ...liquidRows, ...readyRows, ...freshRows].map((t) => [t.id, t])).values(),
     ];
     const ready = (t: (typeof candidates)[number]) =>
+      t.pools[0]?.venue !== "OTHER" &&
       (t.holderHistory === null || t.holderHistory === "complete") &&
       activityCursor !== null &&
       t.launchBlock !== null &&
@@ -329,7 +362,10 @@ export class ArcScoringService {
           ARC_METHODOLOGY,
         ),
       )
+      .filter((t) => !onlyRequested || (this.requestTried.get(t.id) ?? 0) + REQUEST_RETRY_MS <= now)
       .slice(0, cfg.maxPerRun);
+    if (onlyRequested) for (const t of dueBase) this.requestTried.set(t.id, now);
+    if (this.requestTried.size > 2000) for (const [id, at] of this.requestTried) if (at + REQUEST_RETRY_MS < now) this.requestTried.delete(id);
     // The previous run's JSON, for the alert comparison, only for what is being scored now.
     const prevRuns = dueBase.length
       ? await db.$queryRaw<Array<{ token_id: string; signals: unknown; band: string | null; methodology: string | null }>>`

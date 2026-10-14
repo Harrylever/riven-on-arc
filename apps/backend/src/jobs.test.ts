@@ -6,7 +6,7 @@ test("solana mode registers legacy cron jobs on the expected cadences", () => {
   process.env.CHAIN_MODE = "solana";
   const jobs = startJobs(createServices());
   try {
-    expect(jobs).toHaveLength(13);
+    expect(jobs).toHaveLength(14);
     const byName = Object.fromEntries(
       jobs.map((j) => [j.name, j.getPattern()]),
     );
@@ -14,6 +14,8 @@ test("solana mode registers legacy cron jobs on the expected cadences", () => {
     expect(byName["arcPipeline.runOnce"]).toBe("0 */5 * * * *");
     expect(byName["arcScoring.scoreOnce"]).toBe("0 */5 * * * *");
     expect(byName["telegram.tick"]).toBe("*/20 * * * * *");
+    // tokens a visitor asked to have scored: every 20 seconds, so the page gets its score in seconds
+    expect(byName["arcRequests.tick"]).toBe("*/20 * * * * *");
     expect(byName["snapshot.computeSnapshots"]).toBe("0 * * * * *");
     expect(byName["retention.pruneOldRows"]).toBe("0 0 3 * * *");
     expect(byName["kol.pollRecentTrades"]).toBe("0 */30 * * * *");
@@ -29,7 +31,7 @@ test("with CHAIN_MODE unset, only Arc indexing runs (no stray Solana jobs)", () 
   const jobs = startJobs(createServices());
   try {
     // retention is not Solana polling: score_runs would grow without limit on Arc without it
-    expect(jobs.map((j) => j.name)).toEqual(["arcPipeline.runOnce", "telegram.tick", "arcScoring.scoreOnce", "retention.pruneOldRows"]);
+    expect(jobs.map((j) => j.name)).toEqual(["arcPipeline.runOnce", "telegram.tick", "arcScoring.scoreOnce", "arcRequests.tick", "retention.pruneOldRows"]);
   } finally {
     jobs.forEach((j) => j.stop());
   }
@@ -40,7 +42,7 @@ test("Arc mode schedules only Arc indexing and avoids legacy Solana polling", ()
   const jobs = startJobs(createServices());
   try {
     // retention is not Solana polling: score_runs would grow without limit on Arc without it
-    expect(jobs.map((j) => j.name)).toEqual(["arcPipeline.runOnce", "telegram.tick", "arcScoring.scoreOnce", "retention.pruneOldRows"]);
+    expect(jobs.map((j) => j.name)).toEqual(["arcPipeline.runOnce", "telegram.tick", "arcScoring.scoreOnce", "arcRequests.tick", "retention.pruneOldRows"]);
   } finally {
     jobs.forEach((j) => j.stop());
     delete process.env.CHAIN_MODE;

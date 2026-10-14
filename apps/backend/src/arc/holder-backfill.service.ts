@@ -50,7 +50,19 @@ export class HolderBackfillService {
       });
   }
 
-  async backfillOnce() {
+  private lock: Promise<unknown> = Promise.resolve();
+
+  /** `onlyRequested`: just the tokens a visitor asked for (the 20-second loop); otherwise the normal busiest-first pass. */
+  backfillOnce(opts: { onlyRequested?: boolean } = {}) {
+    const run = this.lock.then(
+      () => this.backfillPass(opts),
+      () => this.backfillPass(opts),
+    );
+    this.lock = run.catch(() => undefined);
+    return run;
+  }
+
+  private async backfillPass({ onlyRequested = false }: { onlyRequested?: boolean } = {}) {
     const db = getDb();
     const cursor = await db.arcIndexerCursor.findUnique({ where: { source: ACTIVITY_CURSOR } });
     if (!cursor) return { skipped: "activity indexer has not started" };
@@ -61,7 +73,8 @@ export class HolderBackfillService {
     const requested = await db.token.findMany({
       where: {
         holderHistory: "partial",
-        pools: { some: {} },
+        // only pools the scorer can read: replaying the history of a token that can never be scored is wasted work
+        pools: { some: { venue: { not: "OTHER" } } },
         rescoreRequestedAt: { gte: new Date(Date.now() - SCORE_SCHEDULE.requestWindowMs) },
         OR: [{ launchBlock: null }, { launchBlock: { lte: cursor.lastBlock } }],
       },
@@ -69,9 +82,10 @@ export class HolderBackfillService {
       include: { pools: true },
       take: REQUESTED_PER_RUN,
     });
-    const popular = await db.token.findMany({
+    const popular = onlyRequested ? [] : await db.token.findMany({
       where: {
         holderHistory: "partial",
+        pools: { some: { venue: { not: "OTHER" } } },
         arcMarket: { liquidityUsd: { gte: MIN_LIQUIDITY_USD } },
         OR: [{ launchBlock: null }, { launchBlock: { lte: cursor.lastBlock } }],
       },

@@ -34,6 +34,17 @@ export function startJobs(s: Services): Cron[] {
     ["telegram.tick", EVERY_20_SECONDS, () => s.telegram.tick()],
     // Scores on their own loop so they stay live while slower indexing catches up.
     ["arcScoring.scoreOnce", EVERY_5_MINUTES, () => s.arcScoring.scoreOnce()],
+    // Tokens a visitor asked to have scored (opening an unscored token): read their holder history, then score them,
+    // every 20 seconds, so the page gets its score in seconds instead of at the next 5-minute pass. Does nothing
+    // (two cheap queries) when nobody has asked.
+    [
+      "arcRequests.tick",
+      EVERY_20_SECONDS,
+      async () => {
+        await s.arcBackfill.backfillOnce({ onlyRequested: true });
+        await s.arcScoring.scoreOnce({ onlyRequested: true });
+      },
+    ],
     // Prunes score history (and the legacy tables, empty on Arc). It was only in the Solana list, so on Arc it never
     // ran and score_runs grew without limit.
     ["retention.pruneOldRows", EVERY_DAY_AT_3AM, () => s.retention.pruneOldRows()],
