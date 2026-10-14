@@ -16,7 +16,10 @@ import { compact, shortAddr, usd } from "@/lib/riven-format"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { TradeSheet, type TradeToken } from "./trade-sheet"
+import { RvSelect } from "./rv-select"
 import { visibleInterval } from "@/lib/visible-interval"
+import { Input } from "@/components/ui/input"
+import { RV_INPUT } from "@/components/riven/card-style"
 
 interface WalletData {
   address: string
@@ -345,34 +348,32 @@ function Withdraw({
 
   return (
     <div className="mt-3 grid gap-2 rounded-lg border border-[var(--rv-stroke)] p-3 text-[13px]">
-      <select
+      <RvSelect
+        label="Asset"
         value={asset}
-        onChange={(e) => setAsset(e.target.value)}
-        className="rv-input h-10 px-2 text-[13px]"
-        aria-label="Asset"
-      >
-        <option value="USDC">USDC ({data.usdc.toFixed(2)})</option>
-        {data.holdings.map((h) => (
-          <option key={h.token.address} value={h.token.address}>
-            {h.token.symbol} ({compact(h.amount)})
-          </option>
-        ))}
-      </select>
-      <input
+        onChange={setAsset}
+        highlightActive={false}
+        className="h-10 w-full justify-between rounded-lg border-[color:var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 text-[13px] font-medium text-[var(--rv-ink)]"
+        options={[
+          ["USDC", `USDC (${data.usdc.toFixed(2)})`],
+          ...data.holdings.map((h) => [h.token.address, `${h.token.symbol} (${compact(h.amount)})`] as [string, string]),
+        ]}
+      />
+      <Input
         value={to}
         onChange={(e) => setTo(e.target.value.trim())}
         placeholder="Send to 0x…"
         aria-label="Recipient"
-        className="rv-input h-10 px-3 text-[13px]"
+        className={`${RV_INPUT} h-10 px-3 text-[13px]`}
       />
       <div className="flex gap-2">
-        <input
+        <Input
           inputMode="decimal"
           value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
           placeholder="Amount"
           aria-label="Amount"
-          className="rv-input h-10 min-w-0 flex-1 px-3 text-[13px]"
+          className={`${RV_INPUT} h-10 min-w-0 flex-1 px-3 text-[13px]`}
         />
         <button
           type="button"
@@ -429,12 +430,12 @@ function Convert({ onPick }: { onPick: (t: TradeToken) => void }) {
         Convert USDC into another Arc token — search a ticker or paste its
         contract.
       </p>
-      <input
+      <Input
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="EURC, ticker or 0x…"
         aria-label="Token to convert to"
-        className="rv-input h-10 px-3 text-[13px]"
+        className={`${RV_INPUT} h-10 px-3 text-[13px]`}
       />
       {results && results.length === 0 && (
         <p className="text-[12px] text-[var(--rv-ink-3)]">

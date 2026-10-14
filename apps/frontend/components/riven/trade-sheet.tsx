@@ -7,6 +7,10 @@ import { BAND_META, compact } from "@/lib/riven-format"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { DIALOG, DIALOG_TITLE } from "./card-style"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { RV_CHECK } from "@/components/riven/card-style"
+import { RV_INPUT } from "@/components/riven/card-style"
 
 type Wallet = ReturnType<typeof useArcWallet>
 
@@ -186,13 +190,13 @@ export function TradeSheet({
           <span className="text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
             You pay ({unit})
           </span>
-          <input
+          <Input
             inputMode="decimal"
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
             placeholder="0.00"
             disabled={running}
-            className="rv-input h-12 px-3 text-[18px]"
+            className={`${RV_INPUT} h-12 px-3 text-[18px]`}
           />
         </label>
 
@@ -267,11 +271,10 @@ export function TradeSheet({
 
         {needsWarnAck && (
           <label className="flex gap-2.5 rounded-lg border border-[rgba(251,191,36,0.4)] bg-[rgba(251,191,36,0.06)] p-3 text-[12px] leading-snug">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={warnAck}
-              onChange={(e) => setWarnAck(e.target.checked)}
-              className="mt-0.5 accent-[var(--rv-caution)]"
+              onCheckedChange={(v) => setWarnAck(v === true)}
+              className={`${RV_CHECK} mt-0.5 data-checked:border-[color:var(--rv-caution)] data-checked:bg-[var(--rv-caution)] data-checked:text-black`}
             />
             <span>
               {quote!.warnings!.map((w) => (
@@ -284,11 +287,10 @@ export function TradeSheet({
 
         {side === "buy" && risky && (
           <label className="flex gap-2.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.06)] p-3 text-[12px] leading-snug">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={riskAck}
-              onChange={(e) => setRiskAck(e.target.checked)}
-              className="mt-0.5 accent-[var(--rv-risk)]"
+              onCheckedChange={(v) => setRiskAck(v === true)}
+              className={`${RV_CHECK} mt-0.5 data-checked:border-[color:var(--rv-risk)] data-checked:bg-[var(--rv-risk)] data-checked:text-black`}
             />
             <span>
               <b style={{ color: m.color }}>Anti-rug warning.</b>{" "}

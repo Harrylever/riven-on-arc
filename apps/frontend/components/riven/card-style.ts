@@ -15,3 +15,15 @@ export const DIALOG =
   "block max-w-none gap-0 rounded-[var(--rv-radius)] border-0 bg-[var(--rv-card)] p-0 text-[var(--rv-ink)] shadow-none ring-1 ring-[var(--rv-stroke-strong)] sm:max-w-none"
 /** A dialog title that is just a heading (the shadcn one is small caps). */
 export const DIALOG_TITLE = "font-sans text-[20px] leading-tight font-extrabold tracking-normal normal-case"
+
+/** The shadcn Input in Riven's field look (sunken, stroked, mono). Add sizes after it: `${RV_INPUT} h-11 px-3`. */
+export const RV_INPUT =
+  "rounded-[10px] border border-[color:var(--rv-stroke)] bg-[var(--rv-sunken)] font-mono text-[var(--rv-ink)] placeholder:text-[var(--rv-ink-3)] focus-visible:border-[color:var(--rv-blue)] focus-visible:ring-0"
+
+/** The shadcn Slider in `rv-blue` (the default colour is the theme's primary). */
+export const RV_SLIDER =
+  "py-2 [&_[data-slot=slider-range]]:bg-[var(--rv-blue)] [&_[data-slot=slider-thumb]]:bg-[var(--rv-blue)] [&_[data-slot=slider-track]]:bg-white/15"
+
+/** The shadcn Checkbox in Riven's look; `rv-blue` when checked. */
+export const RV_CHECK =
+  "size-4 rounded-[4px] border-[color:var(--rv-stroke-strong)] data-checked:border-[color:var(--rv-blue)] data-checked:bg-[var(--rv-blue)] data-checked:text-[var(--rv-on-blue)]"

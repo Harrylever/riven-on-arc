@@ -42,6 +42,8 @@ import { useArcWallet } from "@/hooks/use-arc-wallet"
 import { TRADING_ENABLED } from "@/lib/flags"
 import { visibleInterval } from "@/lib/visible-interval"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { Input } from "@/components/ui/input"
+import { RV_INPUT } from "@/components/riven/card-style"
 
 const EXPLORER = "https://explorer.arc.io"
 const ORDER: SubScoreKey[] = [
@@ -661,7 +663,7 @@ function ExitCheck({ poolUsdc }: { poolUsdc: number }) {
         <label className="sr-only" htmlFor="exit-custom">
           Custom sale size in USD
         </label>
-        <input
+        <Input
           id="exit-custom"
           inputMode="decimal"
           placeholder="Custom $"
@@ -782,12 +784,12 @@ function TradeBox({ t }: { t: TokenDetail }) {
         <span className="rv-label">
           {side === "buy" ? "You pay (USDC)" : `You sell (${t.symbol})`}
         </span>
-        <input
+        <Input
           inputMode="decimal"
           value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
           placeholder="0"
-          className="rv-input rv-num mt-1 h-11 w-full px-3 text-right text-[20px] font-bold"
+          className={`${RV_INPUT} rv-num mt-1 h-11 w-full px-3 text-right text-[20px] font-bold`}
         />
       </label>
       {side === "buy" && (

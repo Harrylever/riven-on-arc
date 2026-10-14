@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/dialog"
 import type { PerpMarket } from "@/lib/hyperliquid"
 import { priceUsd } from "@/lib/format"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { RV_CHECK } from "@/components/riven/card-style"
 
 const compact = (n: number) =>
   new Intl.NumberFormat("en", {
@@ -85,7 +88,7 @@ export function PerpMarketPicker({
         <DialogTitle className="sr-only">Select market</DialogTitle>
 
         <div className="border-b border-[var(--rv-stroke)] p-3">
-          <input
+          <Input
             autoFocus
             type="text"
             value={query}
@@ -117,11 +120,7 @@ export function PerpMarketPicker({
               </button>
             ))}
             <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-[var(--rv-ink-3)]">
-              <input
-                type="checkbox"
-                checked={signalsOnly}
-                onChange={(e) => setSignalsOnly(e.target.checked)}
-              />
+              <Checkbox checked={signalsOnly} onCheckedChange={(v) => setSignalsOnly(v === true)} className={RV_CHECK} />
               With signals only
             </label>
           </div>

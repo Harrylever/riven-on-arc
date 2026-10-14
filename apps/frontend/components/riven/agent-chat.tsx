@@ -8,6 +8,8 @@ import { TokenAvatar } from "./token-avatar"
 import { useRiven, useRivenPage } from "@/components/mascot/riven-context"
 import { RivenOrb } from "./orb-field"
 import { useAskSession } from "@/hooks/use-ask-session"
+import { Input } from "@/components/ui/input"
+import { RV_INPUT } from "@/components/riven/card-style"
 
 interface Msg {
   role: "user" | "riven"
@@ -184,12 +186,12 @@ export function AgentChat() {
           void ask(q)
         }}
       >
-        <input
+        <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Is $TICKER safe? · paste a 0x address"
           aria-label="Ask Riven"
-          className="rv-input h-12 min-w-0 flex-1 px-4 text-[14px]"
+          className={`${RV_INPUT} h-12 min-w-0 flex-1 px-4 text-[14px]`}
         />
         <button
           type="submit"

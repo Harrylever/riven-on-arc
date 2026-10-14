@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useWatchlist } from "@/hooks/use-watchlist"
 import { usePerpWatch } from "@/hooks/use-perp-watch"
+import { Checkbox } from "@/components/ui/checkbox"
+import { RV_CHECK } from "@/components/riven/card-style"
 
 const DEVICE_KEY = "riven_device_v1"
 const ALL_CALLS_KEY = "riven_tg_all_calls_v1"
@@ -128,13 +130,14 @@ export function TelegramConnect({ compact = false }: { compact?: boolean }) {
           {mints.length} token{mints.length === 1 ? "" : "s"} · {allCalls ? "all perp calls" : `${pairs.length} pair${pairs.length === 1 ? "" : "s"}`}
         </span>
         <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-[12px] text-[var(--rv-ink-2)]">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={allCalls}
-            onChange={(e) => {
-              setAllCalls(e.target.checked)
+            className={RV_CHECK}
+            onCheckedChange={(v) => {
+              const on = v === true
+              setAllCalls(on)
               try {
-                localStorage.setItem(ALL_CALLS_KEY, e.target.checked ? "1" : "0")
+                localStorage.setItem(ALL_CALLS_KEY, on ? "1" : "0")
               } catch {}
             }}
           />

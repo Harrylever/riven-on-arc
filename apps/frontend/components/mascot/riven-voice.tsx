@@ -8,6 +8,8 @@ import {
   speakRobot,
   stopRobotVoice,
 } from "@/lib/robot-voice"
+import { Input } from "@/components/ui/input"
+import { RV_INPUT } from "@/components/riven/card-style"
 
 /**
  * Talk to Riven. Double-tap him to open (and double-tap again to close) a
@@ -464,13 +466,13 @@ export function VoicePanel({
         >
           <MicIcon />
         </button>
-        <input
+        <Input
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
           placeholder={
             chat.micSupported ? "…or type a question" : "Type a question"
           }
-          className="rv-input h-9 min-w-0 flex-1 px-3 text-[13px]"
+          className={`${RV_INPUT} h-9 min-w-0 flex-1 px-3 text-[13px]`}
         />
         <button
           type="submit"

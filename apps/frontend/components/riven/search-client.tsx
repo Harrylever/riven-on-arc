@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { motion } from "motion/react"
 import type { TokenSummary } from "@/lib/arc-data"
 import { TokenCard } from "./token-card"
+import { Input } from "@/components/ui/input"
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/
 
@@ -75,7 +76,7 @@ export function SearchClient() {
         >
           <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4.3-4.3" />
         </svg>
-        <input
+        <Input
           ref={inputRef}
           value={q}
           onChange={(e) => setQ(e.target.value)}

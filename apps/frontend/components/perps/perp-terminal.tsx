@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { TAB_BLOCK } from "@/components/riven/card-style"
+import { RV_CHECK, TAB_BLOCK } from "@/components/riven/card-style"
 
 type BottomTab = "positions" | "orders" | "history"
 
@@ -275,7 +275,7 @@ function BottomTabs({ coin }: { coin: string }) {
           ))}
         </TabsList>
         <label className="flex min-h-11 cursor-pointer items-center gap-2 border-t border-[var(--rv-stroke)] px-3 text-[12px] text-[var(--rv-ink-3)] sm:min-h-0 sm:gap-1.5 sm:border-t-0 sm:px-0 sm:text-[11px]">
-          <Checkbox checked={onlyThisPair} onCheckedChange={(v) => setOnlyThisPair(v === true)} className="size-4 rounded-[3px]" />
+          <Checkbox checked={onlyThisPair} onCheckedChange={(v) => setOnlyThisPair(v === true)} className={RV_CHECK} />
           Only {coin}
         </label>
       </div>

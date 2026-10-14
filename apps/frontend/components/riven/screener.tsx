@@ -34,13 +34,7 @@ import { Label } from "@/components/ui/label"
 import { PageNav } from "@/components/riven/page-nav"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import {
-  Select as UiSelect,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { RvSelect } from "@/components/riven/rv-select"
 
 const REFRESH_MS = 60_000
 /** Where "Dispute a score" goes: NEXT_PUBLIC_DISPUTE_URL, else the methodology page. */
@@ -287,7 +281,7 @@ export function Screener({
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-          <Select
+          <RvSelect
             label="More rankings"
             hideFirst
             value={
@@ -337,25 +331,25 @@ export function Screener({
             </button>
           ))}
         <div className="hidden items-center gap-1.5 md:flex">
-          <Select
+          <RvSelect
             label="Which tokens"
             value={filters.view}
             onChange={(v) => go({ view: v as ViewFilter })}
             options={VIEWS}
           />
-          <Select
+          <RvSelect
             label="Riven score"
             value={filters.band}
             onChange={(v) => go({ band: v as BandFilter })}
             options={BANDS}
           />
-          <Select
+          <RvSelect
             label="Source"
             value={filters.pad}
             onChange={(v) => go({ pad: v as PadFilter })}
             options={PADS}
           />
-          <Select
+          <RvSelect
             label="Age"
             value={filters.age}
             onChange={(v) => go({ age: v as AgeFilter })}
@@ -500,60 +494,6 @@ function Stat({
   )
 }
 
-/**
- * A chip-style dropdown on the shadcn Select (Base UI), restyled to match the page's other chips. `hideFirst` keeps the
- * first option as the closed label (e.g. "More") without listing it as something to pick.
- */
-function Select<T extends string>({
-  label,
-  value,
-  onChange,
-  options,
-  hideFirst = false,
-}: {
-  label: string
-  value: T
-  onChange: (v: T) => void
-  options: Array<[T, string]>
-  hideFirst?: boolean
-}) {
-  const active = value !== options[0]![0]
-  return (
-    <UiSelect
-      value={value}
-      onValueChange={(v) => v !== null && onChange(v as T)}
-      items={options.map(([v, l]) => ({ value: v, label: l }))}
-    >
-      <SelectTrigger
-        aria-label={label}
-        className="h-[30px] shrink-0 cursor-pointer gap-1.5 rounded-md border border-[color:var(--rv-stroke)] bg-[var(--rv-card)] px-2.5 py-0 text-[12px] font-semibold text-[var(--rv-ink-2)] outline-none hover:border-[color:var(--rv-stroke-strong)] focus-visible:border-[color:var(--rv-blue)] data-[popup-open]:border-[color:var(--rv-stroke-strong)] data-[size=default]:h-[30px]"
-        style={
-          active
-            ? { color: "var(--rv-ink)", borderColor: "var(--rv-stroke-strong)" }
-            : undefined
-        }
-      >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent
-        align="start"
-        alignItemWithTrigger={false}
-        className="min-w-40 rounded-md border border-[color:var(--rv-stroke-strong)] bg-[var(--rv-card-solid)] p-1 text-[var(--rv-ink)] shadow-xl ring-0"
-      >
-        {options.slice(hideFirst ? 1 : 0).map(([v, l]) => (
-          <SelectItem
-            key={v}
-            value={v}
-            className="rounded-[5px] py-1.5 pr-8 pl-2.5 text-[12.5px] font-medium text-[var(--rv-ink-2)] data-[highlighted]:bg-[var(--rv-card-hover)] data-[highlighted]:text-[var(--rv-ink)] data-[selected]:text-[var(--rv-ink)]"
-          >
-            {l}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </UiSelect>
-  )
-}
-
 function FilterPanel({
   filters,
   onApply,
@@ -595,25 +535,25 @@ function FilterPanel({
     >
       {/* On desktop these four sit in the bar above; on a phone they are here. They apply as soon as they change. */}
       <div className="col-span-2 flex flex-wrap items-center gap-1.5 md:hidden">
-        <Select
+        <RvSelect
           label="Which tokens"
           value={filters.view}
           onChange={(v) => onSelect({ view: v as ViewFilter })}
           options={VIEWS}
         />
-        <Select
+        <RvSelect
           label="Riven score"
           value={filters.band}
           onChange={(v) => onSelect({ band: v as BandFilter })}
           options={BANDS}
         />
-        <Select
+        <RvSelect
           label="Source"
           value={filters.pad}
           onChange={(v) => onSelect({ pad: v as PadFilter })}
           options={PADS}
         />
-        <Select
+        <RvSelect
           label="Age"
           value={filters.age}
           onChange={(v) => onSelect({ age: v as AgeFilter })}

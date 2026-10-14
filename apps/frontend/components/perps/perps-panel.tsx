@@ -10,6 +10,7 @@ import { DISCLAIMER } from "@/lib/site"
 import { ago, priceUsd } from "@/lib/format"
 import { PERPS_ENABLED } from "@/lib/flags"
 import { SignalOrderModal } from "@/components/perps/signal-order-modal"
+import { RvSelect } from "@/components/riven/rv-select"
 import { usePortfolio } from "@/hooks/use-portfolio"
 import { SignalCarousel } from "@/components/perps/signal-carousel"
 import { CallCard } from "@/components/perps/call-card"
@@ -26,6 +27,7 @@ import Link from "next/link"
 import { isMajorPerp, isMemePerp, signalCoinKey } from "@/lib/perp-symbols"
 import type { PerpMarket } from "@/lib/hyperliquid"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { Input } from "@/components/ui/input"
 
 export interface PerpSignal {
   id: string
@@ -482,27 +484,27 @@ export function PerpsPanel() {
                     <span className="text-[10px] font-bold tracking-wider uppercase">
                       Auto-Refresh:
                     </span>
-                    <select
-                      value={refreshIntervalMs}
-                      onChange={(e) => {
-                        const val = Number(e.target.value)
+                    <RvSelect
+                      label="Auto-refresh interval"
+                      value={String(refreshIntervalMs)}
+                      highlightActive={false}
+                      className="h-7 rounded-md px-2 text-xs"
+                      options={[
+                        ["600000", "10m (Default)"],
+                        ["300000", "5m"],
+                        ["120000", "2m"],
+                        ["60000", "1m"],
+                        ["30000", "30s"],
+                        ["0", "Manual (Off)"],
+                      ]}
+                      onChange={(v) => {
+                        const val = Number(v)
                         setRefreshIntervalMs(val)
                         if (typeof window !== "undefined") {
-                          localStorage.setItem(
-                            "riven_perps_refresh_interval",
-                            String(val),
-                          )
+                          localStorage.setItem("riven_perps_refresh_interval", String(val))
                         }
                       }}
-                      className="cursor-pointer rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-2 py-1 text-xs text-[var(--rv-ink)] transition-colors outline-none hover:border-[var(--rv-blue)] focus:border-[var(--rv-blue)]"
-                    >
-                      <option value={600000}>10m (Default)</option>
-                      <option value={300000}>5m</option>
-                      <option value={120000}>2m</option>
-                      <option value={60000}>1m</option>
-                      <option value={30000}>30s</option>
-                      <option value={0}>Manual (Off)</option>
-                    </select>
+                    />
                   </div>
                   <Freshness
                     updatedAt={updatedAt}
@@ -705,7 +707,7 @@ export function PerpsPanel() {
 
             {/* Right: Search box */}
             <div className="flex w-full items-center gap-2 sm:w-auto">
-              <input
+              <Input
                 type="text"
                 placeholder="Filter ticker (e.g. $SOL, BTC, ETH)…"
                 value={search}
@@ -836,7 +838,7 @@ export function PerpsPanel() {
                       <span className="hidden text-[10px] text-[var(--rv-ink-3)] lg:inline">
                         Scanner calls first, then by volume · click to open
                       </span>
-                      <input
+                      <Input
                         type="text"
                         placeholder="Filter markets (e.g. SOL, BTC)…"
                         aria-label="Filter live markets"

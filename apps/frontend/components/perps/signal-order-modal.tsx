@@ -9,6 +9,8 @@ import { MiniBar } from "@/components/perps/mini-bar"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
 
 interface SignalOrderModalProps {
   signal: PerpSignal | null
@@ -335,7 +337,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     Signal Entry ({priceUsd(signal.entryPrice)})
                   </button>
                 </div>
-                <input
+                <Input
                   type="number"
                   step="any"
                   value={price}
@@ -353,7 +355,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     ≈ {coinUnits.toFixed(4)} {signal.symbol.replace("USDT", "")}
                   </span>
                 </div>
-                <input
+                <Input
                   type="number"
                   step="any"
                   value={usdSize}
@@ -385,14 +387,14 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                       {leverage}x
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    step="1"
+                  <Slider
+                    aria-label="Leverage"
+                    min={1}
+                    max={50}
+                    step={1}
                     value={leverage}
-                    onChange={(e) => setLeverage(Number(e.target.value))}
-                    className="w-full accent-[#2ee6a8]"
+                    onValueChange={(v) => setLeverage(Array.isArray(v) ? (v[0] ?? 1) : v)}
+                    className="py-2 [&_[data-slot=slider-range]]:bg-[#2ee6a8] [&_[data-slot=slider-thumb]]:bg-[#2ee6a8] [&_[data-slot=slider-track]]:bg-[#162a27]"
                   />
                   <div className="flex justify-between text-[10px] text-[#7d9b96]">
                     <span>1x</span>

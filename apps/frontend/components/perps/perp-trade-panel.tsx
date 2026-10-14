@@ -9,12 +9,14 @@ import { venueName } from "@/lib/perp-symbols"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DIALOG, DIALOG_TITLE } from "@/components/riven/card-style"
+import { DIALOG, DIALOG_TITLE, RV_SLIDER } from "@/components/riven/card-style"
 import {
   buildTradeSetup,
   validateSetup,
   type PerpSide,
 } from "@/lib/perp-trade-setup"
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
 
 const sideColor = (s: PerpSide) => (s === "LONG" ? "var(--rv-up)" : "var(--rv-down)")
 
@@ -180,7 +182,7 @@ export function PerpTradePanel({
 
       <label className="block text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
         Size (USD)
-        <input
+        <Input
           type="number"
           min={0}
           value={usdSize}
@@ -207,13 +209,14 @@ export function PerpTradePanel({
 
       <label className="block text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
         Leverage {leverage}x (max {market.maxLeverage}x)
-        <input
-          type="range"
+        <Slider
+          aria-label="Leverage"
           min={1}
           max={market.maxLeverage}
+          step={1}
           value={leverage}
-          onChange={(e) => setLeverage(Number(e.target.value))}
-          className="mt-2 w-full"
+          onValueChange={(v) => setLeverage(Array.isArray(v) ? (v[0] ?? 1) : v)}
+          className={`mt-1 ${RV_SLIDER}`}
         />
       </label>
 
@@ -504,7 +507,7 @@ function LevelInput({
       >
         {label}
       </span>
-      <input
+      <Input
         type="number"
         min={0}
         step="any"

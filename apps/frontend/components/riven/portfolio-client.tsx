@@ -8,6 +8,8 @@ import { compact, usd } from "@/lib/riven-format"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { WalletPanel } from "./wallet-panel"
+import { Input } from "@/components/ui/input"
+import { RV_INPUT } from "@/components/riven/card-style"
 
 const KEY = "riven_portfolio_wallet"
 
@@ -115,13 +117,13 @@ function WalletLookup() {
           void load(wallet)
         }}
       >
-        <input
+        <Input
           value={wallet}
           onChange={(e) => setWallet(e.target.value)}
           placeholder="0x… wallet address"
           aria-label="Wallet address"
           spellCheck={false}
-          className="rv-input h-12 min-w-0 flex-1 px-4 text-[14px]"
+          className={`${RV_INPUT} h-12 min-w-0 flex-1 px-4 text-[14px]`}
         />
         <button
           type="submit"

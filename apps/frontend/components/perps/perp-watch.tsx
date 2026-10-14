@@ -5,8 +5,11 @@ import { toast } from "@/components/ui/toast"
 import { usePerpWatch } from "@/hooks/use-perp-watch"
 import type { PerpMarket } from "@/lib/hyperliquid"
 import type { PerpSignal } from "@/components/perps/perps-panel"
+import { RvSelect } from "@/components/riven/rv-select"
 import { priceUsd } from "@/lib/format"
 import { signalCoinKey } from "@/lib/perp-symbols"
+import { Input } from "@/components/ui/input"
+import { RV_INPUT } from "@/components/riven/card-style"
 
 function notify(title: string, body: string, tag: string) {
   toast.add({ title, description: body, type: "info" })
@@ -171,22 +174,24 @@ export function PerpWatch({
         <span className="col-span-2 text-[12px] text-[var(--rv-ink-2)]">
           Alert me when {market.symbol} goes
         </span>
-        <select
+        <RvSelect
+          label="Direction"
           value={direction}
-          onChange={(e) => setDirection(e.target.value as "above" | "below")}
-          aria-label="Direction"
-          className="rv-input h-11 px-2 text-[13px] sm:h-8 sm:text-[12px]"
-        >
-          <option value="above">above</option>
-          <option value="below">below</option>
-        </select>
-        <input
+          onChange={setDirection}
+          highlightActive={false}
+          className="h-11 w-full justify-between rounded-md border-[color:var(--rv-stroke)] bg-[var(--rv-sunken)] px-2 text-[13px] font-medium text-[var(--rv-ink)] sm:h-8 sm:text-[12px]"
+          options={[
+            ["above", "above"],
+            ["below", "below"],
+          ]}
+        />
+        <Input
           inputMode="decimal"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           placeholder={priceUsd(market.markPrice).replace("$", "")}
           aria-label="Alert price"
-          className="rv-input h-11 w-full px-2 text-[13px] sm:h-8 sm:w-28 sm:text-[12px]"
+          className={`${RV_INPUT} h-11 w-full px-2 text-[13px] sm:h-8 sm:w-28 sm:text-[12px]`}
         />
         <button
           type="submit"
