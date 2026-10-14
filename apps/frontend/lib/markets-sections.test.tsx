@@ -9,14 +9,14 @@ const fails = (async () => {
 
 describe("markets tabs", () => {
   test("an unknown tab or page size falls back to the defaults", () => {
-    expect(parseTab("nope")).toBe("new")
-    expect(parseTab(undefined)).toBe("new")
+    expect(parseTab("nope")).toBe("safest")
+    expect(parseTab(undefined)).toBe("safest")
     expect(parseTab("flagged")).toBe("flagged")
     expect(parseLimit("7")).toBe(LIMITS[0])
     expect(parseLimit("50")).toBe(50)
   })
   test("every list says what it is and what it cannot promise", () => {
-    expect(TABS.map((t) => t.id)).toEqual(["new", "volume", "safest", "flagged", "watchlist"])
+    expect(TABS.map((t) => t.id)).toEqual(["safest", "flagged", "volume", "new", "watchlist"])
     for (const t of TABS) expect(t.hint.length).toBeGreaterThan(20)
     expect(TABS.find((t) => t.id === "flagged")!.label).toBe("Flagged")
   })
@@ -31,8 +31,8 @@ describe("a list that cannot load", () => {
     expect(html).not.toContain("flagged nothing")
   })
   test("the retry link returns to the same tab", () => {
-    expect(renderToStaticMarkup(<ListError tab="safest" />)).toContain('href="/markets?tab=safest"')
-    expect(renderToStaticMarkup(<ListError tab="new" />)).toContain('href="/markets"')
+    expect(renderToStaticMarkup(<ListError tab="flagged" />)).toContain('href="/markets?tab=flagged"')
+    expect(renderToStaticMarkup(<ListError tab="safest" />)).toContain('href="/markets"')
   })
 })
 

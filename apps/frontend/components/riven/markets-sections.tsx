@@ -19,18 +19,6 @@ interface TabDef {
 
 export const TABS: TabDef[] = [
   {
-    id: "new",
-    label: "New pairs",
-    hint: "Newest first. Riven scores a token once it has read its holders, so a brand-new pair usually shows Unscored.",
-    filters: { sort: "new", view: "all" },
-  },
-  {
-    id: "volume",
-    label: "Top volume",
-    hint: "Most traded in the last 24 hours. Volume can be faked: flagged tokens are marked.",
-    filters: { sort: "volume", view: "all" },
-  },
-  {
     id: "safest",
     label: "Safest",
     hint: "Highest Riven score among scored tokens that aren't flagged.",
@@ -45,10 +33,24 @@ export const TABS: TabDef[] = [
     showWhy: true,
     empty: "Riven has flagged nothing among the tokens it has read. Tokens it hasn't read yet are unscored, so this is not a guarantee.",
   },
+  {
+    id: "volume",
+    label: "Top volume",
+    hint: "Most traded in the last 24 hours. Volume can be faked: flagged tokens are marked.",
+    filters: { sort: "volume", view: "all" },
+  },
+  {
+    id: "new",
+    label: "New pairs",
+    hint: "Newest first. Riven scores a token once it has read its holders, so a brand-new pair usually shows Unscored.",
+    filters: { sort: "new", view: "all" },
+  },
   { id: "watchlist", label: "Watchlist", hint: "Tokens you starred on this device." },
 ]
 
-export const parseTab = (v: unknown): TabId => (TABS.some((t) => t.id === v) ? (v as TabId) : "new")
+/** The first tab is what /markets opens on. */
+export const DEFAULT_TAB: TabId = "safest"
+export const parseTab = (v: unknown): TabId => (TABS.some((t) => t.id === v) ? (v as TabId) : DEFAULT_TAB)
 export const LIMITS = [25, 50, 100] as const
 export const parseLimit = (v: unknown): number => {
   const n = Number(v)
@@ -64,7 +66,7 @@ export function MarketsTabs({ active }: { active: TabId }) {
           return (
             <li key={t.id}>
               <Link
-                href={t.id === "new" ? "/markets" : `/markets?tab=${t.id}`}
+                href={t.id === DEFAULT_TAB ? "/markets" : `/markets?tab=${t.id}`}
                 aria-current={on ? "page" : undefined}
                 scroll={false}
                 className="relative flex min-h-11 items-center px-3.5 text-[13.5px] font-semibold whitespace-nowrap transition-colors"
@@ -135,7 +137,7 @@ export function ListError({ tab }: { tab: TabId }) {
       <p className="mx-auto mt-1 max-w-md text-[12.5px] text-[var(--rv-ink-3)]">
         This is a loading problem, not an all-clear: nothing here means nothing was checked.
       </p>
-      <Link href={tab === "new" ? "/markets" : `/markets?tab=${tab}`} className="rv-btn mt-4 inline-flex h-10 px-4 text-[13px]">
+      <Link href={tab === DEFAULT_TAB ? "/markets" : `/markets?tab=${tab}`} className="rv-btn mt-4 inline-flex h-10 px-4 text-[13px]">
         Try again
       </Link>
     </div>

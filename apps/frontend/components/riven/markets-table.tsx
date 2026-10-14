@@ -3,12 +3,12 @@
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import type { TokenSummary } from "@/lib/arc-data"
-import { age, change, changeColor, compact, usd } from "@/lib/riven-format"
+import { age, change, changeColor, usd } from "@/lib/riven-format"
 import { FlagChip, Why } from "./screener"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 
-type SortKey = "age" | "mcap" | "change" | "volume" | "liquidity" | "holders" | "score"
+type SortKey = "age" | "mcap" | "change" | "volume" | "liquidity" | "score"
 
 const VALUE: Record<SortKey, (t: TokenSummary) => number | null> = {
   age: (t) => new Date(t.launchedAt).getTime(),
@@ -16,7 +16,6 @@ const VALUE: Record<SortKey, (t: TokenSummary) => number | null> = {
   change: (t) => t.change.h24,
   volume: (t) => t.volume.h24,
   liquidity: (t) => t.liquidityUsd,
-  holders: (t) => t.holders,
   score: (t) => t.score,
 }
 
@@ -107,7 +106,7 @@ export function MarketsTable({ tokens, serverNow, showWhy = false }: { tokens: T
     <>
       {/* desktop */}
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[820px] border-collapse">
+        <table className="w-full min-w-[740px] border-collapse">
           <thead className="border-b border-[var(--rv-stroke)]">
             <tr>
               <th scope="col" className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
@@ -118,7 +117,6 @@ export function MarketsTable({ tokens, serverNow, showWhy = false }: { tokens: T
               {th("change", "24h")}
               {th("volume", "Volume 24h")}
               {th("liquidity", "Liquidity")}
-              {th("holders", "Holders")}
               {th("score", "Score")}
             </tr>
           </thead>
@@ -135,7 +133,6 @@ export function MarketsTable({ tokens, serverNow, showWhy = false }: { tokens: T
                 </td>
                 <td className={num}>{t.volume.h24 === null ? dash : usd(t.volume.h24)}</td>
                 <td className={num}>{t.liquidityUsd === null ? dash : usd(t.liquidityUsd)}</td>
-                <td className={num}>{t.holders === null ? dash : compact(t.holders)}</td>
                 <td className="px-3 text-right">
                   <ScoreCell t={t} />
                 </td>
