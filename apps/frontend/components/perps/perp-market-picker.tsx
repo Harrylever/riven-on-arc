@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RV_CHECK } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 const compact = (n: number) =>
   new Intl.NumberFormat("en", {
@@ -101,27 +103,29 @@ export function PerpMarketPicker({
             className="w-full border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 py-2 text-sm text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
           />
           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-            {(
-              [
-                ["volume", "Volume"],
-                ["change", "24h %"],
-                ["signal", "Signal"],
-              ] as const
-            ).map(([id, label]) => (
-              <Button
-                variant="plain"
-                size="bare"
-                key={id}
-                onClick={() => setSort(id)}
-                className={`border px-2 py-0.5 font-bold ${
-                  sort === id
-                    ? "border-[var(--rv-blue)] text-[var(--rv-ink)]"
-                    : "border-[var(--rv-stroke)] text-[var(--rv-ink-3)]"
-                }`}
-              >
-                {label}
-              </Button>
-            ))}
+            <ToggleGroup
+              value={[sort]}
+              onValueChange={(v) => v[0] && setSort(v[0] as Sort)}
+              spacing={1}
+              aria-label="Sort pairs by"
+              className="gap-1.5"
+            >
+              {(
+                [
+                  ["volume", "Volume"],
+                  ["change", "24h %"],
+                  ["signal", "Signal"],
+                ] as const
+              ).map(([id, label]) => (
+                <ToggleGroupItem
+                  key={id}
+                  value={id}
+                  className="h-auto min-w-0 rounded-none border border-[var(--rv-stroke)] bg-transparent px-2 py-0.5 text-[11px] font-bold tracking-normal text-[var(--rv-ink-3)] normal-case hover:bg-transparent hover:text-[var(--rv-ink)] data-[pressed]:border-[var(--rv-blue)] data-[pressed]:bg-transparent data-[pressed]:text-[var(--rv-ink)]"
+                >
+                  {label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
             <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-[var(--rv-ink-3)]">
               <Checkbox
                 checked={signalsOnly}
@@ -140,7 +144,10 @@ export function PerpMarketPicker({
           <span className="w-14 text-right">Volume</span>
         </div>
 
-        <div className="max-h-[50vh] overflow-y-auto">
+        <ScrollArea
+          className="max-h-[50vh]"
+          viewportClassName="max-h-[inherit]"
+        >
           {results.length === 0 ? (
             <div className="px-3 py-8 text-center text-xs text-[var(--rv-ink-3)]">
               No pairs match “{query}”
@@ -200,7 +207,7 @@ export function PerpMarketPicker({
               )
             })
           )}
-        </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )

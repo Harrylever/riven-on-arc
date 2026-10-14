@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Hint } from "@/components/riven/hint"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { SEG, SEG_ITEM } from "@/components/riven/card-style"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 /**
  * Talk to Riven. Double-tap him to open (and double-tap again to close) a
@@ -393,52 +394,61 @@ export function VoicePanel({
         </Button>
       </div>
 
-      <div className="flex max-h-[42vh] min-h-[90px] flex-col gap-2 overflow-y-auto px-3 py-2.5">
-        {chat.msgs.length === 0 && !chat.listening && (
-          <p className="text-[var(--rv-ink-3)]">
-            Tap the mic and ask anything — “what's happening on Arc?”, “is this
-            token safe?”, “tokens under $50K with socials”, “why is SOL
-            pumping?”, “what does funding mean?”. Double-tap me again to close.
-          </p>
-        )}
-        {chat.msgs.map((m, i) => (
-          <div key={i} className={m.who === "you" ? "self-end text-right" : ""}>
+      <ScrollArea
+        className="max-h-[42vh] min-h-[90px]"
+        viewportClassName="max-h-[inherit]"
+      >
+        <div className="flex flex-col gap-2 px-3 py-2.5">
+          {chat.msgs.length === 0 && !chat.listening && (
+            <p className="text-[var(--rv-ink-3)]">
+              Tap the mic and ask anything — “what's happening on Arc?”, “is
+              this token safe?”, “tokens under $50K with socials”, “why is SOL
+              pumping?”, “what does funding mean?”. Double-tap me again to
+              close.
+            </p>
+          )}
+          {chat.msgs.map((m, i) => (
             <div
-              className={`inline-block max-w-[300px] rounded-lg px-2.5 py-1.5 leading-relaxed whitespace-pre-line ${
-                m.who === "you"
-                  ? "bg-[var(--rv-blue)] text-[var(--rv-on-blue)]"
-                  : "bg-white/[0.05]"
-              }`}
+              key={i}
+              className={m.who === "you" ? "self-end text-right" : ""}
             >
-              {m.text}
+              <div
+                className={`inline-block max-w-[300px] rounded-lg px-2.5 py-1.5 leading-relaxed whitespace-pre-line ${
+                  m.who === "you"
+                    ? "bg-[var(--rv-blue)] text-[var(--rv-on-blue)]"
+                    : "bg-white/[0.05]"
+                }`}
+              >
+                {m.text}
+              </div>
+              {m.who === "riven" && (
+                <p className="mt-0.5 text-[10.5px] text-[var(--rv-ink-3)]">
+                  {m.mode === "gemini"
+                    ? "Worded by Gemini from Riven's data"
+                    : m.mode === "claude"
+                      ? "Worded by Claude from Riven's data"
+                      : "Riven's analysis engine"}
+                </p>
+              )}
             </div>
-            {m.who === "riven" && (
-              <p className="mt-0.5 text-[10.5px] text-[var(--rv-ink-3)]">
-                {m.mode === "gemini"
-                  ? "Worded by Gemini from Riven's data"
-                  : m.mode === "claude"
-                    ? "Worded by Claude from Riven's data"
-                    : "Riven's analysis engine"}
-              </p>
-            )}
-          </div>
-        ))}
-        {chat.listening && (
-          <p className="flex items-center gap-2 text-[var(--rv-ink-2)] italic">
-            <span className="size-2 shrink-0 rounded-full bg-[var(--rv-risk)]" />
-            {chat.heard || "Listening… speak now"}
-          </p>
-        )}
-        {chat.thinking && (
-          <p className="text-[var(--rv-ink-3)]">Riven is reading his data…</p>
-        )}
-        {chat.micError && (
-          <p className="text-[12px] text-[var(--rv-caution)]">
-            {chat.micError}
-          </p>
-        )}
-        <div ref={end} />
-      </div>
+          ))}
+          {chat.listening && (
+            <p className="flex items-center gap-2 text-[var(--rv-ink-2)] italic">
+              <span className="size-2 shrink-0 rounded-full bg-[var(--rv-risk)]" />
+              {chat.heard || "Listening… speak now"}
+            </p>
+          )}
+          {chat.thinking && (
+            <p className="text-[var(--rv-ink-3)]">Riven is reading his data…</p>
+          )}
+          {chat.micError && (
+            <p className="text-[12px] text-[var(--rv-caution)]">
+              {chat.micError}
+            </p>
+          )}
+          <div ref={end} />
+        </div>
+      </ScrollArea>
 
       <form
         onSubmit={(e) => {

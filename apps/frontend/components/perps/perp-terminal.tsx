@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { RV_CHECK, TAB_BLOCK } from "@/components/riven/card-style"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 type BottomTab = "positions" | "orders" | "history"
 
@@ -249,7 +250,7 @@ function OrderBook({ coin, markPrice }: { coin: string; markPrice: number }) {
         <span>Price</span>
         <span>Size ({coin})</span>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <ScrollArea className="min-h-0 flex-1">
         {rows(asks, "var(--rv-down)")}
         <div className="border-y border-[var(--rv-stroke)] px-3 py-1.5 font-mono text-sm font-extrabold">
           {priceUsd(markPrice)}
@@ -258,7 +259,7 @@ function OrderBook({ coin, markPrice }: { coin: string; markPrice: number }) {
           </span>
         </div>
         {rows(book.bids, "var(--rv-up)")}
-      </div>
+      </ScrollArea>
     </div>
   )
 }

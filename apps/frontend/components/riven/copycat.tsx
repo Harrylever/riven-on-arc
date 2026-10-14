@@ -14,6 +14,7 @@ import {
 import { DIALOG, DIALOG_TITLE } from "./card-style"
 import { ScoreBadge } from "./score-badge"
 import { Hint } from "@/components/riven/hint"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 /** Small inline marker: this ticker is used by other tokens too. */
 export function CopyBadge({ copies }: { copies: number }) {
@@ -110,56 +111,61 @@ export function CopycatWarning({
               worthless or rugs. Avoid copies, check the contract address
               against the project&apos;s official links, and trade with caution.
             </DialogDescription>
-            <ul className="mt-4 max-h-[42vh] divide-y divide-[var(--rv-stroke)] overflow-y-auto rounded-lg border border-[var(--rv-stroke)]">
-              {all.map((c) => (
-                <li
-                  key={c.address}
-                  className="flex items-center gap-3 px-3 py-2.5 text-[13px]"
-                  style={{
-                    background: c.current
-                      ? "rgba(124, 196, 232, 0.1)"
-                      : "transparent",
-                  }}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="rv-num flex items-center gap-2">
-                      <span className="text-[var(--rv-ink)]">
-                        {shortAddr(c.address)}
-                      </span>
-                      {c.current && (
-                        <span className="text-[10px] font-bold text-[var(--rv-ice)] uppercase">
-                          You&apos;re here
+            <ScrollArea
+              className="mt-4 max-h-[42vh] rounded-lg border border-[var(--rv-stroke)]"
+              viewportClassName="max-h-[inherit]"
+            >
+              <ul className="divide-y divide-[var(--rv-stroke)]">
+                {all.map((c) => (
+                  <li
+                    key={c.address}
+                    className="flex items-center gap-3 px-3 py-2.5 text-[13px]"
+                    style={{
+                      background: c.current
+                        ? "rgba(124, 196, 232, 0.1)"
+                        : "transparent",
+                    }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="rv-num flex items-center gap-2">
+                        <span className="text-[var(--rv-ink)]">
+                          {shortAddr(c.address)}
                         </span>
-                      )}
-                      {c.address === oldest.address && (
-                        <span className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
-                          Oldest
-                        </span>
-                      )}
+                        {c.current && (
+                          <span className="text-[10px] font-bold text-[var(--rv-ice)] uppercase">
+                            You&apos;re here
+                          </span>
+                        )}
+                        {c.address === oldest.address && (
+                          <span className="text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
+                            Oldest
+                          </span>
+                        )}
+                      </div>
+                      <div className="rv-num text-[11px] text-[var(--rv-ink-3)]">
+                        {age(c.launchedAt, now)} old
+                        {"liquidityUsd" in c
+                          ? ` · liq ${usd(c.liquidityUsd)}`
+                          : ""}
+                        {"fake" in c && c.fake ? " · flagged" : ""}
+                      </div>
                     </div>
-                    <div className="rv-num text-[11px] text-[var(--rv-ink-3)]">
-                      {age(c.launchedAt, now)} old
-                      {"liquidityUsd" in c
-                        ? ` · liq ${usd(c.liquidityUsd)}`
-                        : ""}
-                      {"fake" in c && c.fake ? " · flagged" : ""}
-                    </div>
-                  </div>
-                  {"score" in c && (
-                    <ScoreBadge score={c.score} band={c.band} size="sm" />
-                  )}
-                  {!c.current && (
-                    <Link
-                      href={`/token/${c.address}`}
-                      onClick={ack}
-                      className="text-[12px] font-semibold text-[var(--rv-ice)] hover:underline"
-                    >
-                      View
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
+                    {"score" in c && (
+                      <ScoreBadge score={c.score} band={c.band} size="sm" />
+                    )}
+                    {!c.current && (
+                      <Link
+                        href={`/token/${c.address}`}
+                        onClick={ack}
+                        className="text-[12px] font-semibold text-[var(--rv-ice)] hover:underline"
+                      >
+                        View
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
             <div className="mt-4 flex flex-wrap justify-end gap-2">
               <Button
                 variant="outline"
