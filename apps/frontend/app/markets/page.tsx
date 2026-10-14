@@ -2,14 +2,15 @@ import { Suspense } from "react"
 import { PageHero } from "@/components/riven/page-hero"
 import {
   ListSkeleton,
-  MarketsTabs,
   SummarySkeleton,
   SummaryStrip,
   TABS,
   TabContent,
-  parseLimit,
+  parsePage,
   parseTab,
+  tabHref,
 } from "@/components/riven/markets-sections"
+import { MarketsTabs } from "@/components/riven/markets-tabs"
 import { buildPageMetadata } from "@/lib/site"
 
 export const dynamic = "force-dynamic"
@@ -22,12 +23,12 @@ export const metadata = buildPageMetadata({
 /**
  * Arc at a glance. The page shell and every list load independently (Suspense), so one slow query can no
  * longer blank the page, and a list that fails says so instead of rendering an empty "all clear".
- * Tabs are URLs (?tab=flagged&n=50), so a list can be linked and only the open tab is queried.
+ * Tabs and pages are URLs (?tab=flagged&page=2), so a list can be linked and only the open tab is queried.
  */
-export default async function MarketsPage({ searchParams }: { searchParams: Promise<{ tab?: string; n?: string }> }) {
+export default async function MarketsPage({ searchParams }: { searchParams: Promise<{ tab?: string; page?: string }> }) {
   const sp = await searchParams
   const tab = parseTab(sp.tab)
-  const limit = parseLimit(sp.n)
+  const page = parsePage(sp.page)
   const def = TABS.find((t) => t.id === tab)!
   // eslint-disable-next-line react-hooks/purity -- per-request server render
   const now = Date.now()
@@ -47,15 +48,16 @@ export default async function MarketsPage({ searchParams }: { searchParams: Prom
       <Suspense fallback={<SummarySkeleton />}>
         <SummaryStrip serverNow={now} />
       </Suspense>
-      <section className="rv-card overflow-hidden" aria-label={def.label}>
-        <div className="px-2 sm:px-3">
-          <MarketsTabs active={tab} />
-        </div>
-        <p className="border-b border-[var(--rv-stroke)] px-4 py-2.5 text-[12px] leading-relaxed text-[var(--rv-ink-3)]">{def.hint}</p>
-        <Suspense key={`${tab}-${limit}`} fallback={<ListSkeleton />}>
-          <TabContent tab={tab} limit={limit} serverNow={now} />
+      <MarketsTabs
+        active={tab}
+        label={def.label}
+        hint={def.hint}
+        tabs={TABS.map((x) => ({ id: x.id, label: x.label, href: tabHref(x.id) }))}
+      >
+        <Suspense key={`${tab}-${page}`} fallback={<ListSkeleton />}>
+          <TabContent tab={tab} page={page} serverNow={now} />
         </Suspense>
-      </section>
+      </MarketsTabs>
     </div>
   )
 }

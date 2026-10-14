@@ -27,18 +27,11 @@ import { TokenAvatar } from "./token-avatar"
 import { WatchButton } from "./watch-button"
 import { visibleInterval } from "@/lib/visible-interval"
 import { cn } from "cn"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { PageNav } from "@/components/riven/page-nav"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
@@ -116,8 +109,6 @@ const PRIMARY_BTN =
   "h-9 rounded-md bg-[var(--rv-blue)] px-3.5 text-[13px] font-bold tracking-normal normal-case text-[var(--rv-on-blue)] hover:bg-[var(--rv-blue)] hover:brightness-110"
 const GHOST_BTN =
   "h-9 rounded-md border border-[color:var(--rv-stroke-strong)] bg-transparent px-3.5 text-[13px] font-semibold tracking-normal normal-case text-[var(--rv-ink)] hover:bg-white/[0.04] hover:text-[var(--rv-ink)]"
-const PAGE_ITEM =
-  "rv-num h-[30px] min-w-8 rounded-md border border-[color:var(--rv-stroke)] bg-[var(--rv-card)] px-2 text-[12px] font-semibold tracking-normal normal-case text-[var(--rv-ink-2)] hover:bg-[var(--rv-card-hover)] hover:text-[var(--rv-ink)] aria-[current=page]:border-[color:var(--rv-blue)] aria-[current=page]:bg-[var(--rv-blue)] aria-[current=page]:text-[var(--rv-on-blue)] aria-disabled:pointer-events-none aria-disabled:opacity-30"
 const FIELD =
   "h-9 rounded-[10px] border border-[color:var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 font-mono text-[13px] text-[var(--rv-ink)] focus-visible:border-[color:var(--rv-blue)] focus-visible:ring-0"
 
@@ -659,76 +650,6 @@ function FilterPanel({
   )
 }
 
-/** Page numbers as real links (so they can be opened in a new tab); a plain click changes page without a full reload. */
-function PageNav({
-  page,
-  pages,
-  hrefFor,
-  onPage,
-}: {
-  page: number
-  pages: number
-  hrefFor: (p: number) => string
-  onPage: (p: number) => void
-}) {
-  if (pages <= 1) return null
-  const nums = [
-    ...new Set([1, page - 2, page - 1, page, page + 1, page + 2, pages]),
-  ]
-    .filter((n) => n >= 1 && n <= pages)
-    .sort((a, b) => a - b)
-  const go = (n: number) => (e: React.MouseEvent) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return // let "open in a new tab" work
-    e.preventDefault()
-    onPage(n)
-  }
-  return (
-    <Pagination aria-label="Pages" className="py-1">
-      <PaginationContent className="flex-wrap justify-center gap-1.5">
-        <PaginationItem>
-          <PaginationPrevious
-            text="Prev"
-            href={hrefFor(Math.max(1, page - 1))}
-            role="link"
-            aria-disabled={page <= 1}
-            tabIndex={page <= 1 ? -1 : undefined}
-            onClick={page > 1 ? go(page - 1) : (e) => e.preventDefault()}
-            className={PAGE_ITEM}
-          />
-        </PaginationItem>
-        {nums.map((n, i) => (
-          <PaginationItem key={n} className="contents">
-            {i > 0 && n - nums[i - 1]! > 1 && (
-              <PaginationEllipsis className="size-auto px-1 text-[12px] text-[var(--rv-ink-3)]" />
-            )}
-            <PaginationLink
-              href={hrefFor(n)}
-              role="link"
-              isActive={n === page}
-              size="default"
-              onClick={go(n)}
-              className={PAGE_ITEM}
-            >
-              {n}
-            </PaginationLink>
-          </PaginationItem>
-        ))}
-        <PaginationItem>
-          <PaginationNext
-            text="Next"
-            href={hrefFor(Math.min(pages, page + 1))}
-            role="link"
-            aria-disabled={page >= pages}
-            tabIndex={page >= pages ? -1 : undefined}
-            onClick={page < pages ? go(page + 1) : (e) => e.preventDefault()}
-            className={PAGE_ITEM}
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  )
-}
-
 /** Paid DexScreener boosts running on this token. */
 function Boosts({ n }: { n: number }) {
   return (
@@ -1119,12 +1040,13 @@ export function Why({ t }: { t: TokenSummary }) {
 
 export function FlagChip() {
   return (
-    <span
-      className="rounded bg-[rgba(248,113,113,0.12)] px-1.5 py-px text-[10px] font-bold tracking-wide text-[var(--rv-risk)] uppercase"
+    <Badge
+      variant="neutral"
+      className="rounded border-transparent bg-[rgba(248,113,113,0.12)] px-1.5 py-px text-[10px] font-bold tracking-wide text-[var(--rv-risk)] uppercase"
       title="Flagged by on-chain evidence — open the token to see why"
     >
       Flagged
-    </span>
+    </Badge>
   )
 }
 

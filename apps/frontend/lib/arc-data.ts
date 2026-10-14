@@ -334,6 +334,8 @@ async function getScreenerRaw(
   total: number
   page: number
   pages: number
+  /** Only set with `total: false`: is there a page after this one? (One extra row is fetched to know.) */
+  hasMore?: boolean
 }> {
   const market: Record<string, object> = {}
   if (f.minLiq > 0) market.liquidityUsd = { gte: f.minLiq }
@@ -391,15 +393,17 @@ async function getScreenerRaw(
     const total = opts.total === false ? null : await db.token.count({ where: fullWhere })
     const pages = total === null ? Math.max(1, f.page ?? 1) : Math.max(1, Math.ceil(total / pageSize))
     const page = Math.min(f.page ?? 1, pages)
-    const found = await db.token.findMany({
+    const peek = total === null ? 1 : 0
+    const fetched = await db.token.findMany({
       where: fullWhere,
       orderBy,
       skip: (page - 1) * pageSize,
-      take: pageSize,
+      take: pageSize + peek,
       include: { arcMarket: true },
     })
+    const found = fetched.slice(0, pageSize)
     const tokens = await withCopies((await withRuns(found)).map(summarize))
-    return { tokens, total: total ?? tokens.length, page, pages }
+    return { tokens, total: total ?? tokens.length, page, pages, ...(total === null ? { hasMore: fetched.length > pageSize } : {}) }
   }
 
   // Score-based views (Safest, Flagged, band and score filters) are answered from token_score_latest, which the
@@ -643,7 +647,21 @@ async function getAlertsRaw(
     take: opts.limit ?? 60,
     include: { token: { include: { arcMarket: true } } },
   })
-  return list.map((a) => ({
+  return list.map(toTokenAlert)
+}
+
+
+const RUG_TYPES = ["RUG_PULL", "CREATOR_DUMP", "WHALE_DUMP", "SCORE_DROP"] as const
+
+/** A stored alert as the site shows it. */
+function toTokenAlert(a: {
+  id: string
+  type: string
+  message: string
+  createdAt: Date
+  token: { mint: string; symbol: string; imageUri: string | null; metadataUri: string | null; arcMarket: { imageUrl: string | null } | null }
+}): TokenAlert {
+  return {
     id: a.id,
     type: a.type,
     // evidence wording, also for alerts stored before the wording change
@@ -652,12 +670,46 @@ async function getAlertsRaw(
     token: {
       address: a.token.mint,
       symbol: a.token.symbol,
-      image:
-        imageUrl(a.token.imageUri ?? a.token.metadataUri) ??
-        imageUrl(a.token.arcMarket?.imageUrl),
+      image: imageUrl(a.token.imageUri ?? a.token.metadataUri) ?? imageUrl(a.token.arcMarket?.imageUrl),
     },
-  }))
+  }
 }
+
+/**
+ * Rug radar: one page of alerts, newest first, with the last 24 hours counted on their own so the header's numbers
+ * do not change as you page.
+ */
+async function getRugRadarRaw(page: number, pageSize: number) {
+  const db = getDb()
+  const where = { type: { in: [...RUG_TYPES] } } as never
+  const since = new Date(Date.now() - 24 * 3_600_000)
+  const [total, byType, newest] = await Promise.all([
+    db.alert.count({ where }),
+    db.alert.groupBy({ by: ["type"], where: { type: { in: [...RUG_TYPES] }, createdAt: { gte: since } } as never, _count: true }),
+    db.alert.findFirst({ where, orderBy: { createdAt: "desc" }, include: { token: { include: { arcMarket: true } } } }),
+  ])
+  const pages = Math.max(1, Math.ceil(total / pageSize))
+  const current = Math.min(Math.max(1, Math.floor(page) || 1), pages)
+  const list = await db.alert.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    skip: (current - 1) * pageSize,
+    take: pageSize,
+    include: { token: { include: { arcMarket: true } } },
+  })
+  const counts: Record<string, number> = {}
+  for (const g of byType as Array<{ type: string; _count: number }>) counts[g.type] = g._count
+  return {
+    alerts: list.map(toTokenAlert),
+    total,
+    page: current,
+    pages,
+    last24h: { total: Object.values(counts).reduce((s, n) => s + n, 0), byType: counts },
+    latest: newest ? toTokenAlert(newest) : null,
+  }
+}
+export const getRugRadar = (page = 1, pageSize = 25) =>
+  cached(`radar:${page}:${pageSize}`, 60_000, () => getRugRadarRaw(page, pageSize), { shared: true })
 
 export async function getEcosystem() {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
@@ -981,15 +1033,17 @@ async function screenFromSummary(
   const total = opts.total === false ? null : await db.token.count({ where: fullWhere })
   const pages = total === null ? Math.max(1, f.page ?? 1) : Math.max(1, Math.ceil(total / pageSize))
   const page = Math.min(f.page ?? 1, pages)
-  const found = await db.token.findMany({
+  const peek = total === null ? 1 : 0
+  const fetched = await db.token.findMany({
     where: fullWhere,
     orderBy: order,
     skip: (page - 1) * pageSize,
-    take: pageSize,
+    take: pageSize + peek,
     include: { arcMarket: true },
   })
+  const found = fetched.slice(0, pageSize)
   const tokens = await withCopies((await withRuns(found)).map(summarize))
-  return { tokens, total: total ?? tokens.length, page, pages }
+  return { tokens, total: total ?? tokens.length, page, pages, ...(total === null ? { hasMore: fetched.length > pageSize } : {}) }
 }
 
 /** Screener lists, cached for a minute per filter set and shared across instances. */

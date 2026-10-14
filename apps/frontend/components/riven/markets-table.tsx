@@ -1,36 +1,50 @@
 "use client"
 
+import {
+  createColumnHelper,
+  createSortedRowModel,
+  rowSortingFeature,
+  sortFn_basic,
+  tableFeatures,
+  useTable,
+  type Column,
+  type SortingState,
+} from "@tanstack/react-table"
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import type { TokenSummary } from "@/lib/arc-data"
 import { age, change, changeColor, usd } from "@/lib/riven-format"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FlagChip, Why } from "./screener"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 
-type SortKey = "age" | "mcap" | "change" | "volume" | "liquidity" | "score"
+/** What the cells need from the table's owner: the clock (ages tick) and whether to show the evidence line. */
+const View = createContext<{ now: number; showWhy: boolean }>({ now: 0, showWhy: false })
 
-const VALUE: Record<SortKey, (t: TokenSummary) => number | null> = {
-  age: (t) => new Date(t.launchedAt).getTime(),
-  mcap: (t) => t.marketCap,
-  change: (t) => t.change.h24,
-  volume: (t) => t.volume.h24,
-  liquidity: (t) => t.liquidityUsd,
-  score: (t) => t.score,
-}
+// Sorting is the only table feature used, so only it is registered. A missing value (undefined) always sorts last.
+const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic } })
+const col = createColumnHelper<typeof features, TokenSummary>()
+
+const orUndefined = (v: number | null) => v ?? undefined
+const sortable = { sortFn: "basic", sortUndefined: "last", sortDescFirst: true } as const
 
 /** Score cell: an unscored token says so, instead of a bare "…" that looks like a loading glitch. */
 function ScoreCell({ t }: { t: TokenSummary }) {
   if (t.score === null)
     return (
-      <span className="inline-block max-w-[64px] text-right text-[11px] leading-tight text-[var(--rv-ink-3)]" title="Not scored yet. Open the token and Riven scores it right there. It never guesses a score.">
+      <span
+        className="inline-block max-w-[64px] text-right text-[11px] leading-tight text-[var(--rv-ink-3)]"
+        title="Not scored yet. Open the token and Riven scores it right there. It never guesses a score."
+      >
         Open to score
       </span>
     )
   return <ScoreBadge score={t.score} band={t.band} size="sm" />
 }
 
-function TokenCell({ t, now, showWhy }: { t: TokenSummary; now: number; showWhy: boolean }) {
+function TokenCell({ t }: { t: TokenSummary }) {
+  const { now, showWhy } = useContext(View)
   return (
     <div className="flex min-w-0 items-center gap-3">
       <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={36} />
@@ -46,7 +60,7 @@ function TokenCell({ t, now, showWhy }: { t: TokenSummary; now: number; showWhy:
         </div>
         <p className="truncate text-[11.5px] text-[var(--rv-ink-3)]">
           {t.name}
-          <span className="md:hidden"> · {age(t.launchedAt, now)}</span>
+          <span className="lg:hidden"> · {age(t.launchedAt, now)}</span>
         </p>
         {showWhy && <Why t={t} />}
       </div>
@@ -54,103 +68,145 @@ function TokenCell({ t, now, showWhy }: { t: TokenSummary; now: number; showWhy:
   )
 }
 
-const num = "rv-num text-right text-[13px] text-[var(--rv-ink)]"
-const dash = <span className="text-[var(--rv-ink-3)]">—</span>
+const Dash = () => <span className="text-[var(--rv-ink-3)]">—</span>
+const num = "rv-num text-[13px] text-[var(--rv-ink)]"
+
+/** A column header that sorts: click for highest first, again for lowest first, again to clear. */
+// The header only toggles sorting, so it does not care what type of value the column holds (number, or number | undefined).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function SortHeader({ column, label }: { column: Column<typeof features, TokenSummary, any>; label: string }) {
+  const sorted = column.getIsSorted()
+  return (
+    <button
+      type="button"
+      onClick={column.getToggleSortingHandler()}
+      className={`inline-flex items-center gap-1 text-[11px] tracking-wide uppercase hover:text-[var(--rv-ink)] ${
+        sorted ? "text-[var(--rv-ink)]" : "text-[var(--rv-ink-3)]"
+      }`}
+    >
+      <span aria-hidden className="w-2 text-[9px]">
+        {sorted === "desc" ? "▼" : sorted === "asc" ? "▲" : ""}
+      </span>
+      {label}
+    </button>
+  )
+}
+
+const columns = col.columns([
+  col.display({ id: "token", header: "Token", cell: ({ row }) => <TokenCell t={row.original} /> }),
+  col.accessor((t) => new Date(t.launchedAt).getTime(), {
+    id: "age",
+    ...sortable,
+    header: ({ column }) => <SortHeader column={column} label="Age" />,
+    cell: function AgeCell({ row }) {
+      return <AgeText iso={row.original.launchedAt} />
+    },
+  }),
+  col.accessor((t) => orUndefined(t.marketCap), {
+    id: "mcap",
+    ...sortable,
+    header: ({ column }) => <SortHeader column={column} label="Mkt cap" />,
+    cell: ({ row }) => (row.original.marketCap === null ? <Dash /> : <span className={num}>{usd(row.original.marketCap)}</span>),
+  }),
+  col.accessor((t) => orUndefined(t.change.h24), {
+    id: "change",
+    ...sortable,
+    header: ({ column }) => <SortHeader column={column} label="24h" />,
+    cell: ({ row }) =>
+      row.original.change.h24 === null ? (
+        <Dash />
+      ) : (
+        <span className="rv-num text-[13px] font-semibold" style={{ color: changeColor(row.original.change.h24) }}>
+          {change(row.original.change.h24)}
+        </span>
+      ),
+  }),
+  col.accessor((t) => orUndefined(t.volume.h24), {
+    id: "volume",
+    ...sortable,
+    header: ({ column }) => <SortHeader column={column} label="Volume 24h" />,
+    cell: ({ row }) => (row.original.volume.h24 === null ? <Dash /> : <span className={num}>{usd(row.original.volume.h24)}</span>),
+  }),
+  col.accessor((t) => orUndefined(t.liquidityUsd), {
+    id: "liquidity",
+    ...sortable,
+    header: ({ column }) => <SortHeader column={column} label="Liquidity" />,
+    cell: ({ row }) => (row.original.liquidityUsd === null ? <Dash /> : <span className={num}>{usd(row.original.liquidityUsd)}</span>),
+  }),
+  col.accessor((t) => orUndefined(t.score), {
+    id: "score",
+    ...sortable,
+    header: ({ column }) => <SortHeader column={column} label="Score" />,
+    cell: ({ row }) => <ScoreCell t={row.original} />,
+  }),
+])
+
+function AgeText({ iso }: { iso: string }) {
+  const { now } = useContext(View)
+  return <span className="rv-num text-[12px] text-[var(--rv-ink-2)]">{age(iso, now)}</span>
+}
 
 /**
- * The markets list. A sortable table from md up (click a column to sort the rows shown), compact cards on a phone.
- * Whole rows are links; nothing interactive is nested inside them.
+ * The markets list: market data and the Riven score. From 1024px up it is a sortable table (click a column to sort the
+ * rows shown); below that, compact rows. Whole rows are links and nothing interactive is nested inside them.
  */
 export function MarketsTable({ tokens, serverNow, showWhy = false }: { tokens: TokenSummary[]; serverNow: number; showWhy?: boolean }) {
   const [now, setNow] = useState(serverNow)
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null)
+  const [sorting, setSorting] = useState<SortingState>([])
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 15_000)
     return () => clearInterval(id)
   }, [])
-
-  const rows = useMemo(() => {
-    if (!sort) return tokens
-    const val = VALUE[sort.key]
-    // empty values always sort last, whichever way you sort
-    return [...tokens].sort((a, b) => {
-      const x = val(a)
-      const y = val(b)
-      if (x === null && y === null) return 0
-      if (x === null) return 1
-      if (y === null) return -1
-      return (x - y) * sort.dir
-    })
-  }, [tokens, sort])
-
-  const toggle = (key: SortKey) => setSort((s) => (s?.key === key ? (s.dir === -1 ? { key, dir: 1 } : null) : { key, dir: -1 }))
-  const th = (key: SortKey, label: string, right = true) => {
-    const active = sort?.key === key
-    return (
-      <th scope="col" aria-sort={active ? (sort!.dir === -1 ? "descending" : "ascending") : "none"} className={`px-3 py-2 font-semibold ${right ? "text-right" : "text-left"}`}>
-        <button
-          type="button"
-          onClick={() => toggle(key)}
-          className={`inline-flex items-center gap-1 text-[11px] tracking-wide uppercase hover:text-[var(--rv-ink)] ${active ? "text-[var(--rv-ink)]" : "text-[var(--rv-ink-3)]"}`}
-        >
-          <span aria-hidden className="w-2 text-[9px]">
-            {active ? (sort!.dir === -1 ? "▼" : "▲") : ""}
-          </span>
-          {label}
-        </button>
-      </th>
-    )
-  }
+  const table = useTable({ features, columns, data: tokens, state: { sorting }, onSortingChange: setSorting })
+  const rows = table.getRowModel().rows
 
   return (
-    <>
+    <View.Provider value={{ now, showWhy }}>
       {/* desktop */}
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[740px] border-collapse">
-          <thead className="border-b border-[var(--rv-stroke)]">
-            <tr>
-              <th scope="col" className="px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)] uppercase">
-                Token
-              </th>
-              {th("age", "Age")}
-              {th("mcap", "Mkt cap")}
-              {th("change", "24h")}
-              {th("volume", "Volume 24h")}
-              {th("liquidity", "Liquidity")}
-              {th("score", "Score")}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((t) => (
-              <tr key={t.address} className="relative border-b border-[var(--rv-stroke)] last:border-0 hover:bg-[var(--rv-row-hover)]">
-                <td className="max-w-[300px] px-3 py-2.5">
-                  <TokenCell t={t} now={now} showWhy={showWhy} />
-                </td>
-                <td className={`${num} text-[12px] !text-[var(--rv-ink-2)]`}>{age(t.launchedAt, now)}</td>
-                <td className={num}>{t.marketCap === null ? dash : usd(t.marketCap)}</td>
-                <td className="rv-num px-3 text-right text-[13px] font-semibold" style={{ color: changeColor(t.change.h24) }}>
-                  {t.change.h24 === null ? dash : change(t.change.h24)}
-                </td>
-                <td className={num}>{t.volume.h24 === null ? dash : usd(t.volume.h24)}</td>
-                <td className={num}>{t.liquidityUsd === null ? dash : usd(t.liquidityUsd)}</td>
-                <td className="px-3 text-right">
-                  <ScoreCell t={t} />
-                </td>
-              </tr>
+      <div className="hidden lg:block">
+        <Table className="min-w-[760px] text-[13px]">
+          <TableHeader>
+            {table.getHeaderGroups().map((group) => (
+              <TableRow key={group.id} className="border-b border-[var(--rv-stroke)] hover:bg-transparent">
+                {group.headers.map((header) => {
+                  const sorted = header.column.getIsSorted()
+                  return (
+                    <TableHead
+                      key={header.id}
+                      scope="col"
+                      aria-sort={sorted === "desc" ? "descending" : sorted === "asc" ? "ascending" : header.column.getCanSort() ? "none" : undefined}
+                      className={`h-auto px-3 py-2 ${header.id === "token" ? "text-left text-[11px] font-semibold tracking-wide text-[var(--rv-ink-3)]" : "text-right"}`}
+                    >
+                      {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                    </TableHead>
+                  )
+                })}
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.id} className="relative border-b border-[var(--rv-stroke)] last:border-0 hover:bg-[var(--rv-row-hover)]">
+                {row.getAllCells().map((cell) => (
+                  <TableCell key={cell.id} className={`px-3 py-2.5 ${cell.column.id === "token" ? "max-w-[300px] whitespace-normal" : "text-right"}`}>
+                    <table.FlexRender cell={cell} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
-      {/* phone */}
-      <ol className="divide-y divide-[var(--rv-stroke)] md:hidden">
-        {rows.map((t) => (
+      {/* phone and tablet */}
+      <ol className="divide-y divide-[var(--rv-stroke)] lg:hidden">
+        {tokens.map((t) => (
           <li key={t.address} className="relative flex items-center gap-3 px-3 py-2.5 active:bg-[var(--rv-row-hover)]">
             <div className="min-w-0 flex-1">
-              <TokenCell t={t} now={now} showWhy={showWhy} />
+              <TokenCell t={t} />
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
-              <span className="rv-num text-[13px] font-bold text-[var(--rv-ink)]">{t.marketCap === null ? dash : usd(t.marketCap)}</span>
+              <span className="rv-num text-[13px] font-bold text-[var(--rv-ink)]">{t.marketCap === null ? <Dash /> : usd(t.marketCap)}</span>
               <span className="rv-num text-[11.5px] font-semibold" style={{ color: changeColor(t.change.h24) }}>
                 {t.change.h24 === null ? "—" : change(t.change.h24)}
               </span>
@@ -161,6 +217,6 @@ export function MarketsTable({ tokens, serverNow, showWhy = false }: { tokens: T
           </li>
         ))}
       </ol>
-    </>
+    </View.Provider>
   )
 }
