@@ -20,7 +20,11 @@ import { ScoreMeter } from "./score-badge"
 import { ScoreNow } from "./score-now"
 import { Findings } from "./findings"
 import { CalloutsRow } from "./home-sections"
-import { exitQuote, maxSellForImpact, plausiblePoolUsdc } from "@/lib/exit-quote"
+import {
+  exitQuote,
+  maxSellForImpact,
+  plausiblePoolUsdc,
+} from "@/lib/exit-quote"
 import type { Holo, Mood } from "@/components/mascot/mascot"
 import { useRiven, useRivenPage } from "@/components/mascot/riven-context"
 import { TokenAvatar } from "./token-avatar"
@@ -71,9 +75,9 @@ export function TokenView({
   const dangers = t.flags.filter((f) => f.level === "danger")
   const warnings = t.flags.filter((f) => f.level === "warning")
   const goods = t.flags.filter((f) => f.level === "good")
-  const [tab, setTab] = useState<"trades" | "holders" | "bubblemaps" | "creator" | "callouts">(
-    "trades",
-  )
+  const [tab, setTab] = useState<
+    "trades" | "holders" | "bubblemaps" | "creator" | "callouts"
+  >("trades")
 
   const mood: Mood =
     t.fake || t.band === "risk"
@@ -84,26 +88,42 @@ export function TokenView({
           ? "happy"
           : "idle"
   const tone: Holo["tone"] =
-    t.band === "healthy" ? "green" : t.band === "caution" ? "amber" : t.band === "risk" ? "red" : "blue"
+    t.band === "healthy"
+      ? "green"
+      : t.band === "caution"
+        ? "amber"
+        : t.band === "risk"
+          ? "red"
+          : "blue"
   const holos: Holo[] = [
     {
       title: `${t.symbol} · Riven score`,
       value: t.score === null ? "scoring…" : `${t.score.toFixed(1)}/10`,
       note: t.fake ? t.fakeReasons[0] : t.verdict,
       gauge: t.score === null ? undefined : t.score / 10,
-      series: t.priceSeries.length > 2 ? t.priceSeries.map((s) => s.p) : undefined,
+      series:
+        t.priceSeries.length > 2 ? t.priceSeries.map((s) => s.p) : undefined,
       tone,
     },
-    { title: "24h", value: t.change.h24 === null ? "—" : change(t.change.h24), tone: (t.change.h24 ?? 0) >= 0 ? "green" : "red" },
+    {
+      title: "24h",
+      value: t.change.h24 === null ? "—" : change(t.change.h24),
+      tone: (t.change.h24 ?? 0) >= 0 ? "green" : "red",
+    },
     {
       title: "Real USDC",
       value: t.usdcInPool === null ? "—" : usd(t.usdcInPool),
       tone: t.usdcInPool !== null && t.usdcInPool < 1000 ? "amber" : "blue",
     },
-    { title: "Holders", value: t.holders === null ? "—" : compact(t.holders), tone: "blue" },
+    {
+      title: "Holders",
+      value: t.holders === null ? "—" : compact(t.holders),
+      tone: "blue",
+    },
   ]
   // Nothing to read: no score, no price, no pool → he shrugs instead of scanning.
-  const hasData = t.score !== null || t.priceUsd !== null || t.liquidityUsd !== null
+  const hasData =
+    t.score !== null || t.priceUsd !== null || t.liquidityUsd !== null
   const router = useRouter()
   const riven = useRiven()
   const [flash, setFlash] = useState(0)
@@ -130,7 +150,9 @@ export function TokenView({
       onDone: () => {
         router.refresh()
         setFlash((f) => f + 1)
-        document.getElementById("score")?.scrollIntoView({ behavior: "smooth", block: "start" })
+        document
+          .getElementById("score")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" })
       },
     },
   })
@@ -174,13 +196,24 @@ export function TokenView({
             type="button"
             onClick={() => {
               riven.scan()
-              if (!hasData) riven.speak("Nothing to read on this pair yet — no trades or pool data.", 4500)
+              if (!hasData)
+                riven.speak(
+                  "Nothing to read on this pair yet — no trades or pool data.",
+                  4500,
+                )
             }}
             className="rv-btn size-9 gap-1.5 px-0 text-[13px] sm:w-auto sm:px-3"
             title="Riven scans this token and refreshes its score"
             aria-label="Scan this token"
           >
-            <svg viewBox="0 0 24 24" className="size-[17px] sm:size-[15px]" fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+            <svg
+              viewBox="0 0 24 24"
+              className="size-[17px] sm:size-[15px]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              aria-hidden
+            >
               <circle cx="11" cy="11" r="6" />
               <path d="m20 20-4.2-4.2" />
             </svg>
@@ -204,7 +237,9 @@ export function TokenView({
           <span className="rounded bg-white/[0.05] px-1.5 py-px font-semibold whitespace-nowrap text-[var(--rv-ink-2)]">
             {t.launchpad}
           </span>
-          <span className="rv-num whitespace-nowrap">{age(t.launchedAt, now)} old</span>
+          <span className="rv-num whitespace-nowrap">
+            {age(t.launchedAt, now)} old
+          </span>
           {t.fake && (
             <span className="rounded bg-[rgba(248,113,113,0.12)] px-1.5 py-px text-[10px] font-bold tracking-wide whitespace-nowrap text-[var(--rv-risk)] uppercase">
               Flagged
@@ -278,14 +313,15 @@ export function TokenView({
           </p>
         )}
 
-      {t.usdcInPool !== null && plausiblePoolUsdc(t.usdcInPool, t.liquidityUsd) && <ExitCheck poolUsdc={t.usdcInPool} />}
+      {t.usdcInPool !== null &&
+        plausiblePoolUsdc(t.usdcInPool, t.liquidityUsd) && (
+          <ExitCheck poolUsdc={t.usdcInPool} />
+        )}
 
       <CopycatWarning token={t} copies={t.copyList} now={now} />
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-4">
-
-
           {/* Chart */}
           {t.pairAddress ? (
             <section className="rv-card overflow-hidden">
@@ -348,8 +384,12 @@ export function TokenView({
                     No indexed trades yet.
                   </p>
                 ))}
-              {tab === "holders" && <Holders t={t} onBubbleMaps={() => setTab("bubblemaps")} />}
-              {tab === "bubblemaps" && <BubbleMap address={t.address} symbol={t.symbol} />}
+              {tab === "holders" && (
+                <Holders t={t} onBubbleMaps={() => setTab("bubblemaps")} />
+              )}
+              {tab === "bubblemaps" && (
+                <BubbleMap address={t.address} symbol={t.symbol} />
+              )}
               {tab === "creator" &&
                 (t.creatorRecord ? (
                   <CreatorTrack record={t.creatorRecord} now={now} />
@@ -513,7 +553,9 @@ function UnscoredChecklist({
 }) {
   const [open, setOpen] = useState(true)
   const bodyId = useId()
-  const read = [measured.contract, measured.liquidity, measured.holders].filter(Boolean).length
+  const read = [measured.contract, measured.liquidity, measured.holders].filter(
+    Boolean,
+  ).length
   const holderNote =
     holderHistory === "too_long"
       ? "This token's history is longer than Riven replays on public RPCs, so it stays unscored rather than guessed."
@@ -523,7 +565,11 @@ function UnscoredChecklist({
   const rows: Array<[string, boolean, string | null]> = [
     ["Contract powers (mint, pause, upgrade)", measured.contract, null],
     ["Who controls the launch liquidity", measured.liquidity, null],
-    ["Who holds the supply", measured.holders, measured.holders ? null : holderNote],
+    [
+      "Who holds the supply",
+      measured.holders,
+      measured.holders ? null : holderNote,
+    ],
   ]
   return (
     <div className="mt-3 rounded-lg border border-[var(--rv-stroke)] bg-[var(--rv-sunken)]">
@@ -537,7 +583,9 @@ function UnscoredChecklist({
         <span className="min-w-0 flex-1 text-[12px] font-semibold text-[var(--rv-ink)]">
           Riven publishes a number only after all three are read
         </span>
-        <span className="rv-num shrink-0 text-[11px] text-[var(--rv-ink-3)]">{read} of 3 read</span>
+        <span className="rv-num shrink-0 text-[11px] text-[var(--rv-ink-3)]">
+          {read} of 3 read
+        </span>
         <svg
           viewBox="0 0 16 16"
           width={14}
@@ -555,17 +603,26 @@ function UnscoredChecklist({
       </button>
       {/* hidden, not unmounted: the live scoring check inside keeps running while this is closed */}
       <div id={bodyId} hidden={!open} className="px-3 pb-3">
-      <ul className="grid gap-1.5">
-        {rows.map(([label, done, note]) => (
-          <li key={label} className="text-[12px] leading-snug text-[var(--rv-ink-2)]">
-            <span aria-hidden className="mr-1.5">{done ? "\u2713" : "\u2026"}</span>
-            <span className="sr-only">{done ? "Read: " : "Waiting: "}</span>
-            {label}
-            {note && <span className="block pl-5 text-[11px] text-[var(--rv-ink-3)]">{note}</span>}
-          </li>
-        ))}
-      </ul>
-      <ScoreNow address={address} />
+        <ul className="grid gap-1.5">
+          {rows.map(([label, done, note]) => (
+            <li
+              key={label}
+              className="text-[12px] leading-snug text-[var(--rv-ink-2)]"
+            >
+              <span aria-hidden className="mr-1.5">
+                {done ? "\u2713" : "\u2026"}
+              </span>
+              <span className="sr-only">{done ? "Read: " : "Waiting: "}</span>
+              {label}
+              {note && (
+                <span className="block pl-5 text-[11px] text-[var(--rv-ink-3)]">
+                  {note}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+        <ScoreNow address={address} />
       </div>
     </div>
   )
@@ -579,13 +636,22 @@ function ExitCheck({ poolUsdc }: { poolUsdc: number }) {
   const [custom, setCustom] = useState("")
   const q = exitQuote(poolUsdc, size)
   const safe = maxSellForImpact(poolUsdc, 0.05)
-  const tone =
-    !q ? "var(--rv-ink-2)" : q.exceedsPool || q.impact > 0.25 ? "var(--rv-risk)" : q.impact > 0.05 ? "var(--rv-caution)" : "var(--rv-healthy)"
+  const tone = !q
+    ? "var(--rv-ink-2)"
+    : q.exceedsPool || q.impact > 0.25
+      ? "var(--rv-risk)"
+      : q.impact > 0.05
+        ? "var(--rv-caution)"
+        : "var(--rv-healthy)"
   return (
     <section className="rv-card p-4" aria-label="Exit check">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[13px] font-bold text-[var(--rv-ink)]">Can you get out?</h2>
-        <span className="text-[11px] text-[var(--rv-ink-3)]">Best case from {usd(poolUsdc)} real USDC in the pool</span>
+        <h2 className="text-[13px] font-bold text-[var(--rv-ink)]">
+          Can you get out?
+        </h2>
+        <span className="text-[11px] text-[var(--rv-ink-3)]">
+          Best case from {usd(poolUsdc)} real USDC in the pool
+        </span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {EXIT_SIZES.map((v) => (
@@ -602,7 +668,9 @@ function ExitCheck({ poolUsdc }: { poolUsdc: number }) {
             Sell {usd(v)}
           </button>
         ))}
-        <label className="sr-only" htmlFor="exit-custom">Custom sale size in USD</label>
+        <label className="sr-only" htmlFor="exit-custom">
+          Custom sale size in USD
+        </label>
         <input
           id="exit-custom"
           inputMode="decimal"
@@ -621,13 +689,19 @@ function ExitCheck({ poolUsdc }: { poolUsdc: number }) {
         <p className="mt-3 text-[13px] leading-snug text-[var(--rv-ink)]">
           Selling <b>{usd(size)}</b> would return at most{" "}
           <b style={{ color: tone }}>{usd(q.receive, { precise: true })}</b>{" "}
-          <span style={{ color: tone }}>({Math.round(q.impact * 100)}% lost to price impact)</span>
-          {q.exceedsPool && ". That is more than the pool holds: it cannot be sold in full."}
+          <span style={{ color: tone }}>
+            ({Math.round(q.impact * 100)}% lost to price impact)
+          </span>
+          {q.exceedsPool &&
+            ". That is more than the pool holds: it cannot be sold in full."}
         </p>
       )}
       <p className="mt-1.5 text-[11px] leading-snug text-[var(--rv-ink-3)]">
-        {safe !== null ? `Up to about ${usd(safe)} keeps the loss under 5%. ` : ""}
-        Estimate for a constant-product pool; concentrated liquidity moves price more, so real exits can be worse. Not financial advice.
+        {safe !== null
+          ? `Up to about ${usd(safe)} keeps the loss under 5%. `
+          : ""}
+        Estimate for a constant-product pool; concentrated liquidity moves price
+        more, so real exits can be worse. Not financial advice.
       </p>
     </section>
   )
@@ -858,10 +932,7 @@ function Shield({ t }: { t: TokenDetail }) {
       </div>
       <ul className="mt-2.5 grid gap-1.5">
         {rows.map((r) => (
-          <li
-            key={r.label}
-            className="flex items-center gap-2.5 text-[13px]"
-          >
+          <li key={r.label} className="flex items-center gap-2.5 text-[13px]">
             <span
               className="rv-num w-5 text-center font-bold"
               style={{ color: color[r.state] }}
@@ -878,10 +949,7 @@ function Shield({ t }: { t: TokenDetail }) {
       {t.alerts.length > 0 && (
         <ul className="mt-3 flex flex-col gap-1.5 border-t border-[var(--rv-stroke)] pt-3">
           {t.alerts.slice(0, 5).map((a) => (
-            <li
-              key={a.id}
-              className="flex items-baseline gap-2 text-[12px]"
-            >
+            <li key={a.id} className="flex items-baseline gap-2 text-[12px]">
               <span className="rounded bg-[rgba(248,113,113,0.12)] px-1.5 text-[10px] font-bold text-[var(--rv-risk)] uppercase">
                 {ALERT_LABEL[a.type] ?? a.type}
               </span>
@@ -913,9 +981,7 @@ export function CreatorTrack({
   return (
     <section className="rv-card p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">
-          {title}
-        </h2>
+        <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">{title}</h2>
         {link && (
           <Link
             href={`/creator/${record.wallet}`}
@@ -1120,10 +1186,22 @@ function PriceChart({ series }: { series: Array<{ t: number; p: number }> }) {
 }
 
 /** Top-10 share of supply, the dev wallet, and a way into the Bubblemaps holder map. */
-function Holders({ t, onBubbleMaps }: { t: TokenDetail; onBubbleMaps: () => void }) {
+function Holders({
+  t,
+  onBubbleMaps,
+}: {
+  t: TokenDetail
+  onBubbleMaps: () => void
+}) {
   // topHolders is exactly the ten largest wallets with pool, burn and launchpad contracts left out,
   // so their percentages add up to the top-10 share (the same figure the score uses).
-  const top10 = t.topHolders.length > 0 ? Math.min(100, t.topHolders.reduce((sum, h) => sum + h.pct, 0)) : null
+  const top10 =
+    t.topHolders.length > 0
+      ? Math.min(
+          100,
+          t.topHolders.reduce((sum, h) => sum + h.pct, 0),
+        )
+      : null
   return (
     <section className="rv-card p-4">
       <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">Holders</h2>
@@ -1138,18 +1216,32 @@ function Holders({ t, onBubbleMaps }: { t: TokenDetail; onBubbleMaps: () => void
           <p className="rv-label">Top 10 holders</p>
           <p className="rv-num mt-1 text-[34px] leading-none font-bold text-[var(--rv-ink)]">
             {pct(top10)}
-            <span className="ml-2 text-[13px] font-medium text-[var(--rv-ink-3)]">of supply</span>
+            <span className="ml-2 text-[13px] font-medium text-[var(--rv-ink-3)]">
+              of supply
+            </span>
           </p>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]" aria-hidden>
-            <div className="h-full rounded-full bg-[var(--rv-blue)]" style={{ width: `${top10}%` }} />
+          <div
+            className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]"
+            aria-hidden
+          >
+            <div
+              className="h-full rounded-full bg-[var(--rv-blue)]"
+              style={{ width: `${top10}%` }}
+            />
           </div>
-          <p className="mt-1.5 text-[11px] text-[var(--rv-ink-3)]">Pool, burn and launchpad contracts excluded.</p>
+          <p className="mt-1.5 text-[11px] text-[var(--rv-ink-3)]">
+            Pool, burn and launchpad contracts excluded.
+          </p>
         </div>
       )}
 
       <DevWallet creator={t.creator} launchpad={t.launchpad} />
 
-      <button type="button" onClick={onBubbleMaps} className="rv-btn mt-4 h-11 w-full gap-2 px-4 text-[13px] sm:h-10 sm:w-auto">
+      <button
+        type="button"
+        onClick={onBubbleMaps}
+        className="rv-btn mt-4 h-11 w-full gap-2 px-4 text-[13px] sm:h-10 sm:w-auto"
+      >
         View bubble map
         <ArrowIcon />
       </button>
@@ -1158,7 +1250,13 @@ function Holders({ t, onBubbleMaps }: { t: TokenDetail; onBubbleMaps: () => void
 }
 
 /** The wallet that created the token, in full, with copy and explorer links. */
-function DevWallet({ creator, launchpad }: { creator: string; launchpad: string }) {
+function DevWallet({
+  creator,
+  launchpad,
+}: {
+  creator: string
+  launchpad: string
+}) {
   const [copied, setCopied] = useState(false)
   const known = /^0x[0-9a-f]{40}$/.test(creator)
   // Tokens found through the pool indexer have no factory event; the wallet that created the pool stands in.
@@ -1183,7 +1281,11 @@ function DevWallet({ creator, launchpad }: { creator: string; launchpad: string 
             {creator.slice(21)}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => void copy()} className="rv-btn-ghost h-9 px-3 text-[12px]">
+            <button
+              type="button"
+              onClick={() => void copy()}
+              className="rv-btn-ghost h-9 px-3 text-[12px]"
+            >
               {copied ? "Copied" : "Copy address"}
             </button>
             <a
@@ -1198,12 +1300,15 @@ function DevWallet({ creator, launchpad }: { creator: string; launchpad: string 
           </div>
           {!factoryLaunch && (
             <p className="mt-1.5 text-[11px] text-[var(--rv-ink-3)]">
-              This token wasn&apos;t launched through a factory Riven reads, so this is the wallet that created its trading pool.
+              This token wasn&apos;t launched through a factory Riven reads, so
+              this is the wallet that created its trading pool.
             </p>
           )}
         </>
       ) : (
-        <p className="mt-1 text-[13px] text-[var(--rv-ink-2)]">Riven hasn&apos;t found who created this token yet.</p>
+        <p className="mt-1 text-[13px] text-[var(--rv-ink-2)]">
+          Riven hasn&apos;t found who created this token yet.
+        </p>
       )}
     </div>
   )
@@ -1229,12 +1334,14 @@ function BubbleMap({ address, symbol }: { address: string; symbol: string }) {
     <section className="rv-card p-4">
       <h2 className="text-[16px] font-bold text-[var(--rv-ink)]">Bubble map</h2>
       <p className="text-[12px] text-[var(--rv-ink-3)]">
-        Each bubble is a wallet; links show wallets that moved tokens between each other.
+        Each bubble is a wallet; links show wallets that moved tokens between
+        each other.
       </p>
       <div className="relative mt-3 h-[460px] overflow-hidden rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-black sm:h-[580px]">
         {building && (
           <p className="pointer-events-none absolute top-2 left-2 z-10 rounded-full bg-black/75 px-3 py-1 text-[11.5px] text-[var(--rv-ink-2)]">
-            Building the map… a new token can take up to ~15 seconds the first time.
+            Building the map… a new token can take up to ~15 seconds the first
+            time.
           </p>
         )}
         <iframe

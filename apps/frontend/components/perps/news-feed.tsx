@@ -16,12 +16,22 @@ const MOOD: Record<NewsItem["sentiment"], { label: string; color: string }> = {
  * Trending crypto news, tagged with the pairs each story is about. News moves
  * pairs, so it's part of Riven's read on every pair page too.
  */
-export function NewsFeed({ coin, limit = 12, title }: { coin?: string; limit?: number; title?: string }) {
+export function NewsFeed({
+  coin,
+  limit = 12,
+  title,
+}: {
+  coin?: string
+  limit?: number
+  title?: string
+}) {
   const [news, setNews] = useState<NewsItem[] | null>(null)
   useEffect(() => {
     let alive = true
     const load = () =>
-      fetch(`/api/news?limit=${limit}${coin ? `&coin=${coin}` : ""}`, { cache: "no-store" })
+      fetch(`/api/news?limit=${limit}${coin ? `&coin=${coin}` : ""}`, {
+        cache: "no-store",
+      })
         .then((r) => (r.ok ? r.json() : { news: [] }))
         .then((j: { news: NewsItem[] }) => alive && setNews(j.news ?? []))
         .catch(() => alive && setNews([]))
@@ -39,7 +49,9 @@ export function NewsFeed({ coin, limit = 12, title }: { coin?: string; limit?: n
         <h2 className="text-[17px] font-bold tracking-tight text-[var(--rv-ink)]">
           {title ?? (coin ? `${coin} in the news` : "Trending crypto news")}
         </h2>
-        <span className="text-[11.5px] text-[var(--rv-ink-3)] sm:ml-auto">Cointelegraph · Decrypt · CoinDesk · Bitcoin Magazine</span>
+        <span className="text-[11.5px] text-[var(--rv-ink-3)] sm:ml-auto">
+          Cointelegraph · Decrypt · CoinDesk · Bitcoin Magazine
+        </span>
       </div>
       {news === null ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -49,7 +61,9 @@ export function NewsFeed({ coin, limit = 12, title }: { coin?: string; limit?: n
         </div>
       ) : news.length === 0 ? (
         <p className="rv-card px-4 py-6 text-center text-[13px] text-[var(--rv-ink-2)]">
-          {coin ? `No news about ${coin} in Riven's feeds right now.` : "News feeds are unavailable right now."}
+          {coin
+            ? `No news about ${coin} in Riven's feeds right now.`
+            : "News feeds are unavailable right now."}
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

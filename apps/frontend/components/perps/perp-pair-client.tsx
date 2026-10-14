@@ -42,10 +42,16 @@ export function PerpPairClient({ coin }: { coin: string }) {
     const load = () =>
       fetch("/api/perps/markets", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
-        .then((j: { markets?: PerpMarket[] } | null) => alive && j?.markets && setMarkets(j.markets))
+        .then(
+          (j: { markets?: PerpMarket[] } | null) =>
+            alive && j?.markets && setMarkets(j.markets),
+        )
         .catch(() => {})
     void load()
-    const id = window.setInterval(() => document.visibilityState === "visible" && void load(), 10_000)
+    const id = window.setInterval(
+      () => document.visibilityState === "visible" && void load(),
+      10_000,
+    )
     return () => {
       alive = false
       window.clearInterval(id)
@@ -69,13 +75,20 @@ export function PerpPairClient({ coin }: { coin: string }) {
   useEffect(() => {
     fetch("/api/perp-signals?status=all&take=200", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j: { signals?: PerpSignal[] } | null) => setSignals((j?.signals ?? []).filter((s) => signalCoinKey(s.symbol) === coin)))
+      .then((j: { signals?: PerpSignal[] } | null) =>
+        setSignals(
+          (j?.signals ?? []).filter((s) => signalCoinKey(s.symbol) === coin),
+        ),
+      )
       .catch(() => setSignals([]))
   }, [coin])
 
   const market = markets?.find((m) => m.symbol.toUpperCase() === coin) ?? null
   const open = signals?.find((s) => s.outcome === "pending") ?? null
-  const signalByCoin = useMemo(() => new Map(open ? [[coin, open]] : []), [open, coin])
+  const signalByCoin = useMemo(
+    () => new Map(open ? [[coin, open]] : []),
+    [open, coin],
+  )
   const up = (market?.change24h ?? 0) >= 0
 
   const mood: Mood = insight?.mood ?? "idle"
@@ -93,15 +106,33 @@ export function PerpPairClient({ coin }: { coin: string }) {
           value: `${market.fundingApr.toFixed(1)}%`,
           tone: market.fundingBias === "NEUTRAL" ? "blue" : "amber",
         },
-        { title: "News 24h", value: String(insight?.news.filter((n) => Date.now() - +new Date(n.publishedAt) < 86_400_000).length ?? "—"), tone: "blue" },
-        { title: "Scanner call", value: open ? `${open.bias} ${open.confidence}/10` : "none", tone: open ? (open.bias === "LONG" ? "green" : "red") : "blue" },
+        {
+          title: "News 24h",
+          value: String(
+            insight?.news.filter(
+              (n) => Date.now() - +new Date(n.publishedAt) < 86_400_000,
+            ).length ?? "—",
+          ),
+          tone: "blue",
+        },
+        {
+          title: "Scanner call",
+          value: open ? `${open.bias} ${open.confidence}/10` : "none",
+          tone: open ? (open.bias === "LONG" ? "green" : "red") : "blue",
+        },
       ]
     : []
   useRivenPage({
     mood,
     holos,
     topic: { kind: "perp", coin },
-    lines: insight ? [insight.why, ...insight.bullets.slice(0, 3), "Double-tap me to ask about this pair out loud."] : undefined,
+    lines: insight
+      ? [
+          insight.why,
+          ...insight.bullets.slice(0, 3),
+          "Double-tap me to ask about this pair out loud.",
+        ]
+      : undefined,
     greet: insight ? insight.why : undefined,
     scan: {
       hasData: !!market,
@@ -109,7 +140,9 @@ export function PerpPairClient({ coin }: { coin: string }) {
       onDone: () => {
         setFlash((f) => f + 1)
         setReadOpen(true)
-        document.getElementById("read")?.scrollIntoView({ behavior: "smooth", block: "start" })
+        document
+          .getElementById("read")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" })
       },
     },
   })
@@ -129,14 +162,23 @@ export function PerpPairClient({ coin }: { coin: string }) {
         <div className="min-w-0">
           <h1 className="text-[26px] leading-tight font-bold tracking-tight text-[var(--rv-ink)]">
             {coin}
-            <span className="text-[16px] font-semibold text-[var(--rv-ink-3)]">-PERP</span>
+            <span className="text-[16px] font-semibold text-[var(--rv-ink-3)]">
+              -PERP
+            </span>
           </h1>
-          <p className="text-[12px] text-[var(--rv-ink-3)]">Live market · paper trading · max {market?.maxLeverage ?? "—"}x</p>
+          <p className="text-[12px] text-[var(--rv-ink-3)]">
+            Live market · paper trading · max {market?.maxLeverage ?? "—"}x
+          </p>
         </div>
         {market && (
           <div className="ml-2">
-            <p className="rv-num text-[22px] font-bold text-[var(--rv-ink)]">{priceUsd(market.markPrice)}</p>
-            <p className="rv-num text-[13px] font-semibold" style={{ color: up ? "var(--rv-up)" : "var(--rv-down)" }}>
+            <p className="rv-num text-[22px] font-bold text-[var(--rv-ink)]">
+              {priceUsd(market.markPrice)}
+            </p>
+            <p
+              className="rv-num text-[13px] font-semibold"
+              style={{ color: up ? "var(--rv-up)" : "var(--rv-down)" }}
+            >
               {pct(market.change24h)} 24h
             </p>
           </div>
@@ -147,7 +189,15 @@ export function PerpPairClient({ coin }: { coin: string }) {
           className="rv-btn ml-auto h-9 gap-1.5 px-3 text-[13px]"
           title="Riven reads the market, funding, news and the scanner for this pair"
         >
-          <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="currentColor" strokeWidth={2.2} aria-hidden>
+          <svg
+            viewBox="0 0 24 24"
+            width={15}
+            height={15}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            aria-hidden
+          >
             <circle cx="11" cy="11" r="6" />
             <path d="m20 20-4.2-4.2" />
           </svg>
@@ -156,7 +206,12 @@ export function PerpPairClient({ coin }: { coin: string }) {
       </header>
 
       {/* Riven's read: the analysis engine's plain-English take (a drop-down; it closes once scrolled past) */}
-      <RivenRead insight={insight} open={readOpen} onOpenChange={setReadOpen} flash={flash} />
+      <RivenRead
+        insight={insight}
+        open={readOpen}
+        onOpenChange={setReadOpen}
+        flash={flash}
+      />
 
       {market && markets ? (
         <PerpTerminal
@@ -168,7 +223,10 @@ export function PerpPairClient({ coin }: { coin: string }) {
         />
       ) : markets ? (
         <p className="rv-card px-4 py-8 text-center text-[13px] text-[var(--rv-ink-2)]">
-          There is no live {coin} perp market. <Link href="/perps" className="text-[var(--rv-ice)] hover:underline">See all pairs</Link>
+          There is no live {coin} perp market.{" "}
+          <Link href="/perps" className="text-[var(--rv-ice)] hover:underline">
+            See all pairs
+          </Link>
         </p>
       ) : (
         <div className="rv-card h-[420px] animate-pulse" />
@@ -179,28 +237,52 @@ export function PerpPairClient({ coin }: { coin: string }) {
         <section className="rv-card flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center">
           <span
             className="self-start rounded px-2 py-0.5 text-[12px] font-extrabold sm:self-auto"
-            style={{ color: "#0b0b0d", background: open.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)" }}
+            style={{
+              color: "#0b0b0d",
+              background:
+                open.bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)",
+            }}
           >
             {open.bias}
           </span>
           <div className="rv-num min-w-0 text-[13px] leading-relaxed text-[var(--rv-ink-2)] sm:flex-1">
-            <b className="text-[var(--rv-ink)]">Riven Scanner call</b> from {venueName(open.exchange)} · conviction {open.confidence}/10 · entry {priceUsd(open.entryLow)}–
-            {priceUsd(open.entryHigh)} · stop {priceUsd(open.stopLoss)} · targets {priceUsd(open.t1)} / {priceUsd(open.t2)} /{" "}
-            {priceUsd(open.t3)} · {ago(open.scanTime)} ago. Levels are {venueName(open.exchange)} prices; the chart and paper
-            orders use live market prices.
+            <b className="text-[var(--rv-ink)]">Riven Scanner call</b> from{" "}
+            {venueName(open.exchange)} · conviction {open.confidence}/10 · entry{" "}
+            {priceUsd(open.entryLow)}–{priceUsd(open.entryHigh)} · stop{" "}
+            {priceUsd(open.stopLoss)} · targets {priceUsd(open.t1)} /{" "}
+            {priceUsd(open.t2)} / {priceUsd(open.t3)} · {ago(open.scanTime)}{" "}
+            ago. Levels are {venueName(open.exchange)} prices; the chart and
+            paper orders use live market prices.
           </div>
-          <button type="button" onClick={() => setOrder(open)} className="rv-btn h-11 w-full px-4 text-[13px] sm:h-9 sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setOrder(open)}
+            className="rv-btn h-11 w-full px-4 text-[13px] sm:h-9 sm:w-auto"
+          >
             Paper trade this call
           </button>
         </section>
       )}
 
-      {market && markets && <PerpWatch market={market} markets={markets} signals={signals} onSelect={(s) => router.push(`/perps/${s.toUpperCase()}`)} />}
+      {market && markets && (
+        <PerpWatch
+          market={market}
+          markets={markets}
+          signals={signals}
+          onSelect={(s) => router.push(`/perps/${s.toUpperCase()}`)}
+        />
+      )}
       <TelegramConnect />
 
       <NewsFeed coin={coin} limit={9} />
 
-      {order && <SignalOrderModal key={order.id} signal={order} onClose={() => setOrder(null)} />}
+      {order && (
+        <SignalOrderModal
+          key={order.id}
+          signal={order}
+          onClose={() => setOrder(null)}
+        />
+      )}
     </div>
   )
 }

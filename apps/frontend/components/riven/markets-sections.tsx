@@ -23,7 +23,8 @@ export const TABS: TabDef[] = [
     label: "Safest",
     hint: "Highest Riven score among scored tokens that aren't flagged.",
     filters: { sort: "safest", view: "listed" },
-    empty: "No scored token that isn't flagged yet. Riven never guesses a score.",
+    empty:
+      "No scored token that isn't flagged yet. Riven never guesses a score.",
   },
   {
     id: "flagged",
@@ -31,7 +32,8 @@ export const TABS: TabDef[] = [
     hint: "Tokens with on-chain evidence of fake volume, pulled liquidity, a creator dump, a serial launcher or impersonation. The evidence is shown under each.",
     filters: { sort: "new", view: "caught" },
     showWhy: true,
-    empty: "Riven has flagged nothing among the tokens it has read. Tokens it hasn't read yet are unscored, so this is not a guarantee.",
+    empty:
+      "Riven has flagged nothing among the tokens it has read. Tokens it hasn't read yet are unscored, so this is not a guarantee.",
   },
   {
     id: "volume",
@@ -45,12 +47,17 @@ export const TABS: TabDef[] = [
     hint: "Newest first. Riven scores a token once it has read its holders, so a brand-new pair usually shows Unscored.",
     filters: { sort: "new", view: "all" },
   },
-  { id: "watchlist", label: "Watchlist", hint: "Tokens you starred on this device." },
+  {
+    id: "watchlist",
+    label: "Watchlist",
+    hint: "Tokens you starred on this device.",
+  },
 ]
 
 /** The first tab is what /markets opens on. */
 export const DEFAULT_TAB: TabId = "safest"
-export const parseTab = (v: unknown): TabId => (TABS.some((t) => t.id === v) ? (v as TabId) : DEFAULT_TAB)
+export const parseTab = (v: unknown): TabId =>
+  TABS.some((t) => t.id === v) ? (v as TabId) : DEFAULT_TAB
 export const LIMITS = [25, 50, 100] as const
 export const parseLimit = (v: unknown): number => {
   const n = Number(v)
@@ -66,14 +73,18 @@ export function MarketsTabs({ active }: { active: TabId }) {
           return (
             <li key={t.id}>
               <Link
-                href={t.id === DEFAULT_TAB ? "/markets" : `/markets?tab=${t.id}`}
+                href={
+                  t.id === DEFAULT_TAB ? "/markets" : `/markets?tab=${t.id}`
+                }
                 aria-current={on ? "page" : undefined}
                 scroll={false}
                 className="relative flex min-h-11 items-center px-3.5 text-[13.5px] font-semibold whitespace-nowrap transition-colors"
                 style={{ color: on ? "var(--rv-ink)" : "var(--rv-ink-3)" }}
               >
                 {t.label}
-                {on && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[var(--rv-blue)]" />}
+                {on && (
+                  <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[var(--rv-blue)]" />
+                )}
               </Link>
             </li>
           )
@@ -83,7 +94,8 @@ export function MarketsTabs({ active }: { active: TabId }) {
   )
 }
 
-const stat = "flex flex-col gap-0.5 rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)] px-3 py-2.5 sm:px-3.5 sm:py-3"
+const stat =
+  "flex flex-col gap-0.5 rounded-[var(--rv-radius)] border border-[var(--rv-stroke)] bg-[var(--rv-card)] px-3 py-2.5 sm:px-3.5 sm:py-3"
 
 export async function SummaryStrip({ serverNow }: { serverNow: number }) {
   let s
@@ -93,7 +105,8 @@ export async function SummaryStrip({ serverNow }: { serverNow: number }) {
     console.error(`[markets] summary: ${(err as Error).message}`)
     return (
       <p className="rounded-md border border-[var(--rv-caution)]/30 bg-[var(--rv-caution)]/10 px-3 py-2 text-[12px] text-[var(--rv-ink-2)]">
-        Market totals couldn&apos;t be loaded just now. The lists below load separately.
+        Market totals couldn&apos;t be loaded just now. The lists below load
+        separately.
       </p>
     )
   }
@@ -101,25 +114,41 @@ export async function SummaryStrip({ serverNow }: { serverNow: number }) {
     <section aria-label="Arc market summary" className="flex flex-col gap-2">
       <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <div className={stat}>
-          <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">Volume 24h</dt>
-          <dd className="rv-num text-[16px] font-bold sm:text-[18px] text-[var(--rv-ink)]">{usd(s.volume24h)}</dd>
-        </div>
-        <div className={stat}>
-          <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">Trading now</dt>
-          <dd className="rv-num text-[16px] font-bold sm:text-[18px] text-[var(--rv-ink)]">
-            {compact(s.trading)}
-            <span className="ml-1 text-[11.5px] font-medium text-[var(--rv-ink-3)]">of ~{compact(s.tokens)}</span>
+          <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">
+            Volume 24h
+          </dt>
+          <dd className="rv-num text-[16px] font-bold text-[var(--rv-ink)] sm:text-[18px]">
+            {usd(s.volume24h)}
           </dd>
         </div>
         <div className={stat}>
-          <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">New in 24h</dt>
-          <dd className="rv-num text-[16px] font-bold sm:text-[18px] text-[var(--rv-ink)]">{compact(s.launches24h)}</dd>
+          <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">
+            Trading now
+          </dt>
+          <dd className="rv-num text-[16px] font-bold text-[var(--rv-ink)] sm:text-[18px]">
+            {compact(s.trading)}
+            <span className="ml-1 text-[11.5px] font-medium text-[var(--rv-ink-3)]">
+              of ~{compact(s.tokens)}
+            </span>
+          </dd>
         </div>
         <div className={stat}>
-          <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">Flagged in 24h</dt>
-          <dd className="rv-num text-[16px] font-bold sm:text-[18px] text-[var(--rv-risk)]">
+          <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">
+            New in 24h
+          </dt>
+          <dd className="rv-num text-[16px] font-bold text-[var(--rv-ink)] sm:text-[18px]">
+            {compact(s.launches24h)}
+          </dd>
+        </div>
+        <div className={stat}>
+          <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">
+            Flagged in 24h
+          </dt>
+          <dd className="rv-num text-[16px] font-bold text-[var(--rv-risk)] sm:text-[18px]">
             {compact(s.flagged24h)}
-            <span className="ml-1 text-[11.5px] font-medium text-[var(--rv-ink-3)]">{compact(s.flaggedTotal)} total</span>
+            <span className="ml-1 text-[11.5px] font-medium text-[var(--rv-ink-3)]">
+              {compact(s.flaggedTotal)} total
+            </span>
           </dd>
         </div>
       </dl>
@@ -133,11 +162,17 @@ export function ListError({ tab }: { tab: TabId }) {
   const def = TABS.find((t) => t.id === tab)!
   return (
     <div role="alert" className="px-4 py-10 text-center">
-      <p className="text-[13.5px] font-semibold text-[var(--rv-ink)]">Couldn&apos;t load {def.label.toLowerCase()} just now.</p>
-      <p className="mx-auto mt-1 max-w-md text-[12.5px] text-[var(--rv-ink-3)]">
-        This is a loading problem, not an all-clear: nothing here means nothing was checked.
+      <p className="text-[13.5px] font-semibold text-[var(--rv-ink)]">
+        Couldn&apos;t load {def.label.toLowerCase()} just now.
       </p>
-      <Link href={tab === DEFAULT_TAB ? "/markets" : `/markets?tab=${tab}`} className="rv-btn mt-4 inline-flex h-10 px-4 text-[13px]">
+      <p className="mx-auto mt-1 max-w-md text-[12.5px] text-[var(--rv-ink-3)]">
+        This is a loading problem, not an all-clear: nothing here means nothing
+        was checked.
+      </p>
+      <Link
+        href={tab === DEFAULT_TAB ? "/markets" : `/markets?tab=${tab}`}
+        className="rv-btn mt-4 inline-flex h-10 px-4 text-[13px]"
+      >
         Try again
       </Link>
     </div>
@@ -160,25 +195,44 @@ export async function TabContent({
   if (tab === "watchlist") return <WatchlistList serverNow={serverNow} />
   let tokens
   try {
-    tokens = (await load({ ...DEFAULT_FILTERS, ...def.filters }, limit, { total: false })).tokens
+    tokens = (
+      await load({ ...DEFAULT_FILTERS, ...def.filters }, limit, {
+        total: false,
+      })
+    ).tokens
   } catch (err) {
     console.error(`[markets] ${tab}: ${(err as Error).message}`)
     return <ListError tab={tab} />
   }
   if (tokens.length === 0)
-    return <p className="px-4 py-10 text-center text-[13px] leading-relaxed text-[var(--rv-ink-3)]">{def.empty ?? "Nothing here right now."}</p>
+    return (
+      <p className="px-4 py-10 text-center text-[13px] leading-relaxed text-[var(--rv-ink-3)]">
+        {def.empty ?? "Nothing here right now."}
+      </p>
+    )
   const next = LIMITS[LIMITS.indexOf(limit as (typeof LIMITS)[number]) + 1]
   return (
     <>
-      <MarketsTable tokens={tokens} serverNow={serverNow} showWhy={def.showWhy} />
+      <MarketsTable
+        tokens={tokens}
+        serverNow={serverNow}
+        showWhy={def.showWhy}
+      />
       {tokens.length >= limit && (
         <div className="border-t border-[var(--rv-stroke)] p-3 text-center">
           {next ? (
-            <Link href={`/markets?tab=${tab}&n=${next}`} scroll={false} className="rv-btn-ghost inline-flex h-11 px-5 text-[13px]">
+            <Link
+              href={`/markets?tab=${tab}&n=${next}`}
+              scroll={false}
+              className="rv-btn-ghost inline-flex h-11 px-5 text-[13px]"
+            >
               Show {next - limit} more
             </Link>
           ) : (
-            <Link href="/trending?view=all" className="rv-btn-ghost inline-flex h-11 px-5 text-[13px]">
+            <Link
+              href="/trending?view=all"
+              className="rv-btn-ghost inline-flex h-11 px-5 text-[13px]"
+            >
               See every token in the screener
             </Link>
           )}
@@ -209,7 +263,10 @@ export function SummarySkeleton() {
   return (
     <div aria-hidden className="grid grid-cols-2 gap-2 md:grid-cols-4">
       {Array.from({ length: 4 }, (_, i) => (
-        <div key={i} className="h-[66px] animate-pulse rounded-[var(--rv-radius)] bg-white/[0.04]" />
+        <div
+          key={i}
+          className="h-[66px] animate-pulse rounded-[var(--rv-radius)] bg-white/[0.04]"
+        />
       ))}
     </div>
   )
