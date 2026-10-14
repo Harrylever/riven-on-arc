@@ -1,6 +1,7 @@
 // Server-only module: imports Prisma via @riven/shared, never import
 // from a client component.
 import { cached } from "./memo"
+import { imageUrl } from "./ipfs"
 import {
   ARC_METHODOLOGY,
   arcBand,
@@ -19,7 +20,6 @@ import {
  */
 
 export const EXPLORER = "https://explorer.arc.io"
-const IPFS_GATEWAY = "https://gateway.pinata.cloud/ipfs/"
 
 export type {
   SortKey,
@@ -156,13 +156,7 @@ interface Signals {
   topHolders?: Array<{ address: string; pct: number; tag: string | null }>
 }
 
-export function imageUrl(raw: string | null | undefined): string | null {
-  if (!raw) return null
-  if (raw.startsWith("ipfs://"))
-    return IPFS_GATEWAY + raw.slice("ipfs://".length)
-  if (/^https?:\/\//i.test(raw)) return raw
-  return null
-}
+export { imageUrl }
 
 const num = (v: unknown): number | null =>
   v === null || v === undefined ? null : Number(v)
