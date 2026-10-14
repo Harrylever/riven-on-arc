@@ -1,5 +1,6 @@
 "use client"
 
+import type * as React from "react"
 import { Progress as ProgressPrimitive } from "@base-ui/react/progress"
 import { cn } from "cn"
 
@@ -7,8 +8,16 @@ function Progress({
   className,
   children,
   value,
+  trackClassName,
+  indicatorClassName,
+  indicatorStyle,
   ...props
-}: ProgressPrimitive.Root.Props) {
+}: ProgressPrimitive.Root.Props & {
+  /** Restyle the bar without rebuilding it. */
+  trackClassName?: string
+  indicatorClassName?: string
+  indicatorStyle?: React.CSSProperties
+}) {
   return (
     <ProgressPrimitive.Root
       value={value}
@@ -17,8 +26,11 @@ function Progress({
       {...props}
     >
       {children}
-      <ProgressTrack>
-        <ProgressIndicator />
+      <ProgressTrack className={trackClassName}>
+        <ProgressIndicator
+          className={indicatorClassName}
+          style={indicatorStyle}
+        />
       </ProgressTrack>
     </ProgressPrimitive.Root>
   )

@@ -9,6 +9,7 @@ import { ArrowIcon } from "@/components/riven/arrow"
 import { PriceGap } from "@/components/perps/source-ui"
 import { Button } from "@/components/ui/button"
 import { Hint } from "@/components/riven/hint"
+import { Progress } from "@/components/ui/progress"
 
 const OUTCOME: Record<string, { label: string; color: string }> = {
   pending: { label: "Live", color: "var(--rv-blue)" },
@@ -149,12 +150,14 @@ export function CallCard({
             )}
           </span>
         </div>
-        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-          <div
-            className="h-full rounded-full"
-            style={{ width: `${conv * 10}%`, background: convColor }}
-          />
-        </div>
+        <Progress
+          value={conv * 10}
+          aria-label="Conviction"
+          className="mt-1 block"
+          trackClassName="h-1.5 rounded-full bg-white/[0.06]"
+          indicatorClassName="rounded-full"
+          indicatorStyle={{ background: convColor }}
+        />
         {s.winProb !== null && s.winProb !== undefined && (
           <p className="mt-1 text-[10.5px] text-[var(--rv-ink-3)]">
             Model win odds{" "}

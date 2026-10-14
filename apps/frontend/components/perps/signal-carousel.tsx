@@ -7,6 +7,7 @@ import { CoinIcon, coinArtUrl } from "@/components/perps/coin-icon"
 import { ago, priceUsd } from "@/lib/format"
 import { signalCoinKey, venueName } from "@/lib/perp-symbols"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { Progress } from "@/components/ui/progress"
 
 const OUTCOME: Record<string, { label: string; color: string }> = {
   pending: { label: "Live", color: "var(--rv-blue)" },
@@ -17,7 +18,8 @@ const OUTCOME: Record<string, { label: string; color: string }> = {
   expired: { label: "Expired", color: "var(--rv-ink-3)" },
 }
 
-const pctFrom = (from: number, to: number) => (from > 0 ? ((to - from) / from) * 100 : 0)
+const pctFrom = (from: number, to: number) =>
+  from > 0 ? ((to - from) / from) * 100 : 0
 
 /** The pair's own logo, big, over a soft blurred copy of itself — readable at a glance. */
 function CoinArt({ coin, long }: { coin: string; long: boolean }) {
@@ -26,12 +28,19 @@ function CoinArt({ coin, long }: { coin: string; long: boolean }) {
     <>
       <div
         className="absolute inset-0 scale-150 opacity-40 blur-2xl"
-        style={{ backgroundImage: `url(${url})`, backgroundSize: "60%", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}
+        style={{
+          backgroundImage: `url(${url})`,
+          backgroundSize: "60%",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
         aria-hidden
       />
       <div
         className="absolute inset-0"
-        style={{ background: `radial-gradient(circle at 50% 55%, transparent 30%, ${long ? "rgba(20,40,8,0.55)" : "rgba(48,10,10,0.55)"} 100%)` }}
+        style={{
+          background: `radial-gradient(circle at 50% 55%, transparent 30%, ${long ? "rgba(20,40,8,0.55)" : "rgba(48,10,10,0.55)"} 100%)`,
+        }}
         aria-hidden
       />
       <div className="absolute inset-0 grid place-items-center">
@@ -58,7 +67,8 @@ export function SignalCarousel({
   if (signals.length === 0) {
     return (
       <div className="rv-card px-4 py-6 text-center text-[13px] text-[var(--rv-ink-2)]">
-        No open Riven Scanner calls right now. It scans every ~10 minutes; connect Telegram below to get the next one.
+        No open Riven Scanner calls right now. It scans every ~10 minutes;
+        connect Telegram below to get the next one.
       </div>
     )
   }
@@ -103,41 +113,65 @@ export function SignalCarousel({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-bold text-[var(--rv-ink)]">
                     {coin}
-                    <span className="text-[11.5px] font-semibold text-[var(--rv-ink-3)]"> /USDT</span>
+                    <span className="text-[11.5px] font-semibold text-[var(--rv-ink-3)]">
+                      {" "}
+                      /USDT
+                    </span>
                   </p>
                   <p className="text-[11px] text-[var(--rv-ink-3)]">
                     Called on {venueName(s.exchange)} · {ago(s.scanTime)}
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="rv-num text-[13px] font-bold text-[var(--rv-ink)]">{priceUsd(mark ?? s.entryPrice)}</p>
+                  <p className="rv-num text-[13px] font-bold text-[var(--rv-ink)]">
+                    {priceUsd(mark ?? s.entryPrice)}
+                  </p>
                   <p className="text-[10.5px] text-[var(--rv-ink-3)]">
-                    {mark ? "live price" : marksReady ? "entry · no live market" : "entry"}
+                    {mark
+                      ? "live price"
+                      : marksReady
+                        ? "entry · no live market"
+                        : "entry"}
                   </p>
                 </div>
               </div>
               {/* conviction */}
               <div className="flex items-center gap-2">
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
-                  <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.confidence * 10)}%`, background: col }} />
-                </div>
-                <span className="rv-num text-[11px] font-semibold text-[var(--rv-ink-2)]">{s.confidence}/10</span>
+                <Progress
+                  value={Math.min(100, s.confidence * 10)}
+                  aria-label="Conviction"
+                  className="block flex-1"
+                  trackClassName="h-1.5 rounded-full bg-white/[0.06]"
+                  indicatorClassName="rounded-full"
+                  indicatorStyle={{ background: col }}
+                />
+                <span className="rv-num text-[11px] font-semibold text-[var(--rv-ink-2)]">
+                  {s.confidence}/10
+                </span>
               </div>
               <div className="rv-num grid grid-cols-3 gap-1 text-[10.5px]">
                 <span className="text-[var(--rv-ink-3)]">
                   Entry · {venueName(s.exchange)}
-                  <b className="block text-[11.5px] text-[var(--rv-ink)]">{priceUsd(s.entryPrice)}</b>
+                  <b className="block text-[11.5px] text-[var(--rv-ink)]">
+                    {priceUsd(s.entryPrice)}
+                  </b>
                 </span>
                 <span className="text-[var(--rv-ink-3)]">
                   T1
-                  <b className="block text-[11.5px]" style={{ color: "var(--rv-up)" }}>
+                  <b
+                    className="block text-[11.5px]"
+                    style={{ color: "var(--rv-up)" }}
+                  >
                     {t1Pct >= 0 ? "+" : ""}
                     {t1Pct.toFixed(1)}%
                   </b>
                 </span>
                 <span className="text-[var(--rv-ink-3)]">
                   Stop
-                  <b className="block text-[11.5px]" style={{ color: "var(--rv-down)" }}>
+                  <b
+                    className="block text-[11.5px]"
+                    style={{ color: "var(--rv-down)" }}
+                  >
                     {slPct >= 0 ? "+" : ""}
                     {slPct.toFixed(1)}%
                   </b>

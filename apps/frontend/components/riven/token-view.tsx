@@ -54,6 +54,7 @@ import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
 import { Hint } from "@/components/riven/hint"
+import { Progress } from "@/components/ui/progress"
 
 const EXPLORER = "https://explorer.arc.io"
 const ORDER: SubScoreKey[] = [
@@ -1169,12 +1170,14 @@ function SubBar({
             <span className="text-[var(--rv-ink-3)]">/10</span>
           </span>
         </div>
-        <div className="mt-1 h-1.5 overflow-hidden rounded-sm bg-white/[0.06]">
-          <div
-            className="h-full rounded-sm"
-            style={{ width: `${Math.max(2, ratio * 100)}%`, background: color }}
-          />
-        </div>
+        <Progress
+          value={Math.max(2, ratio * 100)}
+          aria-label="Sub-score"
+          className="mt-1 block"
+          trackClassName="h-1.5 rounded-sm bg-white/[0.06]"
+          indicatorClassName="rounded-sm"
+          indicatorStyle={{ background: color }}
+        />
       </div>
     </Hint>
   )
@@ -1256,15 +1259,13 @@ function Holders({
               of supply
             </span>
           </p>
-          <div
-            className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]"
-            aria-hidden
-          >
-            <div
-              className="h-full rounded-full bg-[var(--rv-blue)]"
-              style={{ width: `${top10}%` }}
-            />
-          </div>
+          <Progress
+            value={top10}
+            aria-label="Top 10 holders' share of supply"
+            className="mt-3 block"
+            trackClassName="h-2 rounded-full bg-white/[0.06]"
+            indicatorClassName="rounded-full bg-[var(--rv-blue)]"
+          />
           <p className="mt-1.5 text-[11px] text-[var(--rv-ink-3)]">
             Pool, burn and launchpad contracts excluded.
           </p>

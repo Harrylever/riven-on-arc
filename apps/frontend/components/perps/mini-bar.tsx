@@ -1,4 +1,5 @@
 /** A labelled 0–10 bar (signal conviction). */
+import { Progress } from "@/components/ui/progress"
 export function MiniBar({
   label,
   value,
@@ -23,15 +24,13 @@ export function MiniBar({
           {value != null ? `${value.toFixed(1)}/10` : "not checked"}
         </span>
       </div>
-      <div className="mt-1 h-1.5 w-full overflow-hidden bg-white/[0.06]">
-        <div
-          className="h-full transition-all"
-          style={{
-            width: `${Math.min(100, Math.max(0, v * 10))}%`,
-            background: color,
-          }}
-        />
-      </div>
+      <Progress
+        value={Math.min(100, Math.max(0, v * 10))}
+        aria-label={label}
+        className="mt-1 block"
+        trackClassName="h-1.5 bg-white/[0.06]"
+        indicatorStyle={{ background: color }}
+      />
     </div>
   )
 }
