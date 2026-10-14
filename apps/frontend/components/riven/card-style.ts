@@ -8,7 +8,7 @@ export const TAB_TRIGGER =
   "h-11 flex-none px-3.5 text-[13.5px] font-semibold tracking-normal normal-case text-[var(--rv-ink-3)] after:bg-[var(--rv-blue)] data-active:text-[var(--rv-ink)] group-data-horizontal/tabs:after:inset-x-2 group-data-horizontal/tabs:after:bottom-0 hover:text-[var(--rv-ink)]"
 /** The same, as filled blocks with an underline: the two-way switches on the perps pages. */
 export const TAB_BLOCK =
-  "rounded-none border-0 text-[var(--rv-ink-3)] tracking-wide data-active:bg-[rgba(124,196,232,0.16)] data-active:text-white group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-0 after:bg-[var(--rv-blue)] hover:text-[var(--rv-ink)]"
+  "rounded-none border-0 text-[var(--rv-ink-3)] tracking-wide after:bg-[var(--rv-blue)] hover:text-[var(--rv-ink)] group-data-horizontal/tabs:after:inset-x-0 group-data-horizontal/tabs:after:bottom-0 group-data-[variant=line]/tabs-list:data-active:bg-[rgba(124,196,232,0.18)] group-data-[variant=line]/tabs-list:data-active:text-white data-active:after:opacity-100"
 
 /** shadcn DialogContent in Riven's look: a flat card with a stroke, no padding (the dialog lays out its own sections). */
 export const DIALOG =
