@@ -1,9 +1,13 @@
 import { getDb, marketFlagReasons } from "@riven/shared";
 import { createPublicClient, http, parseAbi, type Address, type PublicClient } from "viem";
-import { arc, cleanText, USDC, arcTransport } from "./config";
+import { arc, USDC, arcTransport } from "./config";
+import { imageAddress, imageFromTokenUri } from "./token-art";
 
-/** Arc launchpads publish the token's icon on the token itself: logo() → "ipfs://…". */
-const LOGO_ABI = parseAbi(["function logo() view returns (string)"]);
+/**
+ * Arc launchpads publish the token's icon on the token itself: logo() → "ipfs://…", or tokenURI() → an embedded
+ * JSON document with an "image" (the form the largest tokens by volume use; see token-art.ts).
+ */
+const LOGO_ABI = parseAbi(["function logo() view returns (string)", "function tokenURI() view returns (string)"]);
 const LOGO_PER_RUN = Number(process.env.ARC_LOGO_LOOKUPS_PER_RUN ?? "300");
 
 const DEXSCREENER = "https://api.dexscreener.com/tokens/v1/arc/";
@@ -238,7 +242,7 @@ export class MarketSyncService {
   private readonly iconTried = new Set<string>();
   private readonly logoTried = new Set<string>();
 
-  /** Icons the token sets on-chain (logo()), read in one multicall per batch. */
+  /** Icons the token sets on-chain (logo() or tokenURI()), read in one multicall per batch. */
   private async fillLogos() {
     const db = getDb();
     const missing = await db.token.findMany({
@@ -249,17 +253,23 @@ export class MarketSyncService {
     });
     const todo = missing.filter((t) => !this.logoTried.has(t.mint)).slice(0, LOGO_PER_RUN);
     if (todo.length === 0) return 0;
+    // Two calls per token, answered together: most contracts have neither getter, and that is fine (allowFailure).
     const res = await this.client.multicall({
       allowFailure: true,
-      contracts: todo.map((t) => ({ address: t.mint as Address, abi: LOGO_ABI, functionName: "logo" }) as const),
+      contracts: todo.flatMap((t) => [
+        { address: t.mint as Address, abi: LOGO_ABI, functionName: "logo" } as const,
+        { address: t.mint as Address, abi: LOGO_ABI, functionName: "tokenURI" } as const,
+      ]),
     });
     let found = 0;
     for (const [i, t] of todo.entries()) {
       this.logoTried.add(t.mint);
-      const r = res[i];
-      if (r?.status !== "success") continue;
-      const uri = cleanText(String(r.result), 400);
-      if (!/^(ipfs:\/\/|https:\/\/|ar:\/\/)\S+$/.test(uri)) continue;
+      const logo = res[2 * i];
+      const tokenUri = res[2 * i + 1];
+      const uri =
+        (logo?.status === "success" ? imageAddress(logo.result) : null) ??
+        (tokenUri?.status === "success" ? imageFromTokenUri(tokenUri.result) : null);
+      if (!uri) continue;
       await db.token.update({ where: { id: t.id }, data: { imageUri: uri } });
       found++;
     }
