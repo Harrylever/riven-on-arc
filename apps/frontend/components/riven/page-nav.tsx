@@ -66,10 +66,16 @@ export function PageNav({
     if (onPage) onPage(n)
     else startTransition(() => router.push(hrefFor(n)))
   }
-  const numbers =
+  const shown =
     pages === undefined
       ? [page]
-      : [...new Set([1, page - 2, page - 1, page, page + 1, page + 2, pages])].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b)
+      : [...new Set([1, page - 2, page - 1, page, page + 1, page + 2, pages])]
+          .filter((n) => n >= 1 && n <= pages)
+          .sort((a, b) => a - b)
+  // An ellipsis that would hide a single page is just that page.
+  const numbers = shown.flatMap((n, i) =>
+    i > 0 && n - shown[i - 1]! === 2 ? [n - 1, n] : [n],
+  )
   const atEnd = pages === undefined ? !hasNext : page >= pages
 
   return (
@@ -91,7 +97,14 @@ export function PageNav({
             {i > 0 && n - numbers[i - 1]! > 1 && (
               <PaginationEllipsis className="size-auto px-1 text-[12px] text-[var(--rv-ink-3)]" />
             )}
-            <PaginationLink href={hrefFor(n)} role="link" isActive={n === page} size="default" onClick={go(n)} className={PAGE_ITEM}>
+            <PaginationLink
+              href={hrefFor(n)}
+              role="link"
+              isActive={n === page}
+              size="default"
+              onClick={go(n)}
+              className={PAGE_ITEM}
+            >
               {n}
             </PaginationLink>
           </PaginationItem>
@@ -99,7 +112,9 @@ export function PageNav({
         <PaginationItem>
           <PaginationNext
             text="Next"
-            href={hrefFor(pages === undefined ? page + 1 : Math.min(pages, page + 1))}
+            href={hrefFor(
+              pages === undefined ? page + 1 : Math.min(pages, page + 1),
+            )}
             role="link"
             aria-disabled={atEnd}
             tabIndex={atEnd ? -1 : undefined}

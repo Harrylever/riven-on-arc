@@ -128,34 +128,34 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[92vh] w-[min(56rem,calc(100vw-24px))] max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-[#091312] p-0 text-[#d6e3e0] shadow-2xl ring-1 ring-[#162a27] sm:max-w-none"
+        className="flex max-h-[92vh] w-[min(56rem,calc(100vw-24px))] max-w-none flex-col gap-0 overflow-hidden rounded-[var(--rv-radius)] border-0 bg-[var(--rv-card)] p-0 text-[var(--rv-ink)] shadow-2xl ring-1 ring-[var(--rv-stroke-strong)] sm:max-w-none"
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[#162a27] bg-[#0c1a18] px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between border-b border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <DialogTitle className="font-sans text-lg font-black tracking-normal text-white normal-case">
+            <DialogTitle className="font-sans text-lg font-black tracking-normal text-[var(--rv-ink)] normal-case">
               {signal.symbol}
             </DialogTitle>
             <DialogDescription className="sr-only">
               Review the scanner setup and place a paper order.
             </DialogDescription>
-            <span className="border border-[#1d3834] bg-[#091514] px-2 py-0.5 text-[11px] font-bold text-[#7d9b96] uppercase">
+            <span className="rounded-md border border-[var(--rv-stroke-strong)] bg-[var(--rv-sunken)] px-2 py-0.5 text-[11px] font-bold text-[var(--rv-ink-3)] uppercase">
               {signal.exchange}
             </span>
             <span
-              className="border px-2 py-0.5 text-[11px] font-extrabold uppercase"
+              className="rounded-md border px-2 py-0.5 text-[11px] font-extrabold uppercase"
               style={{ borderColor: biasColor, color: biasColor }}
             >
               {signal.bias}
             </span>
-            <span className="border border-[#1d3834] bg-[#091514] px-2 py-0.5 text-[10px] font-bold text-[#2ee6a8]">
+            <span className="rounded-md border border-[var(--rv-stroke-strong)] bg-[var(--rv-sunken)] px-2 py-0.5 text-[10px] font-bold text-[var(--rv-blue)]">
               R:R 1:{rrRatio}
             </span>
           </div>
 
           <DialogClose
             render={<Button variant="outline" size="icon-xs" />}
-            className="size-7 rounded-none border border-[#1d3834] bg-transparent text-sm font-bold text-[#7d9b96] transition-colors hover:border-[#2ee6a8] hover:text-white"
+            className="size-7 rounded-md border border-[var(--rv-stroke-strong)] bg-transparent text-sm font-bold text-[var(--rv-ink-3)] transition-colors hover:border-[var(--rv-blue)] hover:text-[var(--rv-ink)]"
             aria-label="Close"
           >
             ✕
@@ -165,8 +165,8 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
         {/* Modal Body: Two columns on desktop */}
         <div className="grid flex-1 overflow-y-auto sm:grid-cols-1 md:grid-cols-12">
           {/* Left Column: Signal Intelligence Breakdown (5 cols) */}
-          <div className="border-b border-[#162a27] bg-[#06100f] p-4 sm:p-5 md:col-span-5 md:border-r md:border-b-0">
-            <div className="text-xs font-bold tracking-wider text-[#7d9b96] uppercase">
+          <div className="border-b border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-4 sm:p-5 md:col-span-5 md:border-r md:border-b-0">
+            <div className="text-xs font-bold tracking-wider text-[var(--rv-ink-3)] uppercase">
               Signal Intelligence & Key Levels
             </div>
 
@@ -180,49 +180,53 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
 
             {/* Price Targets Matrix */}
             <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between border border-[#162a27] bg-[#0c1a18] p-2.5 text-xs">
-                <span className="text-[#7d9b96]">Tracked Entry</span>
-                <span className="font-mono font-bold text-white">
+              <div className="flex items-center justify-between rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5 text-xs">
+                <span className="text-[var(--rv-ink-3)]">Tracked Entry</span>
+                <span className="font-mono font-bold text-[var(--rv-ink)]">
                   {priceUsd(signal.entryPrice)}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between border border-[#162a27] bg-[#0c1a18] p-2.5 text-xs">
-                <span className="text-[#7d9b96]">Entry Zone</span>
-                <span className="font-mono font-bold text-[#d6e3e0]">
+              <div className="flex items-center justify-between rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5 text-xs">
+                <span className="text-[var(--rv-ink-3)]">Entry Zone</span>
+                <span className="font-mono font-bold text-[var(--rv-ink)]">
                   {priceUsd(signal.entryLow)} – {priceUsd(signal.entryHigh)}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between border border-red-500/20 bg-red-500/5 p-2.5 text-xs">
-                <span className="text-red-400">Stop Loss</span>
-                <span className="font-mono font-bold text-red-400">
+              <div className="flex items-center justify-between rounded-md border border-[color-mix(in_srgb,var(--rv-down)_20%,transparent)] bg-[color-mix(in_srgb,var(--rv-down)_5%,transparent)] p-2.5 text-xs">
+                <span className="text-[var(--rv-down)]">Stop Loss</span>
+                <span className="font-mono font-bold text-[var(--rv-down)]">
                   {priceUsd(signal.stopLoss)}
                 </span>
               </div>
 
-              <div className="border border-[#162a27] bg-[#0c1a18] p-2.5">
-                <div className="mb-1 text-[10px] font-bold text-[#7d9b96] uppercase">
+              <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-2.5">
+                <div className="mb-1 text-[10px] font-bold text-[var(--rv-ink-3)] uppercase">
                   Take Profit Targets
                 </div>
                 <div className="space-y-1.5 font-mono text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[#2ee6a8]">
+                    <span className="text-[var(--rv-up)]">
                       Target 1 (Conservative)
                     </span>
-                    <span className="font-bold text-white">
+                    <span className="font-bold text-[var(--rv-ink)]">
                       {priceUsd(signal.t1)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[#2ee6a8]">Target 2 (Mid-Range)</span>
-                    <span className="font-bold text-white">
+                    <span className="text-[var(--rv-up)]">
+                      Target 2 (Mid-Range)
+                    </span>
+                    <span className="font-bold text-[var(--rv-ink)]">
                       {priceUsd(signal.t2)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[#2ee6a8]">Target 3 (Extended)</span>
-                    <span className="font-bold text-white">
+                    <span className="text-[var(--rv-up)]">
+                      Target 3 (Extended)
+                    </span>
+                    <span className="font-bold text-[var(--rv-ink)]">
                       {priceUsd(signal.t3)}
                     </span>
                   </div>
@@ -231,14 +235,16 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
             </div>
 
             {/* Call Timing & Signal Stats */}
-            <div className="mt-4 border-t border-[#162a27] pt-3 text-[11px] text-[#7d9b96]">
+            <div className="mt-4 border-t border-[var(--rv-stroke)] pt-3 text-[11px] text-[var(--rv-ink-3)]">
               <div className="flex justify-between py-1">
                 <span>Signal Age:</span>
-                <span className="text-white">{ago(signal.scanTime)} ago</span>
+                <span className="text-[var(--rv-ink)]">
+                  {ago(signal.scanTime)} ago
+                </span>
               </div>
               <div className="flex justify-between py-1">
                 <span>Status:</span>
-                <span className="font-bold text-[#2ee6a8] uppercase">
+                <span className="font-bold text-[var(--rv-blue)] uppercase">
                   {signal.outcome.replace("_", " ")}
                 </span>
               </div>
@@ -256,7 +262,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                 href={getExchangeUrl()}
                 target="_blank"
                 rel="noreferrer"
-                className="flex w-full items-center justify-center gap-2 border border-[#1d3834] bg-[#0c1a18] py-2 text-xs font-bold text-[#2ee6a8] transition-colors hover:border-[#2ee6a8] hover:bg-[#112421]"
+                className="flex w-full items-center justify-center gap-2 rounded-md border border-[var(--rv-stroke-strong)] bg-[var(--rv-sunken)] py-2 text-xs font-bold text-[var(--rv-blue)] transition-colors hover:border-[var(--rv-blue)] hover:bg-[var(--rv-card-hover)]"
               >
                 Open on {signal.exchange} ↗
               </a>
@@ -266,13 +272,15 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
           {/* Right Column: Interactive Order Execution Panel (7 cols) */}
           <div className="p-4 sm:p-5 md:col-span-7">
             {/* Account Binding Indicator */}
-            <div className="mb-3 flex items-center justify-between border border-[#162a27] bg-[#06100f] px-3 py-1.5 text-xs">
-              <span className="text-[#7d9b96]">Trading Account:</span>
-              <span className="font-bold text-[#2ee6a8]">{accountLabel}</span>
+            <div className="mb-3 flex items-center justify-between rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 py-1.5 text-xs">
+              <span className="text-[var(--rv-ink-3)]">Trading Account:</span>
+              <span className="font-bold text-[var(--rv-blue)]">
+                {accountLabel}
+              </span>
             </div>
 
             {/* Order Type Tabs: LIMIT | MARKET | BUY SPOT */}
-            <div className="flex border border-[#162a27] bg-[#06100f]">
+            <div className="flex rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)]">
               {(["LIMIT", "MARKET", "SPOT"] as const).map((type) => (
                 <Button
                   variant="plain"
@@ -289,8 +297,8 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   }}
                   className={`flex-1 py-2 text-center text-xs font-black transition-colors ${
                     orderType === type
-                      ? "bg-[#2ee6a8] text-black shadow"
-                      : "text-[#7d9b96] hover:text-white"
+                      ? "bg-[var(--rv-blue)] text-[var(--rv-on-blue)]"
+                      : "text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
                   }`}
                 >
                   {type === "SPOT"
@@ -312,9 +320,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   onClick={() => setSide("LONG")}
                   className={`py-1.5 text-xs font-black transition-colors ${
                     side === "LONG"
-                      ? "border border-[#2ee6a8] bg-[#2ee6a8]/20 text-[#2ee6a8]"
-                      : "border border-[#162a27] bg-[#0c1a18] text-[#7d9b96] hover:text-white"
-                  }`}
+                      ? "border border-[var(--rv-up)] bg-[color-mix(in_srgb,var(--rv-up)_18%,transparent)] text-[var(--rv-up)]"
+                      : "border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+                  } rounded-md`}
                 >
                   LONG (Buy)
                 </Button>
@@ -325,9 +333,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   onClick={() => setSide("SHORT")}
                   className={`py-1.5 text-xs font-black transition-colors ${
                     side === "SHORT"
-                      ? "border border-red-500 bg-red-500/20 text-red-400"
-                      : "border border-[#162a27] bg-[#0c1a18] text-[#7d9b96] hover:text-white"
-                  }`}
+                      ? "border border-[var(--rv-down)] bg-[color-mix(in_srgb,var(--rv-down)_20%,transparent)] text-[var(--rv-down)]"
+                      : "border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+                  } rounded-md`}
                 >
                   SHORT (Sell)
                 </Button>
@@ -338,7 +346,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
               {/* Order Price Input */}
               <div>
                 <div className="mb-1 flex justify-between text-xs">
-                  <span className="text-[#7d9b96]">
+                  <span className="text-[var(--rv-ink-3)]">
                     {orderType === "MARKET"
                       ? "Market Execution Price"
                       : "Limit Price (USD)"}
@@ -348,7 +356,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     size="bare"
                     type="button"
                     onClick={() => setPrice(String(signal.entryPrice))}
-                    className="text-[10px] text-[#2ee6a8] hover:underline"
+                    className="text-[10px] text-[var(--rv-blue)] hover:underline"
                   >
                     Signal Entry ({priceUsd(signal.entryPrice)})
                   </Button>
@@ -359,15 +367,17 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   value={price}
                   disabled={orderType === "MARKET"}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="w-full border border-[#162a27] bg-[#06100f] px-3 py-2 font-mono text-sm text-white outline-none focus:border-[#2ee6a8] disabled:opacity-60"
+                  className="w-full rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 py-2 font-mono text-sm text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)] disabled:opacity-60"
                 />
               </div>
 
               {/* Order Size Input in USD */}
               <div>
                 <div className="mb-1 flex justify-between text-xs">
-                  <span className="text-[#7d9b96]">Position Size (USD)</span>
-                  <span className="text-[11px] text-[#7d9b96]">
+                  <span className="text-[var(--rv-ink-3)]">
+                    Position Size (USD)
+                  </span>
+                  <span className="text-[11px] text-[var(--rv-ink-3)]">
                     ≈ {coinUnits.toFixed(4)} {signal.symbol.replace("USDT", "")}
                   </span>
                 </div>
@@ -376,7 +386,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   step="any"
                   value={usdSize}
                   onChange={(e) => setUsdSize(e.target.value)}
-                  className="w-full border border-[#162a27] bg-[#06100f] px-3 py-2 font-mono text-sm text-white outline-none focus:border-[#2ee6a8]"
+                  className="w-full rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] px-3 py-2 font-mono text-sm text-[var(--rv-ink)] outline-none focus:border-[var(--rv-blue)]"
                 />
 
                 {/* Percentage Quick Selectors */}
@@ -388,7 +398,7 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                       key={pct}
                       type="button"
                       onClick={() => handlePercentageSelect(pct)}
-                      className="border border-[#162a27] bg-[#0c1a18] py-1 text-[11px] font-bold text-[#7d9b96] transition-colors hover:border-[#2ee6a8] hover:text-white"
+                      className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] py-1 text-[11px] font-bold text-[var(--rv-ink-3)] transition-colors hover:border-[var(--rv-blue)] hover:text-[var(--rv-ink)]"
                     >
                       {pct * 100}%
                     </Button>
@@ -400,8 +410,8 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
               {orderType !== "SPOT" && (
                 <div>
                   <div className="mb-1 flex justify-between text-xs">
-                    <span className="text-[#7d9b96]">Leverage</span>
-                    <span className="font-bold text-[#2ee6a8]">
+                    <span className="text-[var(--rv-ink-3)]">Leverage</span>
+                    <span className="font-bold text-[var(--rv-blue)]">
                       {leverage}x
                     </span>
                   </div>
@@ -414,9 +424,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     onValueChange={(v) =>
                       setLeverage(Array.isArray(v) ? (v[0] ?? 1) : v)
                     }
-                    className="py-2 [&_[data-slot=slider-range]]:bg-[#2ee6a8] [&_[data-slot=slider-thumb]]:bg-[#2ee6a8] [&_[data-slot=slider-track]]:bg-[#162a27]"
+                    className="py-2 [&_[data-slot=slider-range]]:bg-[var(--rv-blue)] [&_[data-slot=slider-thumb]]:bg-[var(--rv-blue)] [&_[data-slot=slider-track]]:bg-[var(--rv-stroke)]"
                   />
-                  <div className="flex justify-between text-[10px] text-[#7d9b96]">
+                  <div className="flex justify-between text-[10px] text-[var(--rv-ink-3)]">
                     <span>1x</span>
                     <span>10x</span>
                     <span>25x</span>
@@ -426,8 +436,8 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
               )}
 
               {/* Quick TP / SL Presets from Signal */}
-              <div className="border border-[#162a27] bg-[#06100f] p-3 text-xs">
-                <div className="mb-2 font-bold text-[#7d9b96]">
+              <div className="rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-sunken)] p-3 text-xs">
+                <div className="mb-2 font-bold text-[var(--rv-ink-3)]">
                   Signal Target Presets
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -436,11 +446,11 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     size="bare"
                     type="button"
                     onClick={() => setSelectedTp(signal.t1)}
-                    className={`border p-1.5 text-center transition-colors ${
+                    className={`flex-col border p-1.5 text-center transition-colors ${
                       selectedTp === signal.t1
-                        ? "border-[#2ee6a8] bg-[#2ee6a8]/10 text-[#2ee6a8]"
-                        : "border-[#162a27] text-[#7d9b96] hover:text-white"
-                    }`}
+                        ? "border-[var(--rv-blue)] bg-[color-mix(in_srgb,var(--rv-blue)_10%,transparent)] text-[var(--rv-blue)]"
+                        : "border-[var(--rv-stroke)] text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+                    } rounded-md`}
                   >
                     <div className="text-[10px] font-bold">TP 1</div>
                     <div className="font-mono text-[11px]">
@@ -452,11 +462,11 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     size="bare"
                     type="button"
                     onClick={() => setSelectedTp(signal.t2)}
-                    className={`border p-1.5 text-center transition-colors ${
+                    className={`flex-col border p-1.5 text-center transition-colors ${
                       selectedTp === signal.t2
-                        ? "border-[#2ee6a8] bg-[#2ee6a8]/10 text-[#2ee6a8]"
-                        : "border-[#162a27] text-[#7d9b96] hover:text-white"
-                    }`}
+                        ? "border-[var(--rv-blue)] bg-[color-mix(in_srgb,var(--rv-blue)_10%,transparent)] text-[var(--rv-blue)]"
+                        : "border-[var(--rv-stroke)] text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+                    } rounded-md`}
                   >
                     <div className="text-[10px] font-bold">TP 2</div>
                     <div className="font-mono text-[11px]">
@@ -468,11 +478,11 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     size="bare"
                     type="button"
                     onClick={() => setSelectedTp(signal.t3)}
-                    className={`border p-1.5 text-center transition-colors ${
+                    className={`flex-col border p-1.5 text-center transition-colors ${
                       selectedTp === signal.t3
-                        ? "border-[#2ee6a8] bg-[#2ee6a8]/10 text-[#2ee6a8]"
-                        : "border-[#162a27] text-[#7d9b96] hover:text-white"
-                    }`}
+                        ? "border-[var(--rv-blue)] bg-[color-mix(in_srgb,var(--rv-blue)_10%,transparent)] text-[var(--rv-blue)]"
+                        : "border-[var(--rv-stroke)] text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+                    } rounded-md`}
                   >
                     <div className="text-[10px] font-bold">TP 3</div>
                     <div className="font-mono text-[11px]">
@@ -481,8 +491,8 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                   </Button>
                 </div>
 
-                <div className="mt-2.5 flex items-center justify-between border-t border-[#162a27] pt-2">
-                  <span className="text-[11px] text-[#7d9b96]">
+                <div className="mt-2.5 flex items-center justify-between border-t border-[var(--rv-stroke)] pt-2">
+                  <span className="text-[11px] text-[var(--rv-ink-3)]">
                     Stop Loss Preset:
                   </span>
                   <Button
@@ -492,9 +502,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                     onClick={() => setSelectedSl(signal.stopLoss)}
                     className={`border px-2 py-0.5 text-center font-mono text-xs transition-colors ${
                       selectedSl === signal.stopLoss
-                        ? "border-red-500 bg-red-500/10 text-red-400"
-                        : "border-[#162a27] text-[#7d9b96] hover:text-white"
-                    }`}
+                        ? "border-[var(--rv-down)] bg-[color-mix(in_srgb,var(--rv-down)_10%,transparent)] text-[var(--rv-down)]"
+                        : "border-[var(--rv-stroke)] text-[var(--rv-ink-3)] hover:text-[var(--rv-ink)]"
+                    } rounded-md`}
                   >
                     SL ({priceUsd(signal.stopLoss)})
                   </Button>
@@ -502,16 +512,16 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
               </div>
 
               {/* Order Summary breakdown */}
-              <div className="space-y-1 text-xs text-[#7d9b96]">
+              <div className="space-y-1 text-xs text-[var(--rv-ink-3)]">
                 <div className="flex justify-between">
                   <span>Available Cash Balance:</span>
-                  <span className="font-mono font-bold text-white">
+                  <span className="font-mono font-bold text-[var(--rv-ink)]">
                     ${cashBalance.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Required Margin:</span>
-                  <span className="font-mono font-bold text-white">
+                  <span className="font-mono font-bold text-[var(--rv-ink)]">
                     ${requiredMargin.toFixed(2)}
                   </span>
                 </div>
@@ -523,16 +533,16 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
 
               {/* Error & Success Feedback */}
               {orderError && (
-                <div className="border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-400">
+                <div className="rounded-md border border-[color-mix(in_srgb,var(--rv-down)_40%,transparent)] bg-[color-mix(in_srgb,var(--rv-down)_10%,transparent)] p-2 text-xs text-[var(--rv-down)]">
                   {orderError}
                 </div>
               )}
               {orderSuccess && (
-                <div className="border border-[#2ee6a8]/40 bg-[#2ee6a8]/10 p-2 text-xs text-[#2ee6a8]">
+                <div className="rounded-md border border-[color-mix(in_srgb,var(--rv-blue)_40%,transparent)] bg-[color-mix(in_srgb,var(--rv-blue)_10%,transparent)] p-2 text-xs text-[var(--rv-blue)]">
                   {orderSuccess}{" "}
                   <Link
                     href="/portfolio"
-                    className="inline-flex items-center gap-1 font-bold underline hover:text-white"
+                    className="inline-flex items-center gap-1 font-bold underline hover:text-[var(--rv-ink)]"
                   >
                     View in Portfolio
                     <ArrowIcon />
@@ -546,11 +556,9 @@ export function SignalOrderModal({ signal, onClose }: SignalOrderModalProps) {
                 size="bare"
                 type="submit"
                 className={`w-full py-2.5 text-sm font-black tracking-wide uppercase transition-colors ${
-                  orderType === "SPOT"
-                    ? "bg-[#2ee6a8] text-black hover:bg-[#25c48f]"
-                    : side === "LONG"
-                      ? "bg-[#2ee6a8] text-black hover:bg-[#25c48f]"
-                      : "bg-red-500 text-white hover:bg-red-600"
+                  orderType === "SPOT" || side === "LONG"
+                    ? "bg-[var(--rv-up)] text-black hover:brightness-110"
+                    : "bg-[var(--rv-down)] text-black hover:brightness-110"
                 }`}
               >
                 {orderType === "SPOT"

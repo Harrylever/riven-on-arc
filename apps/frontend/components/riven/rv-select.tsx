@@ -59,7 +59,10 @@ export function RvSelect<T extends string>({
       <SelectContent
         align="start"
         alignItemWithTrigger={false}
-        className={cn("min-w-40 rounded-md border border-[color:var(--rv-stroke-strong)] bg-[var(--rv-card-solid)] p-1 text-[var(--rv-ink)] shadow-xl ring-0", contentClassName)}
+        className={cn(
+          "min-w-40 rounded-md border border-[color:var(--rv-stroke-strong)] bg-[var(--rv-card-solid)] p-1 text-[var(--rv-ink)] shadow-xl ring-0",
+          contentClassName,
+        )}
       >
         {options.slice(hideFirst ? 1 : 0).map(([v, l]) => (
           <SelectItem
@@ -74,4 +77,3 @@ export function RvSelect<T extends string>({
     </UiSelect>
   )
 }
-

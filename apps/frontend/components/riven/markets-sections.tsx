@@ -5,7 +5,12 @@ import { compact, usd } from "@/lib/riven-format"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CARD } from "./card-style"
 import { FreshnessChip, WatchlistList } from "./markets-live"
@@ -30,7 +35,8 @@ export const TABS: TabDef[] = [
     label: "Safest",
     hint: "Highest Riven score among scored tokens that aren't flagged.",
     filters: { sort: "safest", view: "listed" },
-    empty: "No scored token that isn't flagged yet. Riven never guesses a score.",
+    empty:
+      "No scored token that isn't flagged yet. Riven never guesses a score.",
   },
   {
     id: "flagged",
@@ -38,7 +44,8 @@ export const TABS: TabDef[] = [
     hint: "Tokens with on-chain evidence of fake volume, pulled liquidity, a creator dump, a serial launcher or impersonation. The evidence is shown under each.",
     filters: { sort: "new", view: "caught" },
     showWhy: true,
-    empty: "Riven has flagged nothing among the tokens it has read. Tokens it hasn't read yet are unscored, so this is not a guarantee.",
+    empty:
+      "Riven has flagged nothing among the tokens it has read. Tokens it hasn't read yet are unscored, so this is not a guarantee.",
   },
   {
     id: "volume",
@@ -52,12 +59,17 @@ export const TABS: TabDef[] = [
     hint: "Newest first. A brand-new pair usually says “Open to score”: open it and Riven scores it right there.",
     filters: { sort: "new", view: "all" },
   },
-  { id: "watchlist", label: "Watchlist", hint: "Tokens you starred on this device." },
+  {
+    id: "watchlist",
+    label: "Watchlist",
+    hint: "Tokens you starred on this device.",
+  },
 ]
 
 /** The first tab is what /markets opens on. */
 export const DEFAULT_TAB: TabId = "safest"
-export const parseTab = (v: unknown): TabId => (TABS.some((t) => t.id === v) ? (v as TabId) : DEFAULT_TAB)
+export const parseTab = (v: unknown): TabId =>
+  TABS.some((t) => t.id === v) ? (v as TabId) : DEFAULT_TAB
 
 /** Rows per page. */
 export const PAGE_SIZE = 25
@@ -76,15 +88,33 @@ export const tabHref = (tab: TabId, page = 1) => {
   return s ? `/markets?${s}` : "/markets"
 }
 
-function Stat({ label, children, tone }: { label: string; children: React.ReactNode; tone?: "risk" }) {
+function Stat({
+  label,
+  children,
+  tone,
+}: {
+  label: string
+  children: React.ReactNode
+  tone?: "risk"
+}) {
   return (
     <Card className={`${CARD} gap-0.5 px-3 py-2.5 sm:px-3.5 sm:py-3`}>
-      <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">{label}</dt>
-      <dd className={`rv-num text-[16px] font-bold sm:text-[18px] ${tone === "risk" ? "text-[var(--rv-risk)]" : "text-[var(--rv-ink)]"}`}>{children}</dd>
+      <dt className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">
+        {label}
+      </dt>
+      <dd
+        className={`rv-num text-[16px] font-bold sm:text-[18px] ${tone === "risk" ? "text-[var(--rv-risk)]" : "text-[var(--rv-ink)]"}`}
+      >
+        {children}
+      </dd>
     </Card>
   )
 }
-const Sub = ({ children }: { children: React.ReactNode }) => <span className="ml-1 text-[11.5px] font-medium text-[var(--rv-ink-3)]">{children}</span>
+const Sub = ({ children }: { children: React.ReactNode }) => (
+  <span className="ml-1 text-[11.5px] font-medium text-[var(--rv-ink-3)]">
+    {children}
+  </span>
+)
 
 export async function SummaryStrip({ serverNow }: { serverNow: number }) {
   let s
@@ -123,15 +153,21 @@ export function ListError({ tab }: { tab: TabId }) {
   const def = TABS.find((t) => t.id === tab)!
   return (
     <div className="p-4">
-      <Alert variant="destructive" className="rounded-md border-[color:var(--rv-risk)]/30 bg-[var(--rv-risk)]/10 after:hidden">
-        <AlertTitle>Couldn&apos;t load {def.label.toLowerCase()} just now.</AlertTitle>
+      <Alert
+        variant="destructive"
+        className="rounded-md border-[color:var(--rv-risk)]/30 bg-[var(--rv-risk)]/10 after:hidden"
+      >
+        <AlertTitle>
+          Couldn&apos;t load {def.label.toLowerCase()} just now.
+        </AlertTitle>
         <AlertDescription>
-          This is a loading problem, not an all-clear: nothing here means nothing was checked.
+          This is a loading problem, not an all-clear: nothing here means
+          nothing was checked.
           <Button
             variant="outline"
             nativeButton={false}
             render={<Link href={tabHref(tab)} />}
-            className="mt-3 h-9 rounded-md border-[color:var(--rv-stroke-strong)] px-4 text-[13px] font-semibold tracking-normal normal-case text-[var(--rv-ink)]"
+            className="mt-3 h-9 rounded-md border-[color:var(--rv-stroke-strong)] px-4 text-[13px] font-semibold tracking-normal text-[var(--rv-ink)] normal-case"
           >
             Try again
           </Button>
@@ -157,7 +193,7 @@ export async function TabContent({
   if (tab === "watchlist") return <WatchlistList serverNow={serverNow} />
   let result
   try {
-    result = await load({ ...DEFAULT_FILTERS, ...def.filters, page }, PAGE_SIZE, { total: false })
+    result = await load({ ...DEFAULT_FILTERS, ...def.filters, page }, PAGE_SIZE)
   } catch (err) {
     console.error(`[markets] ${tab}: ${(err as Error).message}`)
     return <ListError tab={tab} />
@@ -167,9 +203,13 @@ export async function TabContent({
     return (
       <Empty className="border-0 p-8">
         <EmptyHeader>
-          <EmptyTitle className="text-[14px] text-[var(--rv-ink)]">{page > 1 ? "No more results" : "Nothing here yet"}</EmptyTitle>
+          <EmptyTitle className="text-[14px] text-[var(--rv-ink)]">
+            {page > 1 ? "No more results" : "Nothing here yet"}
+          </EmptyTitle>
           <EmptyDescription className="text-[13px] leading-relaxed text-[var(--rv-ink-3)]">
-            {page > 1 ? "That page is past the end of this list." : (def.empty ?? "Nothing here right now.")}
+            {page > 1
+              ? "That page is past the end of this list."
+              : (def.empty ?? "Nothing here right now.")}
           </EmptyDescription>
         </EmptyHeader>
         {page > 1 && (
@@ -177,7 +217,7 @@ export async function TabContent({
             variant="outline"
             nativeButton={false}
             render={<Link href={tabHref(tab)} />}
-            className="h-9 rounded-md border-[color:var(--rv-stroke-strong)] px-4 text-[13px] font-semibold tracking-normal normal-case text-[var(--rv-ink)]"
+            className="h-9 rounded-md border-[color:var(--rv-stroke-strong)] px-4 text-[13px] font-semibold tracking-normal text-[var(--rv-ink)] normal-case"
           >
             Back to the first page
           </Button>
@@ -186,9 +226,18 @@ export async function TabContent({
     )
   return (
     <>
-      <MarketsTable tokens={tokens} serverNow={serverNow} showWhy={def.showWhy} />
+      <MarketsTable
+        tokens={tokens}
+        serverNow={serverNow}
+        showWhy={def.showWhy}
+      />
       <div className="border-t border-[var(--rv-stroke)] p-3">
-        <PageNav page={page} hasNext={result.hasMore ?? page < result.pages} path="/markets" query={tab === DEFAULT_TAB ? {} : { tab }} />
+        <PageNav
+          page={page}
+          pages={result.pages}
+          path="/markets"
+          query={tab === DEFAULT_TAB ? {} : { tab }}
+        />
       </div>
     </>
   )
@@ -215,7 +264,10 @@ export function SummarySkeleton() {
   return (
     <div aria-hidden className="grid grid-cols-2 gap-2 md:grid-cols-4">
       {Array.from({ length: 4 }, (_, i) => (
-        <Skeleton key={i} className="h-[66px] rounded-[var(--rv-radius)] bg-white/[0.04]" />
+        <Skeleton
+          key={i}
+          className="h-[66px] rounded-[var(--rv-radius)] bg-white/[0.04]"
+        />
       ))}
     </div>
   )
