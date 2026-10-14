@@ -245,13 +245,29 @@ export class MarketSyncService {
   /** Icons the token sets on-chain (logo() or tokenURI()), read in one multicall per batch. */
   private async fillLogos() {
     const db = getDb();
-    const missing = await db.token.findMany({
-      where: { imageUri: null, OR: [{ arcMarket: null }, { arcMarket: { imageUrl: null } }] },
-      select: { id: true, mint: true },
-      orderBy: [{ arcMarket: { volume24h: { sort: "desc", nulls: "last" } } }, { launchTime: "desc" }],
-      take: LOGO_PER_RUN * 3,
-    });
-    const todo = missing.filter((t) => !this.logoTried.has(t.mint)).slice(0, LOGO_PER_RUN);
+    const noArt = { imageUri: null, OR: [{ arcMarket: null }, { arcMarket: { imageUrl: null } }] };
+    // Half of each pass goes to the newest launches (what "New pairs" shows, and which trade too little to rank by
+    // volume), half to the busiest tokens. Ordering by volume alone left every new token behind all the trading ones,
+    // so new tokens were the last to get a picture.
+    const [newest, busiest] = await Promise.all([
+      db.token.findMany({
+        where: noArt,
+        select: { id: true, mint: true },
+        orderBy: { launchTime: "desc" },
+        take: LOGO_PER_RUN * 3,
+      }),
+      db.token.findMany({
+        where: noArt,
+        select: { id: true, mint: true },
+        orderBy: [{ arcMarket: { volume24h: { sort: "desc", nulls: "last" } } }, { launchTime: "desc" }],
+        take: LOGO_PER_RUN * 3,
+      }),
+    ]);
+    const half = Math.ceil(LOGO_PER_RUN / 2);
+    const fresh = (rows: typeof newest) => rows.filter((t) => !this.logoTried.has(t.mint));
+    const first = fresh(newest).slice(0, half);
+    const taken = new Set(first.map((t) => t.id));
+    const todo = [...first, ...fresh(busiest).filter((t) => !taken.has(t.id))].slice(0, LOGO_PER_RUN);
     if (todo.length === 0) return 0;
     // Two calls per token, answered together: most contracts have neither getter, and that is fine (allowFailure).
     const res = await this.client.multicall({
