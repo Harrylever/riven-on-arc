@@ -19,6 +19,7 @@ import { ago, priceUsd } from "@/lib/format"
 import { venueName } from "@/lib/perp-symbols"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { RivenRead } from "@/components/perps/riven-read"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 
@@ -229,7 +230,7 @@ export function PerpPairClient({ coin }: { coin: string }) {
           </Link>
         </p>
       ) : (
-        <div className="rv-card h-[420px] animate-pulse" />
+        <Skeleton className="rv-card h-[420px] bg-[var(--rv-card)]" />
       )}
 
       {/* Riven Scanner's call on this pair */}

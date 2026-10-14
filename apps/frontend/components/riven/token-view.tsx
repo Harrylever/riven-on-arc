@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useId, useState } from "react"
+import { useEffect, useState } from "react"
 import { SUB_SCORE_LABEL, type SubScoreKey } from "@riven/shared/score"
 import type { Callout, CreatorRecord, TokenDetail } from "@/lib/arc-data"
 import {
@@ -19,6 +19,11 @@ import {
 import { ScoreMeter } from "./score-badge"
 import { ScoreNow } from "./score-now"
 import { Findings } from "./findings"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { CalloutsRow } from "./home-sections"
 import {
   exitQuote,
@@ -551,8 +556,6 @@ function UnscoredChecklist({
   holderHistory: string | null
   address: string
 }) {
-  const [open, setOpen] = useState(true)
-  const bodyId = useId()
   const read = [measured.contract, measured.liquidity, measured.holders].filter(
     Boolean,
   ).length
@@ -572,18 +575,15 @@ function UnscoredChecklist({
     ],
   ]
   return (
-    <div className="mt-3 rounded-lg border border-[var(--rv-stroke)] bg-[var(--rv-sunken)]">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={bodyId}
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 p-3 text-left"
-      >
+    <Collapsible
+      defaultOpen
+      className="mt-3 rounded-lg border border-[var(--rv-stroke)] bg-[var(--rv-sunken)]"
+    >
+      <CollapsibleTrigger className="group/trigger flex w-full items-center gap-2 p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--rv-blue)]">
         <span className="min-w-0 flex-1 text-[12px] font-semibold text-[var(--rv-ink)]">
           Riven publishes a number only after all three are read
         </span>
-        <span className="rv-num shrink-0 text-[11px] text-[var(--rv-ink-3)]">
+        <span className="rv-num shrink-0 text-[11px] font-normal text-[var(--rv-ink-3)]">
           {read} of 3 read
         </span>
         <svg
@@ -596,35 +596,37 @@ function UnscoredChecklist({
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden
-          className={`shrink-0 text-[var(--rv-ink-3)] transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+          className="shrink-0 text-[var(--rv-ink-3)] transition-transform duration-200 group-data-[panel-open]/trigger:rotate-180 motion-reduce:transition-none"
         >
           <path d="m4 6 4 4 4-4" />
         </svg>
-      </button>
-      {/* hidden, not unmounted: the live scoring check inside keeps running while this is closed */}
-      <div id={bodyId} hidden={!open} className="px-3 pb-3">
-        <ul className="grid gap-1.5">
-          {rows.map(([label, done, note]) => (
-            <li
-              key={label}
-              className="text-[12px] leading-snug text-[var(--rv-ink-2)]"
-            >
-              <span aria-hidden className="mr-1.5">
-                {done ? "\u2713" : "\u2026"}
-              </span>
-              <span className="sr-only">{done ? "Read: " : "Waiting: "}</span>
-              {label}
-              {note && (
-                <span className="block pl-5 text-[11px] text-[var(--rv-ink-3)]">
-                  {note}
+      </CollapsibleTrigger>
+      {/* kept mounted while closed: the live scoring check inside keeps running. No height animation: its content changes height as the status updates. */}
+      <CollapsibleContent keepMounted>
+        <div className="px-3 pb-3">
+          <ul className="grid gap-1.5">
+            {rows.map(([label, done, note]) => (
+              <li
+                key={label}
+                className="text-[12px] leading-snug text-[var(--rv-ink-2)]"
+              >
+                <span aria-hidden className="mr-1.5">
+                  {done ? "\u2713" : "\u2026"}
                 </span>
-              )}
-            </li>
-          ))}
-        </ul>
-        <ScoreNow address={address} />
-      </div>
-    </div>
+                <span className="sr-only">{done ? "Read: " : "Waiting: "}</span>
+                {label}
+                {note && (
+                  <span className="block pl-5 text-[11px] text-[var(--rv-ink-3)]">
+                    {note}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <ScoreNow address={address} />
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 

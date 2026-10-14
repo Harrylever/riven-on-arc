@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import type { NewsItem } from "@/lib/news"
 import { ago } from "@/lib/format"
 import { CoinIcon } from "@/components/perps/coin-icon"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const MOOD: Record<NewsItem["sentiment"], { label: string; color: string }> = {
   bullish: { label: "Positive", color: "var(--rv-up)" },
@@ -56,7 +57,10 @@ export function NewsFeed({
       {news === null ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="rv-card h-[112px] animate-pulse" />
+            <Skeleton
+              key={i}
+              className="rv-card h-[112px] bg-[var(--rv-card)]"
+            />
           ))}
         </div>
       ) : news.length === 0 ? (

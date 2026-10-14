@@ -2,6 +2,7 @@ import Link from "next/link"
 import { getMarketsSummary, getScreener } from "@/lib/arc-data"
 import { DEFAULT_FILTERS, type ScreenerFilters } from "@/lib/screener-params"
 import { compact, usd } from "@/lib/riven-format"
+import { Skeleton } from "@/components/ui/skeleton"
 import { FreshnessChip, WatchlistList } from "./markets-live"
 import { MarketsTable } from "./markets-table"
 
@@ -247,12 +248,12 @@ export function ListSkeleton() {
     <div aria-hidden className="divide-y divide-[var(--rv-stroke)]">
       {Array.from({ length: 8 }, (_, i) => (
         <div key={i} className="flex items-center gap-3 px-3 py-3">
-          <div className="size-9 animate-pulse rounded-full bg-white/[0.06]" />
+          <Skeleton className="size-9 rounded-full bg-white/[0.06]" />
           <div className="flex-1 space-y-1.5">
-            <div className="h-3 w-24 animate-pulse rounded bg-white/[0.06]" />
-            <div className="h-2.5 w-36 animate-pulse rounded bg-white/[0.04]" />
+            <Skeleton className="h-3 w-24 rounded bg-white/[0.06]" />
+            <Skeleton className="h-2.5 w-36 rounded bg-white/[0.04]" />
           </div>
-          <div className="h-3 w-14 animate-pulse rounded bg-white/[0.06]" />
+          <Skeleton className="h-3 w-14 rounded bg-white/[0.06]" />
         </div>
       ))}
     </div>
@@ -263,9 +264,9 @@ export function SummarySkeleton() {
   return (
     <div aria-hidden className="grid grid-cols-2 gap-2 md:grid-cols-4">
       {Array.from({ length: 4 }, (_, i) => (
-        <div
+        <Skeleton
           key={i}
-          className="h-[66px] animate-pulse rounded-[var(--rv-radius)] bg-white/[0.04]"
+          className="h-[66px] rounded-[var(--rv-radius)] bg-white/[0.04]"
         />
       ))}
     </div>
