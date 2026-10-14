@@ -24,6 +24,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TAB_LIST, TAB_TRIGGER } from "./card-style"
 import { CalloutsRow } from "./home-sections"
@@ -1015,22 +1016,19 @@ export function CreatorTrack({
           This is the only token Riven has seen from this creator.
         </p>
       ) : (
-        <table className="rv-table mt-3 w-full text-[12px]">
-          <thead>
-            <tr className="text-left">
-              <th className="py-1.5">Token</th>
-              <th className="py-1.5 text-right">ATH</th>
-              <th className="py-1.5 text-right">Now</th>
-              <th className="py-1.5 text-right">Status</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="mt-3 text-[12px]">
+          <TableHeader>
+            <TableRow className="border-0 text-left hover:bg-transparent">
+              <TableHead className="h-auto px-0 py-1.5 text-[11px] font-medium tracking-normal normal-case text-[var(--rv-ink-3)]">Token</TableHead>
+              <TableHead className="h-auto px-0 py-1.5 text-right text-[11px] font-medium tracking-normal normal-case text-[var(--rv-ink-3)]">ATH</TableHead>
+              <TableHead className="h-auto px-0 py-1.5 text-right text-[11px] font-medium tracking-normal normal-case text-[var(--rv-ink-3)]">Now</TableHead>
+              <TableHead className="h-auto px-0 py-1.5 text-right text-[11px] font-medium tracking-normal normal-case text-[var(--rv-ink-3)]">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {record.tokens.slice(0, 12).map((x) => (
-              <tr
-                key={x.address}
-                className="border-t border-[var(--rv-stroke)]"
-              >
-                <td className="py-1.5">
+              <TableRow key={x.address} className="border-0 border-t border-[var(--rv-stroke)]">
+                <TableCell className="px-0 py-1.5">
                   <Link
                     href={`/token/${x.address}`}
                     className="flex items-center gap-2"
@@ -1048,11 +1046,11 @@ export function CreatorTrack({
                       {age(x.launchedAt, now)}
                     </span>
                   </Link>
-                </td>
-                <td className="rv-num py-1.5 text-right text-[var(--rv-ink)]">
+                </TableCell>
+                <TableCell className="rv-num px-0 py-1.5 text-right text-[var(--rv-ink)]">
                   {times(x.athX)}
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   className="rv-num py-1.5 text-right"
                   style={{
                     color:
@@ -1060,17 +1058,17 @@ export function CreatorTrack({
                   }}
                 >
                   {times(x.nowX)}
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   className="py-1.5 text-right text-[11px] font-semibold uppercase"
                   style={{ color: statusColor[x.status] }}
                 >
                   {x.status}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
       <p className="mt-2 text-[10px] text-[var(--rv-ink-3)]">
         ATH and Now are multiples of the first trade price, from swaps Riven

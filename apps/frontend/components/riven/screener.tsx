@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { PageNav } from "@/components/riven/page-nav"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -662,8 +663,8 @@ function SortHead({
     filters.sort === s &&
     (t === undefined || filters.tf === t)
   return (
-    <th
-      className={`rv-label px-2 py-2.5 whitespace-nowrap ${left ? "text-left" : "text-right"} ${
+    <TableHead
+      className={`rv-label h-auto px-2 py-2.5 text-[11px] tracking-normal whitespace-nowrap ${left ? "text-left" : "text-right"} ${
         tfColumn(filters, t) ? "bg-white/[0.03] text-[var(--rv-ink)]" : ""
       } ${className}`}
       title={title}
@@ -680,7 +681,7 @@ function SortHead({
       ) : (
         children
       )}
-    </th>
+    </TableHead>
   )
 }
 
@@ -703,10 +704,10 @@ function DesktopTable({
   const h = { filters, onSort }
   return (
     <div className="rv-card hidden overflow-x-auto lg:block">
-      <table className="w-full min-w-[900px] border-collapse text-[13px] xl:min-w-[1060px] 2xl:min-w-[1180px]">
-        <thead>
-          <tr className="border-b border-[var(--rv-stroke)]">
-            <th className="rv-label w-12 py-2.5 pl-4 text-left">#</th>
+      <Table className="min-w-[900px] text-[13px] xl:min-w-[1060px] 2xl:min-w-[1180px]">
+        <TableHeader>
+          <TableRow className="border-b border-[var(--rv-stroke)]">
+            <TableHead className="rv-label h-auto w-12 py-2.5 pr-0 pl-4 text-left text-[11px] tracking-normal">#</TableHead>
             <SortHead left {...h}>
               Token
             </SortHead>
@@ -756,25 +757,25 @@ function DesktopTable({
             <SortHead s="safest" title="Riven safety score, 1–10" {...h}>
               Riven
             </SortHead>
-            <th className="w-9" />
-          </tr>
-        </thead>
-        <tbody>
+            <TableHead className="h-auto w-9 p-0" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {tokens.map((t, i) => {
             const txns =
               t.buys24h === null ? null : (t.buys24h ?? 0) + (t.sells24h ?? 0)
             return (
-              <tr
+              <TableRow
                 key={t.address}
                 onClick={() => router.push(`/token/${t.address}`)}
                 className="h-[54px] cursor-pointer border-b border-[var(--rv-stroke)] transition-colors last:border-0 hover:bg-[var(--rv-row-hover)]"
                 style={rowStyle(t)}
                 title={t.fake ? t.fakeReasons[0] : undefined}
               >
-                <td className="rv-num py-2 pl-4 text-[12px] text-[var(--rv-ink-3)]">
+                <TableCell className="rv-num py-2 pr-0 pl-4 text-[12px] text-[var(--rv-ink-3)]">
                   #{offset + i + 1}
-                </td>
-                <td className="px-2 py-2">
+                </TableCell>
+                <TableCell className="px-2 py-2 whitespace-normal">
                   <Link
                     href={`/token/${t.address}`}
                     className="flex items-center gap-2.5"
@@ -806,16 +807,16 @@ function DesktopTable({
                       )}
                     </span>
                   </Link>
-                </td>
-                <td className="rv-num px-2 py-2 text-right font-semibold text-[var(--rv-ink)]">
+                </TableCell>
+                <TableCell className="rv-num px-2 py-2 text-right font-semibold text-[var(--rv-ink)]">
                   {t.priceUsd === null
                     ? "—"
                     : usd(t.priceUsd, { precise: true })}
-                </td>
-                <td className="rv-num px-2 py-2 text-right text-[var(--rv-ink-2)]">
+                </TableCell>
+                <TableCell className="rv-num px-2 py-2 text-right text-[var(--rv-ink-2)]">
                   {age(t.launchedAt, now)}
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   className="rv-num hidden px-2 py-2 text-right text-[var(--rv-ink-2)] xl:table-cell"
                   title={
                     t.buys24h === null
@@ -828,29 +829,29 @@ function DesktopTable({
                   ) : (
                     compact(txns)
                   )}
-                </td>
-                <td className="rv-num px-2 py-2 text-right text-[var(--rv-ink)]">
+                </TableCell>
+                <TableCell className="rv-num px-2 py-2 text-right text-[var(--rv-ink)]">
                   {t.volume.h24 === null ? "—" : usd(t.volume.h24)}
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   className={`hidden px-2 py-2 text-right 2xl:table-cell ${tfCell(filters, "5m")}`}
                 >
                   <Pct v={t.change.m5} />
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   className={`hidden px-2 py-2 text-right xl:table-cell ${tfCell(filters, "1h")}`}
                 >
                   <Pct v={t.change.h1} />
-                </td>
-                <td className={`px-2 py-2 text-right ${tfCell(filters, "6h")}`}>
+                </TableCell>
+                <TableCell className={`px-2 py-2 text-right ${tfCell(filters, "6h")}`}>
                   <Pct v={t.change.h6} />
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   className={`px-2 py-2 text-right ${tfCell(filters, "24h")}`}
                 >
                   <Pct v={t.change.h24} />
-                </td>
-                <td className="px-2 py-2 text-right">
+                </TableCell>
+                <TableCell className="px-2 py-2 text-right">
                   <div className="rv-num text-[var(--rv-ink-2)]">
                     {t.liquidityUsd === null ? "—" : usd(t.liquidityUsd)}
                   </div>
@@ -862,21 +863,21 @@ function DesktopTable({
                       {usd(t.usdcInPool)} real
                     </div>
                   )}
-                </td>
-                <td className="rv-num px-2 py-2 text-right text-[var(--rv-ink)]">
+                </TableCell>
+                <TableCell className="rv-num px-2 py-2 text-right text-[var(--rv-ink)]">
                   {t.marketCap === null ? "—" : usd(t.marketCap)}
-                </td>
-                <td className="px-2 py-2 text-right">
+                </TableCell>
+                <TableCell className="px-2 py-2 text-right">
                   <Score t={t} />
-                </td>
-                <td className="pr-2" onClick={(e) => e.stopPropagation()}>
+                </TableCell>
+                <TableCell className="p-0 pr-2" onClick={(e) => e.stopPropagation()}>
                   <WatchButton address={t.address} />
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { getAccuracy } from "@/lib/arc-data"
 import { ArrowIcon } from "@/components/riven/arrow"
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { buildPageMetadata } from "@/lib/site"
 
 export const dynamic = "force-dynamic"
@@ -42,34 +43,34 @@ export default async function AccuracyPage() {
       ) : (
         <>
           <section className="rv-card overflow-x-auto" aria-label="Outcome by first score">
-            <table className="w-full min-w-[420px] text-left text-[13px]">
-              <caption className="sr-only">Share of tokens in each first-score band that later saw liquidity pulled or a creator sell out</caption>
-              <thead className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">
-                <tr>
-                  <th className="px-4 py-3">First score</th>
-                  <th className="px-4 py-3">Tokens</th>
-                  <th className="px-4 py-3">Later pulled / dumped</th>
-                  <th className="px-4 py-3">Rate</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="min-w-[420px] text-left text-[13px]">
+              <TableCaption className="sr-only">Share of tokens in each first-score band that later saw liquidity pulled or a creator sell out</TableCaption>
+              <TableHeader className="text-[11px] tracking-wide text-[var(--rv-ink-3)] uppercase">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-auto px-4 py-3 text-[11px] font-medium text-[var(--rv-ink-3)]">First score</TableHead>
+                  <TableHead className="h-auto px-4 py-3 text-[11px] font-medium text-[var(--rv-ink-3)]">Tokens</TableHead>
+                  <TableHead className="h-auto px-4 py-3 text-[11px] font-medium text-[var(--rv-ink-3)]">Later pulled / dumped</TableHead>
+                  <TableHead className="h-auto px-4 py-3 text-[11px] font-medium text-[var(--rv-ink-3)]">Rate</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {acc.bands.map((r) => (
-                  <tr key={r.band} className="border-t border-[var(--rv-stroke)]">
-                    <td className="px-4 py-3 font-semibold" style={{ color: BAND_COLOR[r.band] }}>
+                  <TableRow key={r.band} className="border-0 border-t border-[var(--rv-stroke)]">
+                    <TableCell className="px-4 py-3 font-semibold text-[13px]" style={{ color: BAND_COLOR[r.band] }}>
                       {BAND_LABEL[r.band]}
-                    </td>
-                    <td className="rv-num px-4 py-3">{r.scored.toLocaleString()}</td>
-                    <td className="rv-num px-4 py-3">{r.badAfter.toLocaleString()}</td>
-                    <td className="rv-num px-4 py-3">
+                    </TableCell>
+                    <TableCell className="rv-num px-4 py-3 text-[13px]">{r.scored.toLocaleString()}</TableCell>
+                    <TableCell className="rv-num px-4 py-3 text-[13px]">{r.badAfter.toLocaleString()}</TableCell>
+                    <TableCell className="rv-num px-4 py-3 text-[13px]">
                       {pct(r.badAfter, r.scored)}
                       {r.scored < MIN_SAMPLE && (
                         <span className="ml-2 text-[11px] text-[var(--rv-ink-3)]">too few to conclude</span>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </section>
 
           <section className="rv-card p-4 text-[13.5px] leading-relaxed text-[var(--rv-ink-2)]">
