@@ -207,6 +207,12 @@ export function RivenShell({ children }: { children: ReactNode }) {
             <Link href="/ecosystem" className="hover:text-[var(--rv-ink)]">
               Ecosystem
             </Link>
+            <Link href="/terms" className="hover:text-[var(--rv-ink)]">
+              Terms
+            </Link>
+            <Link href="/disclaimer" className="hover:text-[var(--rv-ink)]">
+              Disclaimer
+            </Link>
             <span>Not financial advice · DYOR</span>
           </span>
         </footer>

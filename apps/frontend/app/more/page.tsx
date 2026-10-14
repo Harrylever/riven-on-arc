@@ -42,6 +42,16 @@ const LINKS = [
     label: "Does the score warn in time?",
     hint: "Riven's own hit rate: how often rated tokens later saw liquidity pulled",
   },
+  {
+    href: "/disclaimer",
+    label: "Disclaimer",
+    hint: "Riven shows evidence, not advice. What a score can and can't tell you",
+  },
+  {
+    href: "/terms",
+    label: "Terms and Conditions",
+    hint: "The rules for using Riven, and how little data it keeps",
+  },
 ].filter((l) => PERPS_ENABLED || l.href !== "/perps")
 
 export default function MorePage() {

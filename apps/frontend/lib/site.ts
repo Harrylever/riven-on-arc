@@ -58,6 +58,8 @@ const STATIC_SITEMAP_ROUTES: Array<{
   { path: "/agent", priority: 0.6, changeFrequency: "daily" },
   { path: "/ecosystem", priority: 0.6, changeFrequency: "daily" },
   { path: "/more", priority: 0.4, changeFrequency: "weekly" },
+  { path: "/disclaimer", priority: 0.3, changeFrequency: "monthly" },
+  { path: "/terms", priority: 0.3, changeFrequency: "monthly" },
 ]
 
 function withoutTrailingSlash(url: string): string {

@@ -1,7 +1,16 @@
 import * as React from "react"
 import { cn } from "cn"
 
-type CardTag = "div" | "section" | "article" | "aside" | "ol" | "ul" | "li"
+type CardTag =
+  | "div"
+  | "header"
+  | "nav"
+  | "section"
+  | "article"
+  | "aside"
+  | "ol"
+  | "ul"
+  | "li"
 
 function Card({
   className,
