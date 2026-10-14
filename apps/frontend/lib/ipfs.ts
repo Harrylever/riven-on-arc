@@ -12,6 +12,7 @@ const PUBLIC_GATEWAY = /^https:\/\/(?:ipfs\.io|dweb\.link|gateway\.ipfs\.io|w3s\
 export function imageUrl(raw: string | null | undefined): string | null {
   if (!raw) return null
   if (raw.startsWith("ipfs://")) return IPFS_GATEWAY + raw.slice("ipfs://".length)
+  if (raw.startsWith("ar://")) return "https://arweave.net/" + raw.slice("ar://".length)
   const gateway = PUBLIC_GATEWAY.exec(raw)
   if (gateway) return IPFS_GATEWAY + gateway[1]
   if (/^https?:\/\//i.test(raw)) return raw

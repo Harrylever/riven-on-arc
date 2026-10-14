@@ -5,6 +5,9 @@ describe("imageUrl", () => {
   test("ipfs:// goes through our gateway", () => {
     expect(imageUrl("ipfs://QmAbc/a.png")).toBe(IPFS_GATEWAY + "QmAbc/a.png")
   })
+  test("ar:// (Arweave) is loadable too", () => {
+    expect(imageUrl("ar://abc123")).toBe("https://arweave.net/abc123")
+  })
   test("another public gateway's link is served from ours, since those throttle", () => {
     expect(imageUrl("https://ipfs.io/ipfs/QmAbc")).toBe(IPFS_GATEWAY + "QmAbc")
     expect(imageUrl("https://dweb.link/ipfs/QmAbc")).toBe(IPFS_GATEWAY + "QmAbc")
