@@ -1,5 +1,6 @@
 import type { ArcBand } from "@riven/shared"
 import { BAND_META } from "@/lib/riven-format"
+import { Hint } from "@/components/riven/hint"
 
 /** Flat 1–10 score chip — colour carries the band, no glow. */
 export function ScoreBadge({
@@ -17,27 +18,28 @@ export function ScoreBadge({
   const m = BAND_META[band]
   const sm = size === "sm"
   const chip = (
-    <span
-      className={`rv-num inline-flex shrink-0 items-baseline justify-center gap-0.5 rounded-md font-semibold ${
-        sm
-          ? "min-w-[46px] px-1.5 py-0.5 text-[12px]"
-          : "min-w-[58px] px-2 py-1 text-[15px]"
-      }`}
-      style={{
-        color: m.color,
-        background: m.tint,
-        boxShadow: `inset 0 0 0 1px ${m.color}33`,
-      }}
-      title={score === null ? "Not scored yet" : `${score}/10 · ${m.short}`}
-      aria-label={
-        score === null
-          ? "Not scored yet"
-          : `Score ${score} out of 10, ${m.short}`
-      }
-    >
-      {score === null ? "…" : score.toFixed(1)}
-      {score !== null && <span className="text-[0.7em] opacity-60">/10</span>}
-    </span>
+    <Hint text={score === null ? "Not scored yet" : `${score}/10 · ${m.short}`}>
+      <span
+        className={`rv-num inline-flex shrink-0 items-baseline justify-center gap-0.5 rounded-md font-semibold ${
+          sm
+            ? "min-w-[46px] px-1.5 py-0.5 text-[12px]"
+            : "min-w-[58px] px-2 py-1 text-[15px]"
+        }`}
+        style={{
+          color: m.color,
+          background: m.tint,
+          boxShadow: `inset 0 0 0 1px ${m.color}33`,
+        }}
+        aria-label={
+          score === null
+            ? "Not scored yet"
+            : `Score ${score} out of 10, ${m.short}`
+        }
+      >
+        {score === null ? "…" : score.toFixed(1)}
+        {score !== null && <span className="text-[0.7em] opacity-60">/10</span>}
+      </span>
+    </Hint>
   )
   if (!word) return chip
   return (

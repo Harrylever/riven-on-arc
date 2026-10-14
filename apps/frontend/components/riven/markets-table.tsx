@@ -26,6 +26,7 @@ import { FlagChip, Why } from "./screener"
 import { ScoreBadge } from "./score-badge"
 import { TokenAvatar } from "./token-avatar"
 import { Button } from "@/components/ui/button"
+import { Hint } from "@/components/riven/hint"
 
 /** What the cells need from the table's owner: the clock (ages tick) and whether to show the evidence line. */
 const View = createContext<{ now: number; showWhy: boolean }>({
@@ -52,12 +53,11 @@ const sortable = {
 function ScoreCell({ t }: { t: TokenSummary }) {
   if (t.score === null)
     return (
-      <span
-        className="inline-block max-w-[64px] text-right text-[11px] leading-tight text-[var(--rv-ink-3)]"
-        title="Not scored yet. Open the token and Riven scores it right there. It never guesses a score."
-      >
-        Open to score
-      </span>
+      <Hint text="Not scored yet. Open the token and Riven scores it right there. It never guesses a score.">
+        <span className="inline-block max-w-[64px] text-right text-[11px] leading-tight text-[var(--rv-ink-3)]">
+          Open to score
+        </span>
+      </Hint>
     )
   return <ScoreBadge score={t.score} band={t.band} size="sm" />
 }

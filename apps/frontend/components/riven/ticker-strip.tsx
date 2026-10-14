@@ -6,6 +6,7 @@ import type { ArcBand } from "@riven/shared"
 import { visibleInterval } from "@/lib/visible-interval"
 import { BAND_META, change, changeColor, usd } from "@/lib/riven-format"
 import { TokenAvatar } from "./token-avatar"
+import { Hint } from "@/components/riven/hint"
 
 interface Tick {
   address: string
@@ -32,12 +33,19 @@ export function TickerStrip() {
         .then((d: { tokens: Tick[] } | null) => {
           if (!alive || !d) return
           const changed = new Set(
-            d.tokens.filter((t) => prev.current.has(t.address) && prev.current.get(t.address) !== t.marketCap).map((t) => t.address),
+            d.tokens
+              .filter(
+                (t) =>
+                  prev.current.has(t.address) &&
+                  prev.current.get(t.address) !== t.marketCap,
+              )
+              .map((t) => t.address),
           )
           prev.current = new Map(d.tokens.map((t) => [t.address, t.marketCap]))
           setTicks(d.tokens)
           setMoved(changed)
-          if (changed.size) window.setTimeout(() => alive && setMoved(new Set()), 1600)
+          if (changed.size)
+            window.setTimeout(() => alive && setMoved(new Set()), 1600)
         })
         .catch(() => {})
     load()
@@ -48,7 +56,8 @@ export function TickerStrip() {
       stop()
     }
   }, [])
-  if (ticks.length === 0) return <div className="h-9 border-t border-[var(--rv-stroke)]" />
+  if (ticks.length === 0)
+    return <div className="h-9 border-t border-[var(--rv-stroke)]" />
 
   const item = (t: Tick, k: string) => (
     <Link
@@ -56,24 +65,42 @@ export function TickerStrip() {
       href={`/token/${t.address}`}
       className="flex shrink-0 items-center gap-2 rounded-md border border-[var(--rv-stroke)] bg-[var(--rv-card)] py-1 pr-2.5 pl-1 hover:border-[var(--rv-stroke-strong)]"
     >
-      <TokenAvatar image={t.image} symbol={t.symbol} address={t.address} size={20} />
-      <span className="text-[12px] font-bold text-[var(--rv-ink)]">{t.symbol}</span>
+      <TokenAvatar
+        image={t.image}
+        symbol={t.symbol}
+        address={t.address}
+        size={20}
+      />
+      <span className="text-[12px] font-bold text-[var(--rv-ink)]">
+        {t.symbol}
+      </span>
       <span
         className="rv-num rounded px-0.5 text-[12px] text-[var(--rv-ink-2)] transition-colors duration-700"
-        style={moved.has(t.address) ? { background: "rgba(124,196,232,0.25)", color: "var(--rv-ink)" } : undefined}
+        style={
+          moved.has(t.address)
+            ? { background: "rgba(124,196,232,0.25)", color: "var(--rv-ink)" }
+            : undefined
+        }
       >
         {usd(t.marketCap)}
       </span>
-      <span className="rv-num text-[12px] font-semibold" style={{ color: changeColor(t.change24h) }}>
+      <span
+        className="rv-num text-[12px] font-semibold"
+        style={{ color: changeColor(t.change24h) }}
+      >
         {change(t.change24h)}
       </span>
-      <span
-        className="rv-num rounded px-1 text-[10.5px] font-bold"
-        style={{ color: BAND_META[t.band].color, background: BAND_META[t.band].tint }}
-        title={t.fake ? "Flagged by Riven" : BAND_META[t.band].label}
-      >
-        {t.score === null ? "…" : t.score.toFixed(1)}
-      </span>
+      <Hint text={t.fake ? "Flagged by Riven" : BAND_META[t.band].label}>
+        <span
+          className="rv-num rounded px-1 text-[10.5px] font-bold"
+          style={{
+            color: BAND_META[t.band].color,
+            background: BAND_META[t.band].tint,
+          }}
+        >
+          {t.score === null ? "…" : t.score.toFixed(1)}
+        </span>
+      </Hint>
     </Link>
   )
 

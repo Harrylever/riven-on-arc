@@ -53,6 +53,7 @@ import { ArrowIcon } from "@/components/riven/arrow"
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
+import { Hint } from "@/components/riven/hint"
 
 const EXPLORER = "https://explorer.arc.io"
 const ORDER: SubScoreKey[] = [
@@ -210,35 +211,36 @@ export function TokenView({
           </span>
         </div>
         <div className="col-start-4 row-start-1 flex items-center gap-1.5 md:col-start-5 md:row-span-2 md:gap-2">
-          <Button
-            variant="riven"
-            size="rv"
-            type="button"
-            onClick={() => {
-              riven.scan()
-              if (!hasData)
-                riven.speak(
-                  "Nothing to read on this pair yet — no trades or pool data.",
-                  4500,
-                )
-            }}
-            className="size-9 gap-1.5 px-0 text-[13px] sm:w-auto sm:px-3"
-            title="Riven scans this token and refreshes its score"
-            aria-label="Scan this token"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="size-[17px] sm:size-[15px]"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.2}
-              aria-hidden
+          <Hint text="Riven scans this token and refreshes its score">
+            <Button
+              variant="riven"
+              size="rv"
+              type="button"
+              onClick={() => {
+                riven.scan()
+                if (!hasData)
+                  riven.speak(
+                    "Nothing to read on this pair yet — no trades or pool data.",
+                    4500,
+                  )
+              }}
+              className="size-9 gap-1.5 px-0 text-[13px] sm:w-auto sm:px-3"
+              aria-label="Scan this token"
             >
-              <circle cx="11" cy="11" r="6" />
-              <path d="m20 20-4.2-4.2" />
-            </svg>
-            <span className="hidden sm:inline">Scan</span>
-          </Button>
+              <svg
+                viewBox="0 0 24 24"
+                className="size-[17px] sm:size-[15px]"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.2}
+                aria-hidden
+              >
+                <circle cx="11" cy="11" r="6" />
+                <path d="m20 20-4.2-4.2" />
+              </svg>
+              <span className="hidden sm:inline">Scan</span>
+            </Button>
+          </Hint>
           <WatchButton address={t.address} size="lg" />
         </div>
         <div className="col-span-4 row-start-2 flex items-baseline justify-between gap-3 md:col-span-1 md:col-start-4 md:row-span-2 md:block md:text-right">
@@ -735,40 +737,40 @@ function Stat({
   hint?: string
 }) {
   return (
-    <div
-      className="min-w-[118px] flex-1 border-r border-[var(--rv-stroke)] px-4 py-3 last:border-r-0"
-      title={hint}
-    >
-      <div className="rv-label">{label}</div>
-      <div
-        className="rv-num mt-1 truncate text-[15px] font-bold"
-        style={{ color: color ?? "var(--rv-ink)" }}
-      >
-        {value}
+    <Hint text={hint}>
+      <div className="min-w-[118px] flex-1 border-r border-[var(--rv-stroke)] px-4 py-3 last:border-r-0">
+        <div className="rv-label">{label}</div>
+        <div
+          className="rv-num mt-1 truncate text-[15px] font-bold"
+          style={{ color: color ?? "var(--rv-ink)" }}
+        >
+          {value}
+        </div>
       </div>
-    </div>
+    </Hint>
   )
 }
 
 function CopyAddress({ address }: { address: string }) {
   const [copied, setCopied] = useState(false)
   return (
-    <Button
-      variant="plain"
-      size="bare"
-      type="button"
-      onClick={() =>
-        navigator.clipboard?.writeText(address).then(() => {
-          setCopied(true)
-          setTimeout(() => setCopied(false), 1400)
-        })
-      }
-      className="rv-num flex items-center gap-1 rounded bg-white/[0.05] px-1.5 py-px text-[11px] whitespace-nowrap text-[var(--rv-ink-2)] hover:text-[var(--rv-ink)]"
-      title="Copy contract address"
-    >
-      {shortAddr(address)}
-      <span className="text-[var(--rv-ice)]">{copied ? "✓" : "⧉"}</span>
-    </Button>
+    <Hint text="Copy contract address">
+      <Button
+        variant="plain"
+        size="bare"
+        type="button"
+        onClick={() =>
+          navigator.clipboard?.writeText(address).then(() => {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1400)
+          })
+        }
+        className="rv-num flex items-center gap-1 rounded bg-white/[0.05] px-1.5 py-px text-[11px] whitespace-nowrap text-[var(--rv-ink-2)] hover:text-[var(--rv-ink)]"
+      >
+        {shortAddr(address)}
+        <span className="text-[var(--rv-ice)]">{copied ? "✓" : "⧉"}</span>
+      </Button>
+    </Hint>
   )
 }
 
@@ -1156,23 +1158,25 @@ function SubBar({
         ? "var(--rv-caution)"
         : "var(--rv-risk)"
   return (
-    <div title={SUB_HINT[k]}>
-      <div className="flex items-baseline justify-between text-[12px]">
-        <span className="font-semibold text-[var(--rv-ink)]">
-          {SUB_SCORE_LABEL[k]}
-        </span>
-        <span className="rv-num text-[var(--rv-ink-2)]">
-          {((points / max) * 10).toFixed(1)}
-          <span className="text-[var(--rv-ink-3)]">/10</span>
-        </span>
+    <Hint text={SUB_HINT[k]}>
+      <div>
+        <div className="flex items-baseline justify-between text-[12px]">
+          <span className="font-semibold text-[var(--rv-ink)]">
+            {SUB_SCORE_LABEL[k]}
+          </span>
+          <span className="rv-num text-[var(--rv-ink-2)]">
+            {((points / max) * 10).toFixed(1)}
+            <span className="text-[var(--rv-ink-3)]">/10</span>
+          </span>
+        </div>
+        <div className="mt-1 h-1.5 overflow-hidden rounded-sm bg-white/[0.06]">
+          <div
+            className="h-full rounded-sm"
+            style={{ width: `${Math.max(2, ratio * 100)}%`, background: color }}
+          />
+        </div>
       </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-sm bg-white/[0.06]">
-        <div
-          className="h-full rounded-sm"
-          style={{ width: `${Math.max(2, ratio * 100)}%`, background: color }}
-        />
-      </div>
-    </div>
+    </Hint>
   )
 }
 

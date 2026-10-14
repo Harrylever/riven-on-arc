@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { RV_INPUT } from "@/components/riven/card-style"
 import { Button } from "@/components/ui/button"
+import { Hint } from "@/components/riven/hint"
 
 /**
  * Talk to Riven. Double-tap him to open (and double-tap again to close) a
@@ -353,30 +354,32 @@ export function VoicePanel({
           role="radiogroup"
           aria-label="How Riven replies"
         >
-          <Button
-            variant="plain"
-            size="bare"
-            type="button"
-            role="radio"
-            aria-checked={chat.reply === "robot"}
-            onClick={() => onReply("robot")}
-            className="!px-2 !py-1 !text-[11px]"
-            title="Riven's own robot voice"
-          >
-            🤖 Riven
-          </Button>
-          <Button
-            variant="plain"
-            size="bare"
-            type="button"
-            role="radio"
-            aria-checked={chat.reply === "natural"}
-            onClick={() => onReply("natural")}
-            className="!px-2 !py-1 !text-[11px]"
-            title="Your browser's natural voice"
-          >
-            🗣 Natural
-          </Button>
+          <Hint text="Riven's own robot voice">
+            <Button
+              variant="plain"
+              size="bare"
+              type="button"
+              role="radio"
+              aria-checked={chat.reply === "robot"}
+              onClick={() => onReply("robot")}
+              className="!px-2 !py-1 !text-[11px]"
+            >
+              🤖 Riven
+            </Button>
+          </Hint>
+          <Hint text="Your browser's natural voice">
+            <Button
+              variant="plain"
+              size="bare"
+              type="button"
+              role="radio"
+              aria-checked={chat.reply === "natural"}
+              onClick={() => onReply("natural")}
+              className="!px-2 !py-1 !text-[11px]"
+            >
+              🗣 Natural
+            </Button>
+          </Hint>
           <Button
             variant="plain"
             size="bare"
@@ -456,27 +459,30 @@ export function VoicePanel({
         }}
         className="flex items-center gap-2 border-t border-[var(--rv-stroke)] p-2"
       >
-        <Button
-          variant="plain"
-          size="bare"
-          type="button"
-          onClick={chat.listening ? onStop : onListen}
-          disabled={!chat.micSupported}
-          aria-label={chat.listening ? "Stop listening" : "Speak to Riven"}
-          aria-pressed={chat.listening}
-          className="grid size-9 shrink-0 place-items-center rounded-full disabled:opacity-40"
-          style={{
-            background: chat.listening ? "var(--rv-risk)" : "var(--rv-blue)",
-            color: chat.listening ? "#fff" : "var(--rv-on-blue)",
-          }}
-          title={
+        <Hint
+          text={
             chat.micSupported
               ? undefined
               : "Voice input isn't supported in this browser"
           }
         >
-          <MicIcon />
-        </Button>
+          <Button
+            variant="plain"
+            size="bare"
+            type="button"
+            onClick={chat.listening ? onStop : onListen}
+            disabled={!chat.micSupported}
+            aria-label={chat.listening ? "Stop listening" : "Speak to Riven"}
+            aria-pressed={chat.listening}
+            className="grid size-9 shrink-0 place-items-center rounded-full disabled:opacity-40"
+            style={{
+              background: chat.listening ? "var(--rv-risk)" : "var(--rv-blue)",
+              color: chat.listening ? "#fff" : "var(--rv-on-blue)",
+            }}
+          >
+            <MicIcon />
+          </Button>
+        </Hint>
         <Input
           value={typed}
           onChange={(e) => setTyped(e.target.value)}

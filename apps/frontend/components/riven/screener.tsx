@@ -43,6 +43,7 @@ import { PageNav } from "@/components/riven/page-nav"
 import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { RvSelect } from "@/components/riven/rv-select"
+import { Hint } from "@/components/riven/hint"
 
 const REFRESH_MS = 60_000
 /** Where "Dispute a score" goes: NEXT_PUBLIC_DISPUTE_URL, else the methodology page. */
@@ -327,18 +328,19 @@ export function Screener({
               ],
             ] as Array<[HasFilter, string, string]>
           ).map(([id, label, hint]) => (
-            <Button
-              variant="plain"
-              size="bare"
-              key={id}
-              type="button"
-              title={hint}
-              aria-pressed={filters.has === id}
-              onClick={() => go({ has: filters.has === id ? "all" : id })}
-              className="rv-chip shrink-0"
-            >
-              {label}
-            </Button>
+            <Hint text={hint}>
+              <Button
+                variant="plain"
+                size="bare"
+                key={id}
+                type="button"
+                aria-pressed={filters.has === id}
+                onClick={() => go({ has: filters.has === id ? "all" : id })}
+                className="rv-chip shrink-0"
+              >
+                {label}
+              </Button>
+            </Hint>
           ))}
         <div className="hidden items-center gap-1.5 md:flex">
           <RvSelect
@@ -603,12 +605,11 @@ function FilterPanel({
 /** Paid DexScreener boosts running on this token. */
 function Boosts({ n }: { n: number }) {
   return (
-    <span
-      className="rv-num shrink-0 text-[11px] font-bold text-[#fbbf24]"
-      title={`${n} active DexScreener boost${n === 1 ? "" : "s"}`}
-    >
-      ⚡{n}
-    </span>
+    <Hint text={`${n} active DexScreener boost${n === 1 ? "" : "s"}`}>
+      <span className="rv-num shrink-0 text-[11px] font-bold text-[#fbbf24]">
+        ⚡{n}
+      </span>
+    </Hint>
   )
 }
 
@@ -616,12 +617,11 @@ function Boosts({ n }: { n: number }) {
 function Score({ t }: { t: TokenSummary }) {
   if (t.score === null)
     return (
-      <span
-        className="max-w-[58px] text-right text-[11px] leading-tight text-[var(--rv-ink-3)]"
-        title="Not scored yet. Open the token and Riven scores it right there."
-      >
-        Open to score
-      </span>
+      <Hint text="Not scored yet. Open the token and Riven scores it right there.">
+        <span className="max-w-[58px] text-right text-[11px] leading-tight text-[var(--rv-ink-3)]">
+          Open to score
+        </span>
+      </Hint>
     )
   return <ScoreBadge score={t.score} band={t.band} size="sm" />
 }
@@ -829,20 +829,21 @@ function DesktopTable({
                 <TableCell className="rv-num px-2 py-2 text-right text-[var(--rv-ink-2)]">
                   {age(t.launchedAt, now)}
                 </TableCell>
-                <TableCell
-                  className="rv-num hidden px-2 py-2 text-right text-[var(--rv-ink-2)] xl:table-cell"
-                  title={
+                <Hint
+                  text={
                     t.buys24h === null
                       ? undefined
                       : `${t.buys24h} buys / ${t.sells24h} sells`
                   }
                 >
-                  {txns === null ? (
-                    <span className="text-[var(--rv-ink-3)]">—</span>
-                  ) : (
-                    compact(txns)
-                  )}
-                </TableCell>
+                  <TableCell className="rv-num hidden px-2 py-2 text-right text-[var(--rv-ink-2)] xl:table-cell">
+                    {txns === null ? (
+                      <span className="text-[var(--rv-ink-3)]">—</span>
+                    ) : (
+                      compact(txns)
+                    )}
+                  </TableCell>
+                </Hint>
                 <TableCell className="rv-num px-2 py-2 text-right text-[var(--rv-ink)]">
                   {t.volume.h24 === null ? "—" : usd(t.volume.h24)}
                 </TableCell>
@@ -871,12 +872,11 @@ function DesktopTable({
                     {t.liquidityUsd === null ? "—" : usd(t.liquidityUsd)}
                   </div>
                   {t.usdcInPool !== null && t.usdcInPool < 1000 && (
-                    <div
-                      className="rv-num text-[10.5px] text-[var(--rv-caution)]"
-                      title="Real USDC in the pool — what sellers can exit into"
-                    >
-                      {usd(t.usdcInPool)} real
-                    </div>
+                    <Hint text="Real USDC in the pool — what sellers can exit into">
+                      <div className="rv-num text-[10.5px] text-[var(--rv-caution)]">
+                        {usd(t.usdcInPool)} real
+                      </div>
+                    </Hint>
                   )}
                 </TableCell>
                 <TableCell className="rv-num px-2 py-2 text-right text-[var(--rv-ink)]">
@@ -999,13 +999,14 @@ export function Why({ t }: { t: TokenSummary }) {
 
 export function FlagChip() {
   return (
-    <Badge
-      variant="neutral"
-      className="rounded border-transparent bg-[rgba(248,113,113,0.12)] px-1.5 py-px text-[10px] font-bold tracking-wide text-[var(--rv-risk)] uppercase"
-      title="Flagged by on-chain evidence — open the token to see why"
-    >
-      Flagged
-    </Badge>
+    <Hint text="Flagged by on-chain evidence — open the token to see why">
+      <Badge
+        variant="neutral"
+        className="rounded border-transparent bg-[rgba(248,113,113,0.12)] px-1.5 py-px text-[10px] font-bold tracking-wide text-[var(--rv-risk)] uppercase"
+      >
+        Flagged
+      </Badge>
+    </Hint>
   )
 }
 
@@ -1017,20 +1018,22 @@ export function Meta({ t, now }: { t: TokenSummary; now: number }) {
         {t.launchpad}
       </span>
       {t.holders !== null && (
-        <span className="rv-num flex items-center gap-1" title="Holders">
-          <svg
-            viewBox="0 0 24 24"
-            width={11}
-            height={11}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.2}
-            aria-hidden
-          >
-            <path d="M16 19v-1a4 4 0 0 0-8 0v1M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-          </svg>
-          {compact(t.holders)}
-        </span>
+        <Hint text="Holders">
+          <span className="rv-num flex items-center gap-1">
+            <svg
+              viewBox="0 0 24 24"
+              width={11}
+              height={11}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              aria-hidden
+            >
+              <path d="M16 19v-1a4 4 0 0 0-8 0v1M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+            </svg>
+            {compact(t.holders)}
+          </span>
+        </Hint>
       )}
     </span>
   )

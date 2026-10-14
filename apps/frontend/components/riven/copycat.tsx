@@ -13,17 +13,19 @@ import {
 } from "@/components/ui/dialog"
 import { DIALOG, DIALOG_TITLE } from "./card-style"
 import { ScoreBadge } from "./score-badge"
+import { Hint } from "@/components/riven/hint"
 
 /** Small inline marker: this ticker is used by other tokens too. */
 export function CopyBadge({ copies }: { copies: number }) {
   if (copies <= 0) return null
   return (
-    <span
-      className="rounded bg-[rgba(251,191,36,0.14)] px-1.5 text-[10px] font-bold whitespace-nowrap text-[var(--rv-caution)] uppercase"
-      title={`${copies} other token${copies === 1 ? "" : "s"} on Arc use this ticker`}
+    <Hint
+      text={`${copies} other token${copies === 1 ? "" : "s"} on Arc use this ticker`}
     >
-      Copy ×{copies + 1}
-    </span>
+      <span className="rounded bg-[rgba(251,191,36,0.14)] px-1.5 text-[10px] font-bold whitespace-nowrap text-[var(--rv-caution)] uppercase">
+        Copy ×{copies + 1}
+      </span>
+    </Hint>
   )
 }
 

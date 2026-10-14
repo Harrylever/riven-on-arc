@@ -8,6 +8,7 @@ import { signalCoinKey } from "@/lib/perp-symbols"
 import { ArrowIcon } from "@/components/riven/arrow"
 import { PriceGap } from "@/components/perps/source-ui"
 import { Button } from "@/components/ui/button"
+import { Hint } from "@/components/riven/hint"
 
 const OUTCOME: Record<string, { label: string; color: string }> = {
   pending: { label: "Live", color: "var(--rv-blue)" },
@@ -220,21 +221,24 @@ export function CallCard({
       {/* actions: the main one full width on a phone */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
         {s.outcome === "pending" && (
-          <Button
-            variant="riven"
-            size="rv"
-            type="button"
-            onClick={() => onTrade(s)}
-            disabled={mark === null}
-            title={
+          <Hint
+            text={
               mark === null
                 ? "No live market for this coin"
                 : "Levels come from the scanner's exchange; the paper order fills at the live market price"
             }
-            className="h-11 w-full px-4 text-[13px] disabled:cursor-not-allowed disabled:opacity-50 sm:order-2 sm:ml-auto sm:h-9 sm:w-auto"
           >
-            Paper trade
-          </Button>
+            <Button
+              variant="riven"
+              size="rv"
+              type="button"
+              onClick={() => onTrade(s)}
+              disabled={mark === null}
+              className="h-11 w-full px-4 text-[13px] disabled:cursor-not-allowed disabled:opacity-50 sm:order-2 sm:ml-auto sm:h-9 sm:w-auto"
+            >
+              Paper trade
+            </Button>
+          </Hint>
         )}
         <Link
           href={`/perps/${coin}`}

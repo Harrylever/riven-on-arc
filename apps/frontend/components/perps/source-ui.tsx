@@ -11,12 +11,18 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TAB_BLOCK } from "@/components/riven/card-style"
 import { ago, priceUsd } from "@/lib/format"
 import { venueName } from "@/lib/perp-symbols"
+import { Hint } from "@/components/riven/hint"
 
 export type SourceTab = "scanner" | "markets"
 
-
 /** A small radar: the mark of Riven Scanner everywhere it appears. */
-export function ScannerGlyph({ size = 14, className }: { size?: number; className?: string }) {
+export function ScannerGlyph({
+  size = 14,
+  className,
+}: {
+  size?: number
+  className?: string
+}) {
   return (
     <svg
       width={size}
@@ -37,7 +43,13 @@ export function ScannerGlyph({ size = 14, className }: { size?: number; classNam
 }
 
 /** "updated 4s ago" for a timestamp in ms; "—" until there is one. Ticks on its own so it never goes stale. */
-export function AgeLabel({ at, prefix }: { at: number | null; prefix: string }) {
+export function AgeLabel({
+  at,
+  prefix,
+}: {
+  at: number | null
+  prefix: string
+}) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 5_000)
@@ -63,9 +75,24 @@ export function SourceTabs({
   scannerCount: number | null
   marketCount: number | null
 }) {
-  const tabs: Array<{ id: SourceTab; label: string; sub: string; count: number | null }> = [
-    { id: "scanner", label: "Riven Scanner", sub: "setups from Bybit, MEXC, Binance", count: scannerCount },
-    { id: "markets", label: "Markets", sub: "live perp prices", count: marketCount },
+  const tabs: Array<{
+    id: SourceTab
+    label: string
+    sub: string
+    count: number | null
+  }> = [
+    {
+      id: "scanner",
+      label: "Riven Scanner",
+      sub: "setups from Bybit, MEXC, Binance",
+      count: scannerCount,
+    },
+    {
+      id: "markets",
+      label: "Markets",
+      sub: "live perp prices",
+      count: marketCount,
+    },
   ]
   return (
     <Tabs value={value} onValueChange={(v) => onChange(v as SourceTab)}>
@@ -82,13 +109,19 @@ export function SourceTabs({
             className={`min-h-12 min-w-0 flex-1 gap-2 px-3 py-3 text-center sm:justify-start sm:gap-3 sm:px-4 sm:py-2.5 ${TAB_BLOCK}`}
           >
             <span className="inline-flex items-center gap-1.5 text-[14px] font-bold whitespace-nowrap">
-              {t.id === "scanner" && <ScannerGlyph size={15} className="text-[var(--rv-blue)]" />}
+              {t.id === "scanner" && (
+                <ScannerGlyph size={15} className="text-[var(--rv-blue)]" />
+              )}
               {t.label}
               {t.count !== null && (
-                <span className="rv-num rounded-full bg-white/[0.07] px-1.5 text-[11px] font-semibold text-[var(--rv-ink-2)]">{t.count}</span>
+                <span className="rv-num rounded-full bg-white/[0.07] px-1.5 text-[11px] font-semibold text-[var(--rv-ink-2)]">
+                  {t.count}
+                </span>
               )}
             </span>
-            <span className="hidden truncate text-[11px] font-normal text-[var(--rv-ink-3)] sm:inline">{t.sub}</span>
+            <span className="hidden truncate text-[11px] font-normal text-[var(--rv-ink-3)] sm:inline">
+              {t.sub}
+            </span>
           </TabsTrigger>
         ))}
       </TabsList>
@@ -97,7 +130,13 @@ export function SourceTabs({
 }
 
 /** Names the data's origin and age at the top of each tab. */
-export function SourceStrip({ kind, children }: { kind: SourceTab; children?: ReactNode }) {
+export function SourceStrip({
+  kind,
+  children,
+}: {
+  kind: SourceTab
+  children?: ReactNode
+}) {
   const scanner = kind === "scanner"
   return (
     <div
@@ -117,7 +156,11 @@ export function SourceStrip({ kind, children }: { kind: SourceTab; children?: Re
             "Live markets"
           )}
         </span>
-        {children && <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">{children}</span>}
+        {children && (
+          <span className="rv-num text-[11px] text-[var(--rv-ink-3)]">
+            {children}
+          </span>
+        )}
       </div>
       <p className="mt-1 leading-snug text-[var(--rv-ink-3)]">
         {scanner
@@ -142,14 +185,15 @@ export function ScannerPill({
 }) {
   const side = bias === "LONG" ? "var(--rv-up)" : "var(--rv-down)"
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full border border-[var(--rv-blue)]/45 px-1.5 py-px text-[9.5px] font-bold"
-      title={`Riven Scanner call from ${venueName(exchange)}: ${bias} ${confidence}/10, ${ago(scanTime)} ago`}
+    <Hint
+      text={`Riven Scanner call from ${venueName(exchange)}: ${bias} ${confidence}/10, ${ago(scanTime)} ago`}
     >
-      <ScannerGlyph size={10} className="text-[var(--rv-blue)]" />
-      <span style={{ color: side }}>{bias}</span>
-      <span className="text-[var(--rv-ink-2)]">{confidence}/10</span>
-    </span>
+      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--rv-blue)]/45 px-1.5 py-px text-[9.5px] font-bold">
+        <ScannerGlyph size={10} className="text-[var(--rv-blue)]" />
+        <span style={{ color: side }}>{bias}</span>
+        <span className="text-[var(--rv-ink-2)]">{confidence}/10</span>
+      </span>
+    </Hint>
   )
 }
 
@@ -175,21 +219,27 @@ export function PriceGap({
   return (
     <div className="rv-num space-y-0.5 text-[11px] leading-snug text-[var(--rv-ink-3)]">
       <p>
-        Called on <b className="text-[var(--rv-ink-2)]">{venueName(exchange)}</b> at{" "}
-        <b className="text-[var(--rv-ink-2)]">{priceUsd(entry)}</b> · {ago(scanTime)} ago
+        Called on{" "}
+        <b className="text-[var(--rv-ink-2)]">{venueName(exchange)}</b> at{" "}
+        <b className="text-[var(--rv-ink-2)]">{priceUsd(entry)}</b> ·{" "}
+        {ago(scanTime)} ago
       </p>
-      {showNow && <p>
-        {mark === undefined ? (
-          "Live market price loading…"
-        ) : mark === null ? (
-          "No live market for this coin, so it can't be paper-traded here"
-        ) : (
-          <>
-            Live market price now <b className="text-[var(--rv-ink-2)]">{priceUsd(mark)}</b>
-            {gap !== null && ` (${gap >= 0 ? "+" : ""}${gap.toFixed(1)}% vs entry)`}
-          </>
-        )}
-      </p>}
+      {showNow && (
+        <p>
+          {mark === undefined ? (
+            "Live market price loading…"
+          ) : mark === null ? (
+            "No live market for this coin, so it can't be paper-traded here"
+          ) : (
+            <>
+              Live market price now{" "}
+              <b className="text-[var(--rv-ink-2)]">{priceUsd(mark)}</b>
+              {gap !== null &&
+                ` (${gap >= 0 ? "+" : ""}${gap.toFixed(1)}% vs entry)`}
+            </>
+          )}
+        </p>
+      )}
     </div>
   )
 }

@@ -21,6 +21,7 @@ import { ArrowIcon } from "@/components/riven/arrow"
 import { RivenRead } from "@/components/perps/riven-read"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
+import { Hint } from "@/components/riven/hint"
 
 const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`
 
@@ -185,28 +186,29 @@ export function PerpPairClient({ coin }: { coin: string }) {
             </p>
           </div>
         )}
-        <Button
-          variant="riven"
-          size="rv"
-          type="button"
-          onClick={() => riven.scan()}
-          className="ml-auto h-9 gap-1.5 px-3 text-[13px]"
-          title="Riven reads the market, funding, news and the scanner for this pair"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width={15}
-            height={15}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.2}
-            aria-hidden
+        <Hint text="Riven reads the market, funding, news and the scanner for this pair">
+          <Button
+            variant="riven"
+            size="rv"
+            type="button"
+            onClick={() => riven.scan()}
+            className="ml-auto h-9 gap-1.5 px-3 text-[13px]"
           >
-            <circle cx="11" cy="11" r="6" />
-            <path d="m20 20-4.2-4.2" />
-          </svg>
-          Why is it moving?
-        </Button>
+            <svg
+              viewBox="0 0 24 24"
+              width={15}
+              height={15}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              aria-hidden
+            >
+              <circle cx="11" cy="11" r="6" />
+              <path d="m20 20-4.2-4.2" />
+            </svg>
+            Why is it moving?
+          </Button>
+        </Hint>
       </header>
 
       {/* Riven's read: the analysis engine's plain-English take (a drop-down; it closes once scrolled past) */}
